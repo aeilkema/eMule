@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -17,7 +17,6 @@
 #include "stdafx.h"
 #include "emule.h"
 #include "ArchivePreviewDlg.h"
-#include "KnownFile.h"
 #include "partfile.h"
 #include "preferences.h"
 #include "UserMsgs.h"
@@ -43,7 +42,7 @@ private:
 public:
 	EncodeFileName();
 	//int Encode(char *Name, wchar_t *NameW, byte *EncName);
-	void Decode(const char* const Name, byte *EncName, int EncSize, wchar_t *NameW, int MaxDecSize);
+	void Decode(const char *const Name, byte *EncName, int EncSize, wchar_t *NameW, int MaxDecSize);
 };
 
 EncodeFileName::EncodeFileName()
@@ -54,7 +53,7 @@ EncodeFileName::EncodeFileName()
 {
 }
 
-void EncodeFileName::Decode(const char* const Name, byte *EncName, int EncSize, wchar_t *NameW, int MaxDecSize)
+void EncodeFileName::Decode(const char *const Name, byte *EncName, int EncSize, wchar_t *NameW, int MaxDecSize)
 {
 	int EncPos = 0, DecPos = 0;
 	byte HighByte = EncName[EncPos++];
@@ -171,15 +170,7 @@ BOOL CArchivePreviewDlg::OnInitDialog()
 
 	m_StoredColWidth2 = 0;
 	m_StoredColWidth5 = 0;
-	if (!m_bReducedDlg) {
-		AddAnchor(IDC_READARCH, BOTTOM_LEFT);
-		AddAnchor(IDC_RESTOREARCH, BOTTOM_LEFT);
-		AddAnchor(IDC_APV_FILEINFO, TOP_LEFT, TOP_RIGHT);
-		AddAnchor(IDC_ARCP_ATTRIBS, TOP_CENTER);
-		AddAnchor(IDC_INFO_ATTR, TOP_CENTER, TOP_RIGHT);
-		AddAnchor(IDC_AP_EXPLAIN, BOTTOM_LEFT);
-		AddAnchor(IDC_INFO_STATUS, TOP_LEFT, TOP_RIGHT);
-	} else {
+	if (m_bReducedDlg) {
 		CRect rc;
 		GetDlgItem(IDC_APV_FILEINFO)->GetWindowRect(rc);
 		int nDelta1 = rc.Height();
@@ -199,6 +190,14 @@ BOOL CArchivePreviewDlg::OnInitDialog()
 		GetDlgItem(IDC_INFO_TYPE)->ShowWindow(SW_HIDE);
 		GetDlgItem(IDC_ARCP_TYPE)->ShowWindow(SW_HIDE);
 		GetDlgItem(IDC_ARCP_STATUS)->ShowWindow(SW_HIDE);
+	} else {
+		AddAnchor(IDC_READARCH, BOTTOM_LEFT);
+		AddAnchor(IDC_RESTOREARCH, BOTTOM_LEFT);
+		AddAnchor(IDC_AP_EXPLAIN, BOTTOM_LEFT);
+		AddAnchor(IDC_APV_FILEINFO, TOP_LEFT, TOP_RIGHT);
+		AddAnchor(IDC_ARCP_ATTRIBS, TOP_CENTER);
+		AddAnchor(IDC_INFO_ATTR, TOP_CENTER, TOP_RIGHT);
+		AddAnchor(IDC_INFO_STATUS, TOP_LEFT, TOP_RIGHT);
 	}
 	AddAnchor(IDC_INFO_FILECOUNT, BOTTOM_RIGHT);
 	AddAnchor(IDC_ARCHPROGRESS, BOTTOM_LEFT, BOTTOM_RIGHT);
@@ -394,39 +393,39 @@ int CArchivePreviewDlg::ShowAceResults(int succ, archiveScannerThreadParams_s *t
 
 			if (bIsDirectory) {
 				if (!temp.IsEmpty())
-					temp += _T(',');
-				temp += _T('D');
+					temp += _T(",");
+				temp += _T("D");
 			}
 
 			if (block->HEAD_FLAGS & 0x2000) {
 				if (!temp.IsEmpty())
-					temp += _T(',');
-				temp += _T('>');
+					temp += _T(",");
+				temp += _T(">");
 			}
 			if (block->HEAD_FLAGS & 0x1000) {
 				if (!temp.IsEmpty())
-					temp += _T(',');
-				temp += _T('<');
+					temp += _T(",");
+				temp += _T("<");
 			}
 			if (block->HEAD_FLAGS & 0x02) {
 				// file comment - theoretically
 				if (!temp.IsEmpty())
-					temp += _T(',');
-				temp += _T('C');
+					temp += _T(",");
+				temp += _T("C");
 			}
 
 			if (!bCompleteEntry) {
 				// packed data not yet downloaded
 				if (!temp.IsEmpty())
-					temp += _T(',');
-				temp += _T('M');
+					temp += _T(",");
+				temp += _T("M");
 			}
 
 			if (!bIsDirectory) {
 				// compression level
 				if (!temp.IsEmpty())
 					temp += _T(", ");
-				temp.AppendFormat(_T("L%i"), (BYTE)(block->TECHINFO >> 8));
+				temp.AppendFormat(_T("L%i"), (byte)(block->TECHINFO >> 8));
 				m_ContentList.SetItemText(iItem, uSubId++, temp);
 			}
 
@@ -459,22 +458,22 @@ int CArchivePreviewDlg::ShowAceResults(int succ, archiveScannerThreadParams_s *t
 	if (tp->ai->ACEhdr) {
 		if (tp->ai->ACEhdr->HEAD_FLAGS & 0x8000) {
 			if (!status.IsEmpty())
-				status += _T(',');
+				status += _T(",");
 			status += _T("Solid");
 		}
 		if (tp->ai->ACEhdr->HEAD_FLAGS & 0x4000) {
 			if (!status.IsEmpty())
-				status += _T(',');
+				status += _T(",");
 			status += _T("Locked");
 		}
 		if (tp->ai->ACEhdr->HEAD_FLAGS & 0x2000) {
 			if (!status.IsEmpty())
-				status += _T(',');
+				status += _T(",");
 			status += _T("RecoveryRec");
 		}
 		if (tp->ai->ACEhdr->COMMENT_SIZE > 0) {
 			if (!status.IsEmpty())
-				status += _T(',');
+				status += _T(",");
 			status += GetResString(IDS_COMMENT);
 		}
 	}
@@ -551,20 +550,20 @@ int CArchivePreviewDlg::ShowISOResults(int succ, archiveScannerThreadParams_s *t
 		// file attribs
 		if (file->fileFlags & ISO_HIDDEN) {
 			if (!temp.IsEmpty())
-				temp += _T(',');
-			temp += _T('H');
+				temp += _T(",");
+			temp += _T("H");
 		}
 		if (file->fileFlags & ISO_READONLY) {
 			if (!temp.IsEmpty())
-				temp += _T(',');
-			temp += _T('R');
+				temp += _T(",");
+			temp += _T("R");
 		}
 
 		if (!bCompleteEntry) {
 			// packed data not yet downloaded
 			if (!temp.IsEmpty())
-				temp += _T(',');
-			temp += _T('M');
+				temp += _T(",");
+			temp += _T("M");
 		}
 
 		m_ContentList.SetItemText(iItem, 3, temp);
@@ -595,17 +594,17 @@ int CArchivePreviewDlg::ShowISOResults(int succ, archiveScannerThreadParams_s *t
 
 	if (tp->ai->isoInfos.type & ISOtype_9660) {
 		if (!temp.IsEmpty())
-			temp += _T(',');
+			temp += _T(",");
 		temp += _T("ISO9660");
 	}
 	if (tp->ai->isoInfos.type & ISOtype_joliet) {
 		if (!temp.IsEmpty())
-			temp += _T(',');
+			temp += _T(",");
 		temp += _T("Joliet");
 	}
 	if (tp->ai->isoInfos.type & ISOtype_UDF_nsr02 || tp->ai->isoInfos.type & ISOtype_UDF_nsr03) {
 		if (!temp.IsEmpty())
-			temp += _T(',');
+			temp += _T(",");
 		temp.AppendFormat(_T("UDF (%s)"), (LPCTSTR)GetResString(IDS_UNSUPPORTEDIMAGE));
 	}
 
@@ -680,7 +679,6 @@ int CArchivePreviewDlg::ShowRarResults(int succ, archiveScannerThreadParams_s *t
 				, INT_MAX, temp, 0, 0, iSystemImage, static_cast<LPARAM>(!bCompleteEntry));
 
 			if ((block->HEAD_FLAGS & 0xE0) != 0xE0) {
-
 				// size (uncompressed)
 				UINT64 size = block->UNP_SIZE;
 				if (block->ATTR & 0x100)
@@ -690,7 +688,6 @@ int CArchivePreviewDlg::ShowRarResults(int succ, archiveScannerThreadParams_s *t
 				// crc
 				temp.Format(_T("%08X"), block->FILE_CRC);
 				m_ContentList.SetItemText(iItem, uSubId++, temp);
-
 			} else
 				uSubId += 2;
 
@@ -704,32 +701,32 @@ int CArchivePreviewDlg::ShowRarResults(int succ, archiveScannerThreadParams_s *t
 			//is directory?
 			if (bIsDirectory) {
 				if (!temp.IsEmpty())
-					temp += _T(',');
-				temp += _T('D');
+					temp += _T(",");
+				temp += _T("D");
 			}
 
 			if (block->HEAD_FLAGS & 0x01) {
 				if (!temp.IsEmpty())
-					temp += _T(',');
-				temp += _T('<');
+					temp += _T(",");
+				temp += _T("<");
 			}
 			if (block->HEAD_FLAGS & 0x02) {
 				if (!temp.IsEmpty())
-					temp += _T(',');
-				temp += _T('>');
+					temp += _T(",");
+				temp += _T(">");
 			}
 			if (block->HEAD_FLAGS & 0x08) {
 				// file comment - theoretically
 				if (!temp.IsEmpty())
-					temp += _T(',');
-				temp += _T('C');
+					temp += _T(",");
+				temp += _T("C");
 			}
 
 			if (!bCompleteEntry) {
 				// packed data not yet downloaded
 				if (!temp.IsEmpty())
-					temp += _T(',');
-				temp += _T('M');
+					temp += _T(",");
+				temp += _T("M");
 			}
 
 			if (!temp.IsEmpty())
@@ -767,22 +764,22 @@ int CArchivePreviewDlg::ShowRarResults(int succ, archiveScannerThreadParams_s *t
 
 	if (tp->ai->rarFlags & 0x0008) {
 		if (!status.IsEmpty())
-			status += _T(',');
+			status += _T(",");
 		status += _T("Solid");
 	}
 	if (tp->ai->rarFlags & 0x0004) {
 		if (!status.IsEmpty())
-			status += _T(',');
+			status += _T(",");
 		status += _T("Locked");
 	}
 	if (tp->ai->rarFlags & 0x0040) {
 		if (!status.IsEmpty())
-			status += _T(',');
+			status += _T(",");
 		status += _T("RecoveryRec");
 	}
 	if (tp->ai->rarFlags & 0x0002) {
 		if (!status.IsEmpty())
-			status += _T(',');
+			status += _T(",");
 		status += GetResString(IDS_COMMENT);
 	}
 
@@ -851,14 +848,15 @@ int CArchivePreviewDlg::ShowZipResults(int succ, archiveScannerThreadParams_s *t
 				, INT_MAX, temp, 0, 0, iSystemImage, static_cast<LPARAM>(!bCompleteEntry));
 
 			// size (uncompressed)
-			if (!bIsDirectory) {
+			if (bIsDirectory)
+				uSubId += 2;
+			else {
 				m_ContentList.SetItemText(iItem, uSubId++, (LPCTSTR)CastItoXBytes(cdEntry->lenUncompressed));
 
 				// crc
 				temp.Format(_T("%08X"), cdEntry->crc32);
 				m_ContentList.SetItemText(iItem, uSubId++, temp);
-			} else
-				uSubId += 2;
+			}
 
 			// attribs
 			if (cdEntry->generalPurposeFlag & 0x01 || cdEntry->generalPurposeFlag & 0x40) {
@@ -869,15 +867,15 @@ int CArchivePreviewDlg::ShowZipResults(int succ, archiveScannerThreadParams_s *t
 
 			if (bIsDirectory) {
 				if (!temp.IsEmpty())
-					temp += _T(',');
-				temp += _T('D');
+					temp += _T(",");
+				temp += _T("D");
 			}
 
 			// compressed data not available yet?
 			if (!bCompleteEntry) {
 				if (!temp.IsEmpty())
-					temp += _T(',');
-				temp += _T('M');
+					temp += _T(",");
+				temp += _T("M");
 			}
 
 			m_ContentList.SetItemText(iItem, uSubId++, temp);
@@ -1042,7 +1040,7 @@ void CArchivePreviewDlg::UpdateArchiveDisplay(bool doscan)
 			return;
 		}
 	} else
-		filled->Add(Gap_Struct{ 0, (uint64)pFile->GetFileSize() });
+		filled->Add(Gap_Struct{0, pFile->GetFileSize()});
 
 	SetDlgItemText(IDC_INFO_STATUS, GetResString(IDS_ARCPREV_PLEASEWAIT));
 

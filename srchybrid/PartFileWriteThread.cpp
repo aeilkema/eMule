@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2020-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2020-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,15 +15,11 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "StdAfx.h"
-#include <timeapi.h>
 #include "updownclient.h"
 #include "PartFileWriteThread.h"
 #include "emule.h"
-#include "DownloadQueue.h"
 #include "partfile.h"
 #include "log.h"
-#include "preferences.h"
-#include "Statistics.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -81,7 +77,7 @@ UINT CPartFileWriteThread::RunInternal()
 		&& completionKey)
 	{
 		m_Run = RUN_WORK;
-		//move buffer lists into the local storage
+		//move buffer list into the local storage
 		if (!m_FlushList.IsEmpty()) {
 			m_lockFlushList.Lock();
 			while (!m_FlushList.IsEmpty())
@@ -89,9 +85,9 @@ UINT CPartFileWriteThread::RunInternal()
 			InterlockedExchange8(&m_bNewData, 0);
 			m_lockFlushList.Unlock();
 		}
-		//start new I/O
+		//start new writes
 		WriteBuffers();
-		//completed I/O
+		//check completed I/O
 		do {
 			if (!completionKey)
 				break;
@@ -125,7 +121,7 @@ void CPartFileWriteThread::WriteBuffers()
 	while (!m_listToWrite.IsEmpty() && m_Run) {
 		const ToWrite &item = m_listToWrite.RemoveHead();
 		PartFileBufferedData *pBuffer = item.pBuffer;
-		ASSERT(pBuffer->end >= pBuffer->start && (pBuffer->data || pBuffer->end == pBuffer->start)); //verifies allocation requests too
+		ASSERT(pBuffer->end >= pBuffer->start && (pBuffer->data || pBuffer->end == pBuffer->start)); //verifies allocation request too
 
 		CPartFile *pFile = item.pFile;
 		if (AddFile(pFile)) {
@@ -178,12 +174,14 @@ void CPartFileWriteThread::WriteCompletionRoutine(DWORD dwBytesWritten, const Ov
 			if (pFile) {
 				--pFile->m_iWrites;
 				if (pBuffer->data) { //write data
-					ASSERT(pBuffer->flushed = PB_PENDING && pFile->m_iWrites >= 0);
+					ASSERT(pBuffer->flushed == PB_PENDING && pFile->m_iWrites >= 0);
 					pBuffer->flushed = PB_WRITTEN;
 				} else { //full file allocation
 					ASSERT(dwBytesWritten == 1);
-					::FlushFileBuffers(pFile->m_hWrite);
-					pFile->m_hpartfile.SetLength(pBuffer->start); //truncate the extra byte
+					if (pFile->m_hWrite != INVALID_HANDLE_VALUE) {
+						::FlushFileBuffers(pFile->m_hWrite);
+						pFile->m_hpartfile.SetLength(pBuffer->start); //truncate the extra byte
+					}
 					delete pBuffer;
 				}
 			}
@@ -202,7 +200,7 @@ bool CPartFileWriteThread::AddFile(CPartFile *pFile)
 	ASSERT(m_hPort && m_Run);
 	if (pFile && pFile->m_hWrite == INVALID_HANDLE_VALUE) {
 		const CString sPartFile(RemoveFileExtension(pFile->GetFullName()));
-		pFile->m_hWrite = ::CreateFile(sPartFile, GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		pFile->m_hWrite = ::CreateFile(sPartFile, GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
 		if (pFile->m_hWrite == INVALID_HANDLE_VALUE) {
 			theApp.QueueDebugLogLineEx(LOG_ERROR, _T("Failed to open \"%s\" for overlapped write: %s"), (LPCTSTR)sPartFile, (LPCTSTR)GetErrorMessage(::GetLastError(), 1));
 			pFile->SetStatus(PS_ERROR);

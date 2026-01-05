@@ -26,7 +26,7 @@ class CFileDetailDialogInfo : public CResizablePage
 	};
 
 public:
-	CFileDetailDialogInfo();   // standard constructor
+	CFileDetailDialogInfo();	// standard constructor
 	virtual BOOL OnInitDialog();
 
 	void SetFiles(const CSimpleArray<CObject*> *paFiles)	{ m_paFiles = paFiles; m_bDataChanged = true; }
@@ -35,13 +35,12 @@ public:
 protected:
 	const CSimpleArray<CObject*> *m_paFiles;
 	UINT_PTR m_timer;
-	static LPCTSTR sm_pszNotAvail;
 	bool m_bDataChanged;
 	bool m_bShowFileTypeWarning;
 
 	void RefreshData();
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnSetActive();
 
 	DECLARE_MESSAGE_MAP()

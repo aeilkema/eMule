@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -123,7 +123,9 @@ void CUDPFirewallTester::SetUDPFWCheckResult(bool bSucceeded, bool bTestCancelle
 	else
 		--m_byFWChecksRunningUDP;
 
-	if (!bTestCancelled) {
+	if (bTestCancelled)
+		DebugLogWarning(_T("Kad UDP firewall check from %s cancelled"), (LPCTSTR)ipstr(htonl(uFromIP)));
+	else {
 		++m_byFWChecksFinishedUDP;
 		if (bSucceeded) {	//one positive result is enough
 			m_dwTestStart = 0;
@@ -160,8 +162,7 @@ void CUDPFirewallTester::SetUDPFWCheckResult(bool bSucceeded, bool bTestCancelle
 			return;
 		}
 		DebugLogWarning(_T("Kad UDP firewall check from %s result: Firewalled, continue testing"), (LPCTSTR)ipstr(htonl(uFromIP)));
-	} else
-		DebugLogWarning(_T("Kad UDP firewall check from %s cancelled"), (LPCTSTR)ipstr(htonl(uFromIP)));
+	}
 	QueryNextClient();
 }
 

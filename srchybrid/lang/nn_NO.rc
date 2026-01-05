@@ -1,4 +1,4 @@
-#include "nn_NO.h"
+﻿#include "nn_NO.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -17,7 +17,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NOR)
 #ifdef _WIN32
 LANGUAGE LANG_NORWEGIAN, SUBLANG_NORWEGIAN_NYNORSK
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -729,7 +728,6 @@ BEGIN
     IDS_NEWMSG              "Ny melding frå '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "berre i same kategori"
     IDS_LOG_ULDL_EVENTS     "Logg opplasting/nedlastingshendingar"
-//    IDS_PEERCACHE_ENABLED   "Internettleverandøren din støttar PeerCache teknologien; aktiverer cachenedlastingar!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Tillat brukarar å leggje deg til som ven"
 END
 
@@ -1512,7 +1510,7 @@ STRINGTABLE
 BEGIN
     IDS_STATS_FRATIO        "Sesjon OL:NL rate (OL til venar utelete):"
     IDS_STATS_UDATA_FRIENDS "Opplasta data til venekoplingar (sesjon): %s"
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Last ned delar for førehandssyning først"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Last ned delar for førehandssyning først"
 END
 
 STRINGTABLE
@@ -1550,9 +1548,6 @@ BEGIN
     IDS_WIZ_STARTWITHWINDOWS "Aktiver dette så eMule vil starte saman med Windows. [Deaktivert som standard]"
     IDS_KAD_WAITCBK         "Avventar tilbakering Kad"
     IDS_KAD_TOOMANDYKADLKPS "For mange Kad-oppslag"
-//    IDS_PCDS_CLIENTWAIT     "Klient Vent"
-//    IDS_PCDS_CACHEWAIT      "Cache Vent"
-//    IDS_CACHE               "Cache"
     IDS_INDEXED             "Indeksert"
     IDS_KADINFO_SRC         "\tKjelde: %u\r\n"
     IDS_KADINFO_KEYW        "\tSøkjeord: %u\r\n"
@@ -1648,7 +1643,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD "Windows Common Controls library (COMCTL32.DLL) er for gamal!\r\n\r\neMule har oppdaga ei utgåve av ""Windows Common Controls library (COMCTL32.DLL)"", som er for gamal til å verte nytta rett av eMule. For å sikre full og feilfri bruk av eMule tilrår vi å oppdatere ""Windows Common Controls library (COMCTL32.DLL)"" til seinaste utgåve 5.8.\r\n\r\nLast ned og installer ei oppdatering av ""Windows Common Controls library (COMCTL32.DLL)"" frå Microsoft (R) Download Center. Vil du vitje den heimesida no?"
     IDS_ASREGEXPR           "Som standarduttrykk"
     IDS_STATIC_REGEXP       "Standarduttrykk for synsfilter:"
     IDS_CARE4ALL            "Evaluer alle filer"

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -19,7 +19,6 @@
 #include "ClientListCtrl.h"
 #include "MenuCmds.h"
 #include "ClientDetailDialog.h"
-#include "KademliaWnd.h"
 #include "ClientList.h"
 #include "emuledlg.h"
 #include "FriendList.h"
@@ -30,7 +29,6 @@
 #include "ListenSocket.h"
 #include "ChatWnd.h"
 #include "Kademlia/Kademlia/Kademlia.h"
-#include "Kademlia/net/KademliaUDPListener.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -79,13 +77,12 @@ void CClientListCtrl::Init()
 
 void CClientListCtrl::Localize()
 {
-	static const UINT uids[7] =
+	static const UINT uids[] =
 	{
 		IDS_QL_USERNAME, IDS_CL_UPLOADSTATUS, IDS_CL_TRANSFUP, IDS_CL_DOWNLSTATUS, IDS_CL_TRANSFDOWN
-		, IDS_CD_CSOFT, IDS_CONNECTED
+		, IDS_CD_CSOFT, IDS_CONNECTED, 0
 	};
-
-	LocaliseHeaderCtrl(uids, _countof(uids));
+	LocaliseHeader(uids);
 
 	CString strRes(GetResString(IDS_CD_UHASH));
 	strRes.Remove(_T(':'));
@@ -153,7 +150,7 @@ void CClientListCtrl::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 				}
 			default: //any text column
 				rcItem.left += sm_iSubItemInset;
-				dc.DrawText(sItem, -1, &rcItem, MLC_DT_TEXT | uDrawTextAlignment);
+				dc.DrawText(sItem, &rcItem, MLC_DT_TEXT | uDrawTextAlignment);
 			}
 		}
 		itemLeft += iColumnWidth;
@@ -215,7 +212,7 @@ void CClientListCtrl::OnLvnGetDispInfo(LPNMHDR pNMHDR, LRESULT *pResult)
 		//
 		// Vista: That callback is used to get the strings for the label tips for the sub(!)-items.
 		//
-		const LVITEMW &rItem = reinterpret_cast<NMLVDISPINFO*>(pNMHDR)->item;
+		const LVITEM &rItem = reinterpret_cast<NMLVDISPINFO*>(pNMHDR)->item;
 		if (rItem.mask & LVIF_TEXT) {
 			const CUpDownClient *pClient = reinterpret_cast<CUpDownClient*>(rItem.lParam);
 			if (pClient != NULL)
@@ -313,7 +310,7 @@ int CALLBACK CClientListCtrl::SortProc(LPARAM lParam1, LPARAM lParam2, LPARAM lP
 
 	//call secondary sort order, if the first one resulted as equal
 	if (iResult == 0) {
-		LPARAM iNextSort = theApp.emuledlg->transferwnd->GetClientList()->GetNextSortOrder(lParamSort);
+		LPARAM iNextSort = theApp.emuledlg->transferwnd->GetClientList().GetNextSortOrder(lParamSort);
 		if (iNextSort != -1)
 			iResult = SortProc(lParam1, lParam2, iNextSort);
 	}
@@ -340,7 +337,7 @@ void CClientListCtrl::OnContextMenu(CWnd*, CPoint point)
 	const CUpDownClient *client = (iSel >= 0) ? reinterpret_cast<CUpDownClient*>(GetItemData(iSel)) : NULL;
 	const bool is_ed2k = client && client->IsEd2kClient();
 
-	CTitleMenu ClientMenu;
+	CTitledMenu ClientMenu;
 	ClientMenu.CreatePopupMenu();
 	ClientMenu.AddMenuTitle(GetResString(IDS_CLIENTS), true);
 	ClientMenu.AppendMenu(MF_STRING | (client ? MF_ENABLED : MF_GRAYED), MP_DETAIL, GetResString(IDS_SHOWDETAILS), _T("CLIENTDETAILS"));
@@ -426,8 +423,8 @@ void CClientListCtrl::RemoveClient(const CUpDownClient *client)
 void CClientListCtrl::RefreshClient(const CUpDownClient *client)
 {
 	if (theApp.emuledlg->activewnd == theApp.emuledlg->transferwnd
-		&& !theApp.IsClosing()
-		&& theApp.emuledlg->transferwnd->GetClientList()->IsWindowVisible())
+		&& theApp.emuledlg->transferwnd->GetClientList().IsWindowVisible()
+		&& !theApp.IsClosing())
 	{
 		LVFINDINFO find;
 		find.flags = LVFI_PARAM;
@@ -450,7 +447,7 @@ void CClientListCtrl::ShowSelectedUserDetails()
 
 	SetItemState(-1, 0, LVIS_SELECTED);
 	SetItemState(it, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-	SetSelectionMark(it);   // display selection mark correctly!
+	SetSelectionMark(it);	// display selection mark correctly!
 
 	CUpDownClient *client = reinterpret_cast<CUpDownClient*>(GetItemData(GetSelectionMark()));
 	if (client) {

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -341,7 +341,7 @@ void CPPgTweaks::DoDataExchange(CDataExchange *pDX)
 	DDX_TreeCheck(pDX, IDC_EXT_OPTS, m_htiFullAlloc, m_bFullAlloc);
 	DDX_TreeCheck(pDX, IDC_EXT_OPTS, m_htiCheckDiskspace, m_bCheckDiskspace);
 	DDX_Text(pDX, IDC_EXT_OPTS, m_htiMinFreeDiskSpace, m_fMinFreeDiskSpaceMB);
-	DDV_MinMaxFloat(pDX, m_fMinFreeDiskSpaceMB, 0.0, _UI32_MAX / (1024.0f * 1024.0f));
+	DDV_MinMaxFloat(pDX, m_fMinFreeDiskSpaceMB, 0.0, (float)_UI32_MAX / (1024 * 1024));
 	DDX_TreeRadio(pDX, IDC_EXT_OPTS, m_htiCommit, m_iCommitFiles);
 	DDX_TreeRadio(pDX, IDC_EXT_OPTS, m_htiExtractMetaData, m_iExtractMetaData);
 	DDX_TreeCheck(pDX, IDC_EXT_OPTS, m_htiResolveShellLinks, m_bResolveShellLinks);
@@ -577,7 +577,7 @@ BOOL CPPgTweaks::OnApply()
 		theApp.emuledlg->sharedfileswnd->sharedfilesctrl.CreateMenus();
 	}
 	if (bUpdateDLmenu)
-		theApp.emuledlg->transferwnd->GetDownloadList()->CreateMenus();
+		theApp.emuledlg->transferwnd->GetDownloadList().CreateMenus();
 
 	thePrefs.m_dwServerKeepAliveTimeout = MIN2MS(m_uServerKeepAliveTimeout);
 	thePrefs.m_bSparsePartFiles = m_bSparsePartFiles;
@@ -628,7 +628,7 @@ void CPPgTweaks::OnHScroll(UINT /*nSBCode*/, UINT /*nPos*/, CScrollBar *pScrollB
 		SetDlgItemText(IDC_FILEBUFFERSIZE_STATIC, temp);
 		SetModified(TRUE);
 	} else if (pScrollBar->GetSafeHwnd() == m_ctlQueueSize.m_hWnd) {
-		m_iQueueSize = reinterpret_cast<CSliderCtrl*>(pScrollBar)->GetPos() * 100;
+		m_iQueueSize = 100 * reinterpret_cast<CSliderCtrl*>(pScrollBar)->GetPos();
 		CString temp(GetResString(IDS_QUEUESIZE));
 		temp.AppendFormat(_T(": %s"), (LPCTSTR)GetFormatedUInt((ULONG)m_iQueueSize));
 		SetDlgItemText(IDC_QUEUESIZE_STATIC, temp);
@@ -852,5 +852,5 @@ BOOL CPPgTweaks::OnHelpInfo(HELPINFO*)
 
 void CPPgTweaks::OnBnClickedOpenprefini()
 {
-	ShellOpenFile(thePrefs.GetMuleDirectory(EMULE_CONFIGDIR) + _T("preferences.ini"));
+	ShellOpenFile(thePrefs.GetConfigFile());
 }

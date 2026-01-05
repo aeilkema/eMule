@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,13 +15,14 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #pragma once
-#include "UploadListCtrl.h"
-#include "DownloadListCtrl.h"
-#include "QueueListCtrl.h"
-#include "ClientListCtrl.h"
-#include "DownloadClientsCtrl.h"
 #include "TransferWnd.h"
 #include "ToolbarWnd.h"
+
+class CUploadListCtrl;
+class CDownloadListCtrl;
+class CQueueListCtrl;
+class CClientListCtrl;
+class CDownloadClientsCtrl;
 
 class CTransferDlg : public CFrameWnd
 {
@@ -48,11 +49,11 @@ public:
 	int	 AddCategory(const CString &newtitle, const CString &newincoming, const CString &newcomment, const CString &newautocat, bool addTab = true);
 	void ShowToolbar(bool bShow);
 
-	CUploadListCtrl*		GetUploadList();
-	CDownloadListCtrl*		GetDownloadList();
-	CQueueListCtrl*			GetQueueList();
-	CClientListCtrl*		GetClientList();
-	CDownloadClientsCtrl*	GetDownloadClientsList();
+	CUploadListCtrl&		GetUploadList();
+	CDownloadListCtrl&		GetDownloadList();
+	CQueueListCtrl&			GetQueueList();
+	CClientListCtrl&		GetClientList();
+	CDownloadClientsCtrl&	GetDownloadClientsList();
 
 protected:
 	CToolbarWnd m_wndToolbar;

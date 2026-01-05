@@ -10,7 +10,7 @@ class CSplashScreen : public CDialog
 	};
 
 public:
-	explicit CSplashScreen(CWnd *pParent = NULL);   // standard constructor
+	explicit CSplashScreen(CWnd *pParent = NULL);	// standard constructor
 	virtual	~CSplashScreen();
 
 protected:

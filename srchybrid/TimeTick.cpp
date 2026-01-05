@@ -51,5 +51,5 @@ __int64 CTimeTick::GetPerformanceFrequency()
 
 float CTimeTick::GetTimeInMilliSeconds(__int64 nTime)
 {
-	return SEC2MS(nTime) / (float)m_nPerformanceFrequency;
+	return (float)SEC2MS(nTime) / (float)m_nPerformanceFrequency;
 }

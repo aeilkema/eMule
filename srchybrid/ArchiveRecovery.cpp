@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,8 +15,8 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
-#include "emule.h"
 #include "ArchiveRecovery.h"
+#include "emule.h"
 #include "Log.h"
 #include "PartFile.h"
 #include "zlib/zlib.h"
@@ -29,16 +29,16 @@ static char THIS_FILE[] = __FILE__;
 
 
 #pragma pack(push, 1)
-typedef struct
+struct RARMAINHDR
 {
 	BYTE	type;
 	WORD	flags;
 	WORD	size;
-} RARMAINHDR;
+};
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-typedef struct
+struct RARFILEHDR
 {
 	BYTE	type;
 	WORD	flags;
@@ -52,7 +52,7 @@ typedef struct
 	BYTE	method;
 	WORD	nameSize;
 	DWORD	fileAttr;
-} RARFILEHDR;
+};
 #pragma pack(pop)
 
 
@@ -179,7 +179,7 @@ bool CArchiveRecovery::performRecovery(CPartFile *partFile, CArray<Gap_Struct> *
 		// Report success
 		if (success) {
 			theApp.QueueLogLine(true, _T("%s \"%s\""), (LPCTSTR)GetResString(IDS_RECOVERY_SUCCESSFUL), (LPCTSTR)partFile->GetFileName());
-			theApp.QueueDebugLogLine(false, _T("Archive recovery: Part file size: %s, temp. archive file size: %s (%.1f%%)"), (LPCTSTR)CastItoXBytes(partFile->GetFileSize()), (LPCTSTR)CastItoXBytes(ulTempFileSize), partFile->GetFileSize() > 0ull ? (ulTempFileSize * 100.0 / (uint64)partFile->GetFileSize()) : 0.0);
+			theApp.QueueDebugLogLine(false, _T("Archive recovery: Part file size: %s, temp. archive file size: %s (%.1f%%)"), (LPCTSTR)CastItoXBytes(partFile->GetFileSize()), (LPCTSTR)CastItoXBytes(ulTempFileSize), partFile->GetFileSize() > 0ull ? ((float)(100 * ulTempFileSize) / (float)partFile->GetFileSize()) : 0.0f);
 
 			// Preview file if required
 			if (preview) {
@@ -703,7 +703,7 @@ bool CArchiveRecovery::IsFilled(uint64 start, uint64 end, CArray<Gap_Struct> *fi
 	return false;
 }
 
-#define TESTCHUNKSIZE 51200	 // 50k buffer
+#define TESTCHUNKSIZE 51200	// 50k buffer
 // This will find the marker in the file and leave it positioned at the position to read the marker again
 bool CArchiveRecovery::scanForZipMarker(CFile *input, archiveScannerThreadParams_s *aitp, uint32 marker, ULONGLONG available)
 {
@@ -789,7 +789,7 @@ RAR_BlockFile* CArchiveRecovery::scanForRarFileHeader(CFile *input, archiveScann
 				// CRC of fields from HEAD_TYPE to ATTR + filename + ext. stuff
 				uint16 headCRC = readUInt16(input);
 
-				RARFILEHDR *hdr = (RARFILEHDR*)checkCRC;
+				const RARFILEHDR *hdr = (RARFILEHDR*)checkCRC;
 				input->Read(checkCRC, sizeof *hdr);
 
 				// this bit always is set
@@ -927,7 +927,7 @@ RAR_BlockFile* CArchiveRecovery::scanForRarFileHeader(CFile *input, archiveScann
 }
 
 // This assumes that head crc has already been checked
-bool CArchiveRecovery::validateRarFileBlock(RAR_BlockFile *block)
+bool CArchiveRecovery::validateRarFileBlock(const RAR_BlockFile *block)
 {
 	if (block->HEAD_TYPE != 0x74)
 		return false;
@@ -1031,7 +1031,7 @@ void CArchiveRecovery::writeRarBlock(CFile *input, CFile *output, RAR_BlockFile 
 #define CRC_MASK 0xFFFFFFFFL
 #define CRCPOLY  0xEDB88320L
 static ULONG crctable[256];
-void make_crctable()   // initializes CRC table
+static void make_crctable()   // initializes CRC table
 {
 	for (ULONG i = 0; i <= 255; ++i) {
 		ULONG r = i;
@@ -1043,7 +1043,7 @@ void make_crctable()   // initializes CRC table
 
 // Updates crc from addr till addr+len-1
 //
-ULONG getcrc(ULONG crc, UCHAR *addr, INT len)
+static ULONG getcrc(ULONG crc, const UCHAR *addr, INT len)
 {
 	while (len--)
 		crc = crctable[(unsigned char)crc ^ (*addr++)] ^ (crc >> 8);
@@ -1079,7 +1079,7 @@ bool CArchiveRecovery::recoverAce(CFile *aceInput, CFile *aceOutput, archiveScan
 				LONG headcrc = getcrc(CRC_MASK, (UCHAR*)&acehdr->HEAD_TYPE, hdrread);
 
 				if (acehdr->AVSIZE) {
-					acehdr->AV = (char*)malloc((size_t)acehdr->AVSIZE + 1);
+					acehdr->AV = new char[acehdr->AVSIZE + 1];
 					hdrread += aceInput->Read(acehdr->AV, acehdr->AVSIZE);
 					headcrc = getcrc(headcrc, (UCHAR*)acehdr->AV, acehdr->AVSIZE);
 				}
@@ -1089,7 +1089,7 @@ bool CArchiveRecovery::recoverAce(CFile *aceInput, CFile *aceOutput, archiveScan
 					hdrread += aceInput->Read(&acehdr->COMMENT_SIZE, sizeof(acehdr->COMMENT_SIZE));
 					headcrc = getcrc(headcrc, (UCHAR*)(&acehdr->COMMENT_SIZE), sizeof(acehdr->COMMENT_SIZE));
 					if (acehdr->COMMENT_SIZE) {
-						acehdr->COMMENT = (char*)malloc((size_t)acehdr->COMMENT_SIZE + 1);
+						acehdr->COMMENT = new char[acehdr->COMMENT_SIZE + 1];
 						hdrread += aceInput->Read(acehdr->COMMENT, acehdr->COMMENT_SIZE);
 						headcrc = getcrc(headcrc, (UCHAR*)acehdr->COMMENT, acehdr->COMMENT_SIZE);
 					}
@@ -1098,7 +1098,7 @@ bool CArchiveRecovery::recoverAce(CFile *aceInput, CFile *aceOutput, archiveScan
 				// some unknown data left to read
 				if (hdrread < acehdr->HEAD_SIZE) {
 					UINT dumpsize = acehdr->HEAD_SIZE - hdrread;
-					acehdr->DUMP = (char*)malloc(dumpsize);
+					acehdr->DUMP = new char[dumpsize];
 					hdrread += aceInput->Read(acehdr->DUMP, dumpsize);
 					headcrc = getcrc(headcrc, (UCHAR*)acehdr->DUMP, dumpsize);
 				}
@@ -1383,7 +1383,8 @@ void CArchiveRecovery::ISOReadDirectory(archiveScannerThreadParams_s *aitp, UINT
 {
 	if (!aitp || !aitp->ai)
 		return;
-	const LONGLONG secSize = aitp->ai->isoInfos.secSize;
+	const ISOInfos_s &isoInfo = aitp->ai->isoInfos;
+	const LONGLONG secSize = isoInfo.secSize;
 	if (!IsFilled(startSec * secSize, startSec * secSize + secSize, aitp->filled))
 		return;
 	// read directory entries
@@ -1392,7 +1393,7 @@ void CArchiveRecovery::ISOReadDirectory(archiveScannerThreadParams_s *aitp, UINT
 	while (aitp->m_bIsValid) {
 		ISO_FileFolderEntry *file = new ISO_FileFolderEntry;
 
-		UINT32 blocksize = isoInput->Read(file, (sizeof(ISO_FileFolderEntry) - sizeof file->name));
+		UINT32 blocksize = isoInput->Read(file, (sizeof(ISO_FileFolderEntry) - sizeof(file->name)));
 
 		if (file->lenRecord == 0) {
 			delete file;
@@ -1409,20 +1410,19 @@ void CArchiveRecovery::ISOReadDirectory(archiveScannerThreadParams_s *aitp, UINT
 			break; // folder end
 		}
 
-		file->name = (TCHAR*)calloc(file->nameLen + (size_t)2, sizeof(TCHAR));
+		file->name = (LPTSTR)calloc(file->nameLen + 2, isoInfo.iJolietUnicode ? sizeof(WCHAR) : sizeof(CHAR));
 		if (!file->name) {
 			delete file;
 			return;
 		}
+		memset(file->name, 0, file->nameLen + 2);
 		blocksize += isoInput->Read(file->name, file->nameLen);
 
-		if (!(file->nameLen & 1))
-			++blocksize;
-
+		blocksize += static_cast<UINT32>(!(file->nameLen & 1)); // skip padding
 		UINT32 skip = LODWORD(file->lenRecord) - blocksize;
 		UINT64 pos2 = isoInput->Seek(skip, FILE_CURRENT);		// skip padding
 		if (pos2 & 1) {
-			isoInput->Seek(1, FILE_CURRENT);					// skip padding
+			isoInput->Seek(1, FILE_CURRENT);					// skip padding?
 			++pos2;
 		}
 
@@ -1430,9 +1430,9 @@ void CArchiveRecovery::ISOReadDirectory(archiveScannerThreadParams_s *aitp, UINT
 		ProcessProgress(aitp, pos2);
 
 		// selfdir, parentdir ( "." && ".." ) handling
-		if ((file->fileFlags & ISO_DIRECTORY) && file->nameLen == 1 && (unsigned)file->name[0] <= 1) {
+		if ((file->fileFlags & ISO_DIRECTORY) && file->nameLen == 1 && file->name[0] <= 1) {
 			// get size of directory and calculate how many sectors are spanned
-			if (file->name[0] == 0x00)
+			if (file->name[0] == 0)
 				iSecsOfDirectoy = (int)(file->dataSize / secSize);
 			delete file;
 			continue;
@@ -1440,13 +1440,13 @@ void CArchiveRecovery::ISOReadDirectory(archiveScannerThreadParams_s *aitp, UINT
 
 		CString pathNew(currentDirName);
 		// make filename from Unicode (UTF-16BE) or ASCII
-		if (aitp->ai->isoInfos.iJolietUnicode) {
+		if (isoInfo.iJolietUnicode) {
 			//convert UTF-16BE to UTF-16LE
-			for (unsigned int i = 0; i < file->nameLen / sizeof(uint16); ++i)
-				file->name[i] = _byteswap_ushort(file->name[i]);
-			pathNew += file->name;
+			for (unsigned i = 0; i < file->nameLen / sizeof(WCHAR); ++i)
+				*(LPWSTR)&file->name[i] = _byteswap_ushort(*(LPWSTR)&file->name[i]);
+			pathNew += (LPWSTR)file->name;
 		} else
-			pathNew += CString((char*)file->name);
+			pathNew += (LPSTR)file->name;
 		free(file->name);
 
 		if (file->fileFlags & ISO_DIRECTORY)
@@ -1464,14 +1464,15 @@ void CArchiveRecovery::ISOReadDirectory(archiveScannerThreadParams_s *aitp, UINT
 	}
 }
 
-bool CArchiveRecovery::recoverISO(CFile *isoInput, CFile *isoOutput, archiveScannerThreadParams_s *aitp
+bool CArchiveRecovery::recoverISO(CFile *isoInput, const CFile *isoOutput, archiveScannerThreadParams_s *aitp
 		, CArray<Gap_Struct> *paFilled)
 {
 	if (isoOutput)
 		return false;
 
 #define SECSIZE sizeof(ISO_PVD_s)
-	aitp->ai->isoInfos.secSize = (DWORD)SECSIZE;
+	ISOInfos_s &isoInfo = aitp->ai->isoInfos;
+	isoInfo.secSize = (DWORD)SECSIZE;
 	uint64 nextstart = 16 * SECSIZE;
 
 	// do we have the primary volume descriptor?
@@ -1485,12 +1486,12 @@ bool CArchiveRecovery::recoverISO(CFile *isoInput, CFile *isoOutput, archiveScan
 
 	pvd.descr_type = 0xff;
 	svd.descr_type = 0xff;
-	aitp->ai->isoInfos.type = ISOtype_unknown;
+	isoInfo.type = ISOtype_unknown;
 
 	int iUdfDetectState = 0;
 	// read PVD
 	do {
-		isoInput->Read(&tempSec, aitp->ai->isoInfos.secSize);
+		isoInput->Read(&tempSec, isoInfo.secSize);
 		nextstart += SECSIZE;
 
 		if (tempSec.descr_type == 0xff || (tempSec.descr_type == 0 && tempSec.descr_ver == 0)) // Volume Descriptor Set Terminator (VDST)
@@ -1498,40 +1499,40 @@ bool CArchiveRecovery::recoverISO(CFile *isoInput, CFile *isoOutput, archiveScan
 
 		if (tempSec.descr_type == 0x01 && pvd.descr_type == 0xff) {
 			memcpy(&pvd, &tempSec, SECSIZE);
-			aitp->ai->isoInfos.type |= ISOtype_9660;
+			isoInfo.type |= ISOtype_9660;
 		}
 
 		if (tempSec.descr_type == 0x02) {
 			memcpy(&svd, &tempSec, SECSIZE);
 			if (svd.escSeq[0] == 0x25 && svd.escSeq[1] == 0x2f) {
-				aitp->ai->isoInfos.type |= ISOtype_joliet;
+				isoInfo.type |= ISOtype_joliet;
 
 				if (svd.escSeq[2] == 0x40)
-					aitp->ai->isoInfos.iJolietUnicode = 1;
+					isoInfo.iJolietUnicode = 1;
 				else if (svd.escSeq[2] == 0x43)
-					aitp->ai->isoInfos.iJolietUnicode = 2;
+					isoInfo.iJolietUnicode = 2;
 				else if (svd.escSeq[2] == 0x45)
-					aitp->ai->isoInfos.iJolietUnicode = 3;
+					isoInfo.iJolietUnicode = 3;
 			}
 		}
 
 		if (tempSec.descr_type == 0x00) {
 			BootDescr *bDesc = (BootDescr*)&tempSec;
 			if (memcmp(bDesc->sysid, sElToritoID, _countof(sElToritoID) - 1) == 0)
-				aitp->ai->isoInfos.bBootable = true;	// anything else?
+				isoInfo.bBootable = true;	// anything else?
 		}
 
 		// check for udf
 		if (tempSec.descr_type == 0x00 && tempSec.descr_ver == 0x01) {
 
 			if (memcmp(tempSec.magic, sig_udf_bea, 5) == 0 && iUdfDetectState == 0)
-				iUdfDetectState = 1;// detected Beginning Extended Area Descriptor (BEA)
+				iUdfDetectState = 1;	// detected Beginning Extended Area Descriptor (BEA)
 
-			else if (memcmp(tempSec.magic, sig_udf_nsr2, 5) == 0 && iUdfDetectState == 1) // Volume Sequence Descriptor (VSD) 2
-				iUdfDetectState = 2;
+			else if (memcmp(tempSec.magic, sig_udf_nsr2, 5) == 0 && iUdfDetectState == 1)
+				iUdfDetectState = 2;	// Volume Sequence Descriptor (VSD) 2
 
-			else if (memcmp(tempSec.magic, sig_udf_nsr3, 5) == 0 && iUdfDetectState == 1) // Volume Sequence Descriptor (VSD) 3
-				iUdfDetectState = 3;
+			else if (memcmp(tempSec.magic, sig_udf_nsr3, 5) == 0 && iUdfDetectState == 1)
+				iUdfDetectState = 3;	// Volume Sequence Descriptor (VSD) 3
 
 			else if (memcmp(tempSec.magic, sig_tea, 5) == 0 && (iUdfDetectState == 2 || iUdfDetectState == 3))
 				iUdfDetectState += 2;	// remember Terminating Extended Area Descriptor (TEA) received
@@ -1540,11 +1541,11 @@ bool CArchiveRecovery::recoverISO(CFile *isoInput, CFile *isoOutput, archiveScan
 	} while (IsFilled(nextstart, nextstart + SECSIZE, paFilled));
 
 	if (iUdfDetectState == 4)
-		aitp->ai->isoInfos.type |= ISOtype_UDF_nsr02;
+		isoInfo.type |= ISOtype_UDF_nsr02;
 	else if (iUdfDetectState == 5)
-		aitp->ai->isoInfos.type |= ISOtype_UDF_nsr03;
+		isoInfo.type |= ISOtype_UDF_nsr03;
 
-	if (aitp->ai->isoInfos.type == 0)
+	if (isoInfo.type == 0)
 		return false;
 
 	if (iUdfDetectState == 4 || iUdfDetectState == 5) {
@@ -1604,7 +1605,7 @@ void CArchiveRecovery::writeUInt32(CFile *output, uint32 val)
 
 void CArchiveRecovery::ProcessProgress(archiveScannerThreadParams_s *aitp, UINT64 pos)
 {
-	if (aitp->m_bIsValid && (uint64)aitp->file->GetFileSize() > 0) {
+	if (aitp->m_bIsValid && (uint64)aitp->file->GetFileSize()) {
 		unsigned nNewProgress = (unsigned)((pos * 1000) / (uint64)aitp->file->GetFileSize());
 		if (nNewProgress > aitp->curProgress + 1) {
 			aitp->curProgress = nNewProgress;

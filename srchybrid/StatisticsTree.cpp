@@ -62,12 +62,6 @@ CStatisticsTree::~CStatisticsTree()
 		VERIFY(mnuContext.DestroyMenu());
 }
 
-// This function is called from CStatisticsDlg::OnInitDialog in StatisticsDlg.cpp
-void CStatisticsTree::Init()
-{
-	m_bExpandingAll = false;
-}
-
 // It is necessary to disrupt whatever behavior was preventing
 // us from getting OnContextMenu to work.  This seems to be the
 // magic fix...
@@ -174,14 +168,13 @@ BOOL CStatisticsTree::OnCommand(WPARAM wParam, LPARAM)
 		break;
 	case MP_STATTREE_RESTORE:
 		if (LocMessageBox(IDS_STATS_MBRESTORE_TXT, MB_YESNO | MB_ICONQUESTION, 0) == IDYES)
-			if (!thePrefs.LoadStats(1))
-				LogError(LOG_STATUSBAR, GetResString(IDS_ERR_NOSTATBKUP));
-			else {
+			if (thePrefs.LoadStats(1)) {
 				AddLogLine(false, GetResString(IDS_STATS_NFOLOADEDBKUP));
 				CString myBuffer;
 				myBuffer.Format(GetResString(IDS_STATS_LASTRESETSTATIC), (LPCTSTR)thePrefs.GetStatsLastResetStr(false));
 				GetParent()->SetDlgItemText(IDC_STATIC_LASTRESET, myBuffer);
-			}
+			} else
+				LogError(LOG_STATUSBAR, GetResString(IDS_ERR_NOSTATBKUP));
 
 		break;
 	case MP_STATTREE_EXPANDMAIN:
@@ -220,8 +213,7 @@ lblSaveExpanded:
 // EX: if(IsBold(myTreeItem)) AfxMessageBox("It's bold.");
 BOOL CStatisticsTree::IsBold(HTREEITEM theItem)
 {
-	UINT stateBold = GetItemState(theItem, TVIS_BOLD);
-	return (stateBold & TVIS_BOLD);
+	return GetItemState(theItem, TVIS_BOLD) & TVIS_BOLD;
 }
 
 // If the item is expanded it returns true, otherwise
@@ -229,8 +221,7 @@ BOOL CStatisticsTree::IsBold(HTREEITEM theItem)
 // EX: if(IsExpanded(myTreeItem)) AfxMessageBox("It's expanded.");
 BOOL CStatisticsTree::IsExpanded(HTREEITEM theItem)
 {
-	UINT stateExpanded = GetItemState(theItem, TVIS_EXPANDED);
-	return (stateExpanded & TVIS_EXPANDED);
+	return GetItemState(theItem, TVIS_EXPANDED) & TVIS_EXPANDED;
 }
 
 // This is a generic function to check if a state is valid or not.
@@ -243,8 +234,7 @@ BOOL CStatisticsTree::IsExpanded(HTREEITEM theItem)
 // EX:  if(CheckState(myTreeItem, TVIS_BOLD)) AfxMessageBox("It's bold.");
 BOOL CStatisticsTree::CheckState(HTREEITEM hItem, UINT state)
 {
-	UINT stateGeneric = GetItemState(hItem, state);
-	return (stateGeneric & state);
+	return GetItemState(hItem, state) & state;
 }
 
 // Returns the entire text label of an HTREEITEM.  This
@@ -318,7 +308,7 @@ CString CStatisticsTree::GetHTML(bool onlyVisible, HTREEITEM theItem, int theIte
 		for (int i = 0; i < theItemLevel; ++i)
 			strBuffer += _T("&nbsp;&nbsp;&nbsp;");
 		if (theItemLevel == 0)
-			strBuffer += _T('\n');
+			strBuffer += _T("\n");
 		strBuffer.AppendFormat(_T("%s<br>"), (LPCTSTR)strItem);
 
 		if (ItemHasChildren(hCurrent) && (!onlyVisible || IsExpanded(hCurrent)))
@@ -345,7 +335,7 @@ bool CStatisticsTree::CopyHTML(int copyMode)
 			const CString &theHTML(GetHTML(true, selectedItem));
 			if (theHTML.IsEmpty())
 				break;
-			theApp.CopyTextToClipboard(theHTML);
+			theApp.emuledlg->CopyTextToClipboard(theHTML);
 		}
 		return true;
 	case MP_STATTREE_HTMLCOPYVIS:
@@ -353,7 +343,7 @@ bool CStatisticsTree::CopyHTML(int copyMode)
 			const CString &theHTML(GetHTML());
 			if (theHTML.IsEmpty())
 				break;
-			theApp.CopyTextToClipboard(theHTML);
+			theApp.emuledlg->CopyTextToClipboard(theHTML);
 		}
 		return true;
 	case MP_STATTREE_HTMLCOPYALL:
@@ -361,7 +351,7 @@ bool CStatisticsTree::CopyHTML(int copyMode)
 			const CString &theHTML(GetHTML(false));
 			if (theHTML.IsEmpty())
 				break;
-			theApp.CopyTextToClipboard(theHTML);
+			theApp.emuledlg->CopyTextToClipboard(theHTML);
 		}
 		return true;
 	}
@@ -409,7 +399,7 @@ bool CStatisticsTree::CopyText(int copyMode)
 			const CString &theText(GetText(true, selectedItem));
 			if (theText.IsEmpty())
 				break;
-			theApp.CopyTextToClipboard(theText);
+			theApp.emuledlg->CopyTextToClipboard(theText);
 		}
 		return true;
 	case MP_STATTREE_COPYVIS:
@@ -417,7 +407,7 @@ bool CStatisticsTree::CopyText(int copyMode)
 			const CString &theText(GetText());
 			if (theText.IsEmpty())
 				break;
-			theApp.CopyTextToClipboard(theText);
+			theApp.emuledlg->CopyTextToClipboard(theText);
 		}
 		return true;
 	case MP_STATTREE_COPYALL:
@@ -425,7 +415,7 @@ bool CStatisticsTree::CopyText(int copyMode)
 			const CString &theText(GetText(false));
 			if (theText.IsEmpty())
 				break;
-			theApp.CopyTextToClipboard(theText);
+			theApp.emuledlg->CopyTextToClipboard(theText);
 		}
 		return true;
 	}
@@ -494,7 +484,7 @@ CString CStatisticsTree::GetHTMLForExport(HTREEITEM theItem, int theItemLevel, b
 			strItem += GetItemText(hCurrent);
 
 		if (theItemLevel == 0)
-			strBuffer += _T('\n');
+			strBuffer += _T("\n");
 		strBuffer.AppendFormat(_T("%s<br>"), (LPCTSTR)strItem);
 
 		if (ItemHasChildren(hCurrent)) {
@@ -572,7 +562,7 @@ void CStatisticsTree::ExportHTML()
 
 		htmlFile.Close();
 
-		static const TCHAR * const s_apcFileNames[] = {
+		static const TCHAR *const s_apcFileNames[] = {
 			_T("stats_0.gif"), _T("stats_1.gif"), _T("stats_2.gif"), _T("stats_3.gif"), _T("stats_4.gif"),
 			_T("stats_5.gif"), _T("stats_6.gif"), _T("stats_7.gif"), _T("stats_8.gif"), _T("stats_9.gif"),
 			_T("stats_10.gif"), _T("stats_11.gif"), _T("stats_12.gif"), _T("stats_13.gif"),

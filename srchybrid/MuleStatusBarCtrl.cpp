@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -40,11 +40,6 @@ IMPLEMENT_DYNAMIC(CMuleStatusBarCtrl, CStatusBarCtrl)
 BEGIN_MESSAGE_MAP(CMuleStatusBarCtrl, CStatusBarCtrl)
 	ON_WM_LBUTTONDBLCLK()
 END_MESSAGE_MAP()
-
-void CMuleStatusBarCtrl::Init()
-{
-	EnableToolTips();
-}
 
 void CMuleStatusBarCtrl::OnLButtonDblClk(UINT /*nFlags*/, CPoint point)
 {
@@ -110,7 +105,7 @@ INT_PTR CMuleStatusBarCtrl::OnToolHitTest(CPoint point, TOOLINFO *pTI) const
 	if (iHit == -1 && pTI != NULL && pTI->cbSize >= sizeof(AFX_OLDTOOLINFO)) {
 		int iPane = GetPaneAtPosition(point);
 		if (iPane >= 0) {
-			const CString &strToolTipText = GetPaneToolTipText((EStatusBarPane)iPane);
+			const CString &strToolTipText(GetPaneToolTipText((EStatusBarPane)iPane));
 			if (!strToolTipText.IsEmpty()) {
 				pTI->hwnd = m_hWnd;
 				pTI->uId = iPane;

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -40,7 +40,7 @@
 
 	- Additional Comments:
 			- RandomKeyPart is needed to make multiple connections between two clients look different (but still random), since otherwise the same key
-			  would be used and RC4 would create the same output. Since the key is a MD5 hash it doesn't weaken the key if that part is known
+			  would be used and RC4 would create the same output. Since the key is an MD5 hash it doesn't weaken the key if that part is known
 			- Why DH-KeyAgreement isn't used as basic obfuscation key: It doesn't offer substantial more protection against passive connection based protocol identification, it has about 200 bytes more overhead,
 			  needs more CPU time, we cannot say if the received data is junk, unencrypted or part of the key agreement before the handshake is finished without losing the complete randomness,
 			  it doesn't offer substantial protection against eavesdropping without added authentication
@@ -92,13 +92,13 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 
-#define	MAGICVALUE_REQUESTER	34							// modification of the requester-send and server-receive key
-#define	MAGICVALUE_SERVER		203							// modification of the server-send and requester-receive key
-#define	MAGICVALUE_SYNC			0x835E6FC4					// value to check if we have a working encrypted stream
+#define	MAGICVALUE_REQUESTER	34				// modification of the requester-send and server-receive key
+#define	MAGICVALUE_SERVER		203				// modification of the server-send and requester-receive key
+#define	MAGICVALUE_SYNC			0x835E6FC4		// value to check if we have a working encrypted stream
 #define DHAGREEMENT_A_BITS		128
 
-#define PRIMESIZE_BYTES	 96
-static unsigned char dh768_p[] = {
+#define PRIMESIZE_BYTES			(768/8)
+static unsigned char dh768_p[PRIMESIZE_BYTES] = {
 		0xF2,0xBF,0x52,0xC5,0x5F,0x58,0x7A,0xDD,0x53,0x71,0xA9,0x36,
 		0xE8,0x86,0xEB,0x3C,0x62,0x17,0xA3,0x3E,0xC3,0x4C,0xB4,0x0D,
 		0xC7,0x3A,0x41,0xA6,0x43,0xAF,0xFC,0xE7,0x21,0xFC,0x28,0x63,
@@ -130,7 +130,8 @@ CEncryptedStreamSocket::CEncryptedStreamSocket()
 	, m_nObfuscatedBytesReceived()
 	, m_NegotiatingState(ONS_NONE)
 {
-};
+	ASSERT(PRIMESIZE_BYTES == sizeof dh768_p);
+}
 
 CEncryptedStreamSocket::~CEncryptedStreamSocket()
 {
@@ -141,7 +142,7 @@ CEncryptedStreamSocket::~CEncryptedStreamSocket()
 		delete m_pfiReceiveBuffer;
 	}
 	delete m_pfiSendBuffer;
-};
+}
 
 void CEncryptedStreamSocket::CryptPrepareSendData(uchar *pBuffer, uint32 nLen)
 {
@@ -230,7 +231,7 @@ int CEncryptedStreamSocket::Receive(void *lpBuf, int nBufLen, int nFlags)
 	m_nObfuscatedBytesReceived = CAsyncSocketEx::Receive(lpBuf, nBufLen, nFlags);
 	m_bFullReceive = (m_nObfuscatedBytesReceived == nBufLen);
 
-	if (m_nObfuscatedBytesReceived <= 0 || m_nObfuscatedBytesReceived == SOCKET_ERROR)
+	if (m_nObfuscatedBytesReceived <= 0 /*|| m_nObfuscatedBytesReceived == SOCKET_ERROR*/) //SOCKET_ERROR is -1 on Windows
 		return m_nObfuscatedBytesReceived;
 
 	switch (m_StreamCryptState) {

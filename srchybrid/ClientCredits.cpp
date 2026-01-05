@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -22,7 +22,6 @@
 #include "SafeFile.h"
 #include "Opcodes.h"
 #include "ServerConnect.h"
-#include "emuledlg.h"
 #include "Log.h"
 #include "cryptopp/base64.h"
 #include "cryptopp/osrng.h"
@@ -111,17 +110,17 @@ float CClientCredits::GetScoreRatio(uint32 dwForIP) const
 		return 1.0f;
 	float result;
 	if (GetUploadedTotal())
-		result = (GetDownloadedTotal() * 2) / (float)GetUploadedTotal();
+		result = (float)(GetDownloadedTotal() * 2) / (float)GetUploadedTotal();
 	else
 		result = 10.0f;
 
 	// exponential calculation of the max multiplicator based on uploaded data (9.2MB = 3.34, 100MB = 10.0)
-	float result2 = sqrt(GetDownloadedTotal() / 1048576.0f + 2.0f);
+	float result2 = sqrt((float)GetDownloadedTotal() / 1048576 + 2.0f);
 
 	// linear calculation of the max multiplicator based on uploaded data for the first chunk (1MB = 1.01, 9.2MB = 3.34)
 	float result3;
 	if (GetDownloadedTotal() < 9646899)
-		result3 = (GetDownloadedTotal() - 1048576) / 8598323.0f * 2.34f + 1.0f;
+		result3 = (float)(GetDownloadedTotal() - 1048576) / 8598323 * 2.34f + 1.0f;
 	else
 		result3 = 10.0f;
 
@@ -177,16 +176,13 @@ void CClientCreditsList::LoadList()
 
 		BOOL bCreateBackup = TRUE;
 
-		HANDLE hBakFile = ::CreateFile(strBakFileName, GENERIC_READ, FILE_SHARE_READ, NULL,
-			OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hBakFile = ::CreateFile(strBakFileName, GENERIC_READ, FILE_SHARE_READ, NULL
+									, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		if (hBakFile != INVALID_HANDLE_VALUE) {
-			// OK, the backup exist, get the size
-			DWORD dwBakFileSize = ::GetFileSize(hBakFile, NULL); //debug
-			if (dwBakFileSize > (DWORD)file.GetLength()) {
-				// the size of the backup was larger then the orig. file, something is wrong here, don't overwrite old backup.
+			// OK, the backup exist, check the size
+			// if the backup is larger then the original file, something was wrong; don't overwrite the old backup.
+			if (::GetFileSize(hBakFile, NULL) > file.GetLength())
 				bCreateBackup = FALSE;
-			}
-			//else: backup is smaller or the same size as orig. file, proceed with copying of file
 			::CloseHandle(hBakFile);
 		}
 		//else: the backup doesn't exist, create it
@@ -206,15 +202,15 @@ void CClientCreditsList::LoadList()
 		}
 
 		uint32 count = file.ReadUInt32();
-		m_mapClients.InitHashTable(count + 5000); // TODO: should be prime number... and 20% larger
+		m_mapClients.InitHashTable(count + 5000); // TODO: should be a prime number... and 20% larger
 
-		const time_t dwExpired = time(NULL) - DAY2S(150); // today - 150 days
+		const time_t tExpired = time(NULL) - DAY2S(150); // today - 150 days
 		uint32 cDeleted = 0;
-		for (uint32 i = 0; i < count; ++i) {
-			CreditStruct newcstruct{};
+		for (uint32 i = count; i > 0; --i) {
+			CreditStruct newcstruct = {};
 			file.Read(&newcstruct, (version == CREDITFILE_VERSION_29) ? sizeof(CreditStruct_29a) : sizeof(CreditStruct));
 
-			if (newcstruct.nLastSeen < (uint32)dwExpired)
+			if (newcstruct.tLastSeen < (uint32)tExpired)
 				++cDeleted;
 			else {
 				CClientCredits *newcredits = new CClientCredits(newcstruct);
@@ -344,7 +340,7 @@ EIdentState	CClientCredits::GetCurrentIdentState(uint32 dwForIP) const
 		return IS_IDENTIFIED;
 	return IS_IDBADGUY;
 	// mod note: clients which just reconnected after an IP change and have to ident yet will also have this state for 1-2 seconds
-	//		 so don't try to spam such clients with "bad guy" messages (besides: spam messages are always bad)
+	//			 so don't try to spam such clients with "bad guy" messages (besides: spam messages are always bad)
 }
 
 using namespace CryptoPP;
@@ -505,11 +501,10 @@ bool CClientCreditsList::VerifyIdent(CClientCredits *pTarget, const uchar *pachS
 		//ASSERT(0);
 		bResult = false;
 	}
-	if (!bResult) {
-		if (pTarget->IdentState == IS_IDNEEDED)
-			pTarget->IdentState = IS_IDFAILED;
-	} else
+	if (bResult)
 		pTarget->Verified(dwForIP);
+	else if (pTarget->IdentState == IS_IDNEEDED)
+		pTarget->IdentState = IS_IDFAILED;
 
 	return bResult;
 }
@@ -535,7 +530,7 @@ bool CClientCreditsList::Debug_CheckCrypting()
 	asink.MessageEnd();
 	uint32 challenge = GetRandomUInt32();
 	// create fake client which pretends to be this emule
-	CreditStruct emptystruct{};
+	const CreditStruct emptystruct = {};
 	CClientCredits newcredits(emptystruct);
 	newcredits.SetSecureIdent(m_abyMyPublicKey, m_nMyPublicKeyLen);
 	newcredits.m_dwCryptRndChallengeFrom = challenge;

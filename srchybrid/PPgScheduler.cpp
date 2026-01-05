@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -16,13 +16,13 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
 #include "emule.h"
-#include "PreferencesDlg.h"
-#include "InputBox.h"
 #include "emuledlg.h"
-#include "Preferences.h"
-#include "Scheduler.h"
-#include "MenuCmds.h"
 #include "HelpIDs.h"
+#include "InputBox.h"
+#include "MenuCmds.h"
+#include "Preferences.h"
+#include "PreferencesDlg.h"
+#include "Scheduler.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -67,16 +67,16 @@ BOOL CPPgScheduler::OnInitDialog()
 
 	m_list.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_INFOTIP);
 	ASSERT((m_list.GetStyle() & LVS_SINGLESEL) == 0);
-	m_list.InsertColumn(0, GetResString(IDS_TITLE), LVCFMT_LEFT, 150);
-	m_list.InsertColumn(1, GetResString(IDS_S_DAYS), LVCFMT_LEFT, 80);
-	m_list.InsertColumn(2, GetResString(IDS_STARTTIME), LVCFMT_LEFT, 80);
+	m_list.InsertColumn(0, _T(""), LVCFMT_LEFT, 150);	//IDS_TITLE
+	m_list.InsertColumn(1, _T(""), LVCFMT_LEFT, 80);	//IDS_S_DAYS
+	m_list.InsertColumn(2, _T(""), LVCFMT_LEFT, 80);	//IDS_STARTTIME
 	m_time.SetFormat(_T("H:mm"));
 	m_timeTo.SetFormat(_T("H:mm"));
 
 	m_actions.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_INFOTIP);
 	ASSERT((m_actions.GetStyle() & LVS_SINGLESEL) == 0);
-	m_actions.InsertColumn(0, GetResString(IDS_ACTION), LVCFMT_LEFT, 150);
-	m_actions.InsertColumn(1, GetResString(IDS_VALUE), LVCFMT_LEFT, 80);
+	m_actions.InsertColumn(0, _T(""), LVCFMT_LEFT, 150);	//IDS_ACTION
+	m_actions.InsertColumn(1, _T(""), LVCFMT_LEFT, 80);		//IDS_VALUE
 
 	Localize();
 	CheckDlgButton(IDC_ENABLE, thePrefs.IsSchedulerEnabled());
@@ -88,8 +88,20 @@ BOOL CPPgScheduler::OnInitDialog()
 
 void CPPgScheduler::Localize()
 {
+	static const UINT list_uids[] =
+	{
+		IDS_TITLE, IDS_S_DAYS, IDS_STARTTIME, 0
+	};
+	static const UINT action_uids[] =
+	{
+		IDS_ACTION, IDS_VALUE, 0
+	};
+
 	if (m_hWnd) {
 		SetWindowText(GetResString(IDS_SCHEDULER));
+
+		LocaliseHeaderCtrl(m_list.GetHeaderCtrl(), list_uids);
+		LocaliseHeaderCtrl(m_actions.GetHeaderCtrl(), action_uids);
 
 		SetDlgItemText(IDC_ENABLE, GetResString(IDS_ENABLED));
 		SetDlgItemText(IDC_S_ENABLE, GetResString(IDS_ENABLED));
@@ -174,7 +186,7 @@ void CPPgScheduler::OnBnClickedAdd()
 {
 	Schedule_Struct *newschedule = new Schedule_Struct();
 	newschedule->time2 = newschedule->time = time(NULL);
-	newschedule->title += _T('?');
+	newschedule->title += _T("?");
 
 	int index = (int)theApp.scheduler->AddSchedule(newschedule);
 	m_list.InsertItem(index, newschedule->title);
@@ -334,7 +346,7 @@ void CPPgScheduler::OnNmRClickActionlist(LPNMHDR, LRESULT *pResult)
 	POINT point;
 	::GetCursorPos(&point);
 
-	CTitleMenu m_ActionMenu;
+	CTitledMenu m_ActionMenu;
 	CMenu m_ActionSel;
 	CMenu m_CatActionSel;
 

@@ -1,9 +1,9 @@
 #include "stdafx.h"
 #include "emule.h"
+#include "emuledlg.h"
 #include "ListCtrlX.h"
 #include "ListViewSearchDlg.h"
 #include "OtherFunctions.h"
-#include "MenuCmds.h"
 #include "Preferences.h"
 
 #ifdef _DEBUG
@@ -205,8 +205,7 @@ void CListCtrlX::EnableHdrCtrlSortBitmaps(BOOL bUseHdrCtrlSortBitmaps)
 void CListCtrlX::SetHdrImgList(UINT uResID, int cx, int cy, int iImages)
 {
 	m_uIDHdrImgList = uResID;
-	m_sizeHdrImgListIcon.cx = cx;
-	m_sizeHdrImgListIcon.cy = cy;
+	m_sizeHdrImgListIcon.SetSize(cx, cy);
 	m_iHdrImgListImages = iImages;
 }
 
@@ -607,7 +606,7 @@ LRESULT CListCtrlX::OnCopy(WPARAM, LPARAM)
 	CString strReport;
 	CreateItemReport(*this, strReport);
 	if (!strReport.IsEmpty())
-		theApp.CopyTextToClipboard(strReport);
+		theApp.emuledlg->CopyTextToClipboard(strReport);
 	return 0;
 }
 
@@ -666,7 +665,7 @@ void CListCtrlX::DoFind(int iStartItem, int iDirection /*1 = down, -1 = up*/, BO
 	CWaitCursor curHourglass;
 
 	if (iStartItem < 0) {
-		MessageBeep(MB_OK);
+		::MessageBeep(MB_OK);
 		return;
 	}
 
@@ -692,7 +691,7 @@ void CListCtrlX::DoFind(int iStartItem, int iDirection /*1 = down, -1 = up*/, BO
 	if (bShowError)
 		AfxMessageBox(_T("No matching entry found."), MB_ICONINFORMATION);
 	else
-		MessageBeep(MB_OK);
+		::MessageBeep(MB_OK);
 }
 
 void CListCtrlX::OnFindStart()

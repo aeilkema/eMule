@@ -5,7 +5,7 @@
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // this file is part of eMule
-// Copyright (C)2007-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+// Copyright (C)2007-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -21,14 +21,13 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "StdAfx.h"
+#include <algorithm>
 #include "emule.h"
 #include "preferences.h"
 #include "UPnPImplWinServ.h"
 #include "Log.h"
 #include "Otherfunctions.h"
 
-#include <algorithm>
-#include <map>
 
 
 #ifdef _DEBUG
@@ -47,6 +46,7 @@ CUPnPImplWinServ::CUPnPImplWinServ()
 	, m_sLocalIP()
 	, m_sExternalIP()
 	, m_nAsyncFindHandle()
+	, m_tLastEvent(::GetTickCount())
 	, m_bCOM()
 	, m_bPortIsFree(true)
 	, m_bADSL()
@@ -58,14 +58,13 @@ CUPnPImplWinServ::CUPnPImplWinServ()
 	, m_bDisableWANIPSetup(thePrefs.GetSkipWANIPSetup())
 	, m_bDisableWANPPPSetup(thePrefs.GetSkipWANPPPSetup())
 {
-	m_tLastEvent = ::GetTickCount();
 }
 
 void CUPnPImplWinServ::Init()
 {
 	if (!m_bInited) {
 		DebugLog(_T("Using Windows Service based UPnP Implementation"));
-		HRESULT hr = CoInitialize(NULL);
+		HRESULT hr = ::CoInitialize(NULL);
 		m_bCOM = SUCCEEDED(hr); // S_OK or S_FALSE
 		m_pDeviceFinder = CreateFinderInstance();
 		m_pServiceCallback = new CServiceCallback(*this);
@@ -76,9 +75,8 @@ void CUPnPImplWinServ::Init()
 
 FinderPointer CUPnPImplWinServ::CreateFinderInstance()
 {
-	void *pNewDeviceFinder = NULL;
-	if (FAILED(CoCreateInstance(CLSID_UPnPDeviceFinder, NULL, CLSCTX_INPROC_SERVER,
-		IID_IUPnPDeviceFinder, &pNewDeviceFinder))) {
+	LPVOID pNewDeviceFinder; //NULL on failure
+	if (FAILED(CoCreateInstance(CLSID_UPnPDeviceFinder, NULL, CLSCTX_INPROC_SERVER, IID_IUPnPDeviceFinder, &pNewDeviceFinder))) {
 		// Should we ask to disable auto-detection?
 		DebugLogWarning(_T("UPnP discovery is not supported or not installed - CreateFinderInstance() failed"));
 
@@ -93,7 +91,7 @@ CUPnPImplWinServ::~CUPnPImplWinServ()
 	m_pServices.clear();
 
 	if (m_bCOM)
-		CoUninitialize();
+		::CoUninitialize();
 }
 
 // Helper function to check if UPnP Device Host service is healthy
@@ -237,9 +235,9 @@ void CUPnPImplWinServ::StartDiscovery(uint16 nTCPPort, uint16 nUDPPort, uint16 n
 	if (!bSecondTry)
 		m_bCheckAndRefresh = false;
 
-	// On tests, in some cases the search for WANConnectionDevice had no results and only a search for InternetGatewayDevice
+	// In some test cases, search for WANConnectionDevice had no results and only a search for Internet Gateway Device
 	// showed up the UPnP root Device which contained the WANConnectionDevice as a child. I'm not sure if there are cases
-	// where search for InternetGatewayDevice only would have similar bad effects, but to be sure we do "normal" search first
+	// where search for IGD only would have similar bad effects, but to be sure we do "normal" search first
 	// and one for InternetGateWayDevice as fallback
 	static LPCTSTR const strDeviceType1(_T("urn:schemas-upnp-org:device:WANConnectionDevice:1"));
 	static LPCTSTR const strDeviceType2(_T("urn:schemas-upnp-org:device:InternetGatewayDevice:1"));
@@ -262,7 +260,6 @@ void CUPnPImplWinServ::StartDiscovery(uint16 nTCPPort, uint16 nUDPPort, uint16 n
 	ProcessAsyncFind(CComBSTR(bSecondTry ? strDeviceType2 : strDeviceType1));
 
 	// We should not release the device finder object
-	return;
 }
 
 // Helper function for adding devices to the list
@@ -324,18 +321,16 @@ void CUPnPImplWinServ::AddDevice(DevicePointer device, bool bAddChildren, int nL
 
 		VARIANT var;
 		ULONG lFetch;
-		IDispatch *pDisp;
 
 		VariantInit(&var);
 		hr = pEnum->Next(1, &var, &lFetch);
 		while (hr == S_OK) {
 			if (lFetch == 1) {
-				pDisp = V_DISPATCH(&var);
+				IDispatch *pDisp = V_DISPATCH(&var);
 				DevicePointer pChildDevice;
 				pDisp->QueryInterface(IID_IUPnPDevice, (void**)&pChildDevice);
-				if (SUCCEEDED(pChildDevice->get_FriendlyName(&bsFriendlyName)) && SUCCEEDED(pChildDevice->get_UniqueDeviceName(&bsUniqueName))) {
+				if (SUCCEEDED(pChildDevice->get_FriendlyName(&bsFriendlyName)) && SUCCEEDED(pChildDevice->get_UniqueDeviceName(&bsUniqueName)))
 					AddDevice(pChildDevice, true, nLevel + 1);
-				}
 			}
 			VariantClear(&var);
 			hr = pEnum->Next(1, &var, &lFetch);
@@ -355,7 +350,7 @@ void CUPnPImplWinServ::RemoveDevice(CComBSTR bsUDN)
 		= std::find_if(m_pDevices.begin(), m_pDevices.end(), FindDevice(bsUDN));
 
 	if (device != m_pDevices.end()) {
-		DebugLog(_T("Device removed: %s"), (LPCTSTR)bsUDN);
+		DebugLog(_T("Device removed: %ls"), (LPCWSTR)bsUDN);
 		m_pDevices.erase(device);
 	}
 }
@@ -378,7 +373,7 @@ bool CUPnPImplWinServ::OnSearchComplete()
 		return false;	// no devices found
 	}
 
-	for (std::size_t pos = 0; pos != m_pDevices.size(); ++pos) {
+	for (std::size_t pos = 0; pos < m_pDevices.size(); ++pos) {
 		GetDeviceServices(m_pDevices[pos]);
 		StartPortMapping();
 
@@ -463,7 +458,7 @@ HRESULT CUPnPImplWinServ::SaveServices(EnumUnknownPtr pEU, const LONG nTotalItem
 			break;
 		}
 
-		DebugLog(_T("Found UPnP service: %s"), (LPCTSTR)bsServiceId);
+		DebugLog(_T("Found UPnP service: %ls"), (LPCWSTR)bsServiceId);
 		m_pServices.push_back(pService);
 		bsServiceId.Empty();
 	}
@@ -482,8 +477,8 @@ HRESULT CUPnPImplWinServ::MapPort(const ServicePointer &service)
 	const CString strServiceId(bsServiceId);
 
 	if (m_bADSL)	// not a very reliable way to detect ADSL, since WANEthLinkC* is optional
-		if (m_bUPnPPortsForwarded == TRIS_TRUE) {	// another physical device or the setup was ran again manually
-			// Reset settings and recheck ( is there a better solution? )
+		if (m_bUPnPPortsForwarded == TRIS_TRUE) {	// another physical device or the set up was ran again manually
+			// Reset settings and recheck (is there a better solution?)
 			m_bDisableWANIPSetup = false;
 			m_bDisableWANPPPSetup = false;
 			m_bADSL = false;
@@ -674,7 +669,7 @@ void CUPnPImplWinServ::DeleteExistingPortMappings(ServicePointer pService)
 			// DeletePortMapping action takes 3 arguments:
 			//		RemoteHost, ExternalPort and PortMappingProtocol
 
-			CArray<CString> oTokens;
+			CStringArray oTokens;
 			for (int iPos = 0; iPos >= 0;) {
 				const CString &sToken(strActionResult.Tokenize(_T("|"), iPos));
 				if (!sToken.IsEmpty())
@@ -881,7 +876,7 @@ INT_PTR CUPnPImplWinServ::CreateVarFromString(const CString &strArgs, VARIANT **
 		return 0;
 	}
 
-	CArray<CString> oTokens;
+	CStringArray oTokens;
 	for (int iPos = 0; iPos >= 0;) {
 		const CString &sToken(strArgs.Tokenize(_T("|"), iPos));
 		if (!sToken.IsEmpty())
@@ -1123,14 +1118,12 @@ HRESULT __stdcall CServiceCallback::StateVariableChanged(IUPnPService *pService,
 
 	// Re-examine state variable change only when discovery was finished
 	// We are not interested in the initial values; we will request them explicitly
-	if (!m_instance.IsAsyncFindRunning()) {
-		if (_wcsicmp(pszStateVarName, L"ConnectionStatus") == 0) {
-			m_instance.m_bUPnPDeviceConnected = strValue.CompareNoCase(_T("Disconnected")) == 0
-				? TRIS_FALSE
-				: (strValue.CompareNoCase(_T("Connected")) == 0)
+	if (!m_instance.IsAsyncFindRunning() && _wcsicmp(pszStateVarName, L"ConnectionStatus") == 0) {
+		m_instance.m_bUPnPDeviceConnected = (strValue.CompareNoCase(_T("Disconnected")) == 0
+			? TRIS_FALSE
+			: (strValue.CompareNoCase(_T("Connected")) == 0)
 				? TRIS_TRUE
-				: TRIS_UNKNOWN;
-		}
+				: TRIS_UNKNOWN);
 	}
 
 	DebugLog(_T("UPnP device state variable %s changed to %s in %s")
@@ -1146,7 +1139,7 @@ HRESULT __stdcall CServiceCallback::ServiceInstanceDied(IUPnPService *pService)
 
 	HRESULT hr = pService->get_Id(&bsServiceId);
 	if (SUCCEEDED(hr)) {
-		DebugLogError(_T("UPnP service %s died"), (LPCTSTR)bsServiceId);
+		DebugLogError(_T("UPnP service %ls died"), (LPCWSTR)bsServiceId);
 		return hr;
 	}
 

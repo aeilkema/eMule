@@ -1,5 +1,8 @@
 #pragma once
 
+#if !defined(UNICODE) || !defined(_UNICODE)
+#error This application requires Unicode character set
+#endif
 // This file provides a way for local compiler site configurations (e.g. installed SDKs).
 
 // By default, assume that we have all the SDKs which we need and enable all optional features.
@@ -126,10 +129,11 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-// Visual Studio 2012, 2013, 2015, 2017, 2019, 2022
+// Visual Studio 2012, 2013, 2015, 2017, 2019, 2022, 2026
 //////////////////////////////////////////////////////////////////////////////
 //  VS2012==1700, VS2013==1800,
-//	VS2015==1900, VS2017==1910-1916, VS2019==1920-1929, VS2022==1930-????
+//	VS2015==1900, VS2017==1910-1916, VS2019==1920-1929, VS2022==1930-1944
+//  VS2026==1950-1951...
 #if _MSC_VER>=1700
 
 #define HAVE_VISTA_SDK		// shipped with Windows SDK

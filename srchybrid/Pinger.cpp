@@ -96,7 +96,6 @@
 #include "emule.h"
 #include "TimeTick.h"
 #include "Pinger.h"
-#include "emuledlg.h"
 #include "OtherFunctions.h"
 #include "opcodes.h"
 
@@ -345,7 +344,7 @@ PingStatus Pinger::PingICMP(uint32 lAddr, DWORD ttl, bool doLog)
 		const ICMP_ECHO_REPLY &Reply = *reinterpret_cast<PICMP_ECHO_REPLY>(achRepData);
 		long pingTime = Reply.RoundTripTime;
 
-		returnValue.fDelay = (c_time.isPerformanceCounter() && (pingTime <= 20 || pingTime % 10 == 0) && (pingTime + 10 > usResTime && usResTime + 10 > pingTime)) ? usResTime : pingTime;
+		returnValue.fDelay = (c_time.isPerformanceCounter() && (pingTime <= 20 || pingTime % 10 == 0) && ((float)(pingTime + 10) > usResTime && usResTime + 10 > (float)pingTime)) ? usResTime : pingTime;
 		returnValue.destinationAddress = Reply.Address;
 		returnValue.status = Reply.Status;
 		returnValue.error = 0;
@@ -375,7 +374,7 @@ PingStatus Pinger::PingICMP(uint32 lAddr, DWORD ttl, bool doLog)
 
 void Pinger::PIcmpErr(LPCTSTR pszMsg, DWORD nICMPErr)
 {
-#if XP_BUILD
+#ifdef XP_BUILD
 	static LPCTSTR const aszSendEchoErr[] =
 	{
 		_T("IP_STATUS_BASE (11000)"),

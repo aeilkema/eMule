@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -162,14 +162,14 @@ BOOL CIPFilterDlg::OnInitDialog()
 	InitWindowStyles(this);
 
 	AddAnchor(IDC_IPFILTER, TOP_LEFT, BOTTOM_RIGHT);
-	AddAnchor(IDC_TOTAL_IPFILTER_LABEL, BOTTOM_LEFT);
-	AddAnchor(IDC_TOTAL_IPFILTER, BOTTOM_LEFT);
 	AddAnchor(IDC_TOTAL_IPS_LABEL, BOTTOM_LEFT);
+	AddAnchor(IDC_TOTAL_IPFILTER_LABEL, BOTTOM_LEFT);
 	AddAnchor(IDC_TOTAL_IPS, BOTTOM_LEFT);
-	AddAnchor(IDC_REMOVE, BOTTOM_RIGHT);
-	AddAnchor(IDC_APPEND, BOTTOM_RIGHT);
-	AddAnchor(IDC_SAVE, BOTTOM_RIGHT);
+	AddAnchor(IDC_TOTAL_IPFILTER, BOTTOM_LEFT);
 	AddAnchor(IDOK, BOTTOM_RIGHT);
+	AddAnchor(IDC_SAVE, BOTTOM_RIGHT);
+	AddAnchor(IDC_APPEND, BOTTOM_RIGHT);
+	AddAnchor(IDC_REMOVE, BOTTOM_RIGHT);
 	EnableSaveRestore(PREF_INI_SECTION);
 
 	ASSERT(m_ipfilter.GetStyle() & LVS_OWNERDATA);
@@ -239,7 +239,7 @@ void CIPFilterDlg::InitIPFilters()
 
 void CIPFilterDlg::OnLvnGetDispInfoIPFilter(LPNMHDR pNMHDR, LRESULT *pResult)
 {
-	const LVITEMW &rItem = reinterpret_cast<NMLVDISPINFO*>(pNMHDR)->item;
+	const LVITEM &rItem = reinterpret_cast<NMLVDISPINFO*>(pNMHDR)->item;
 	if (rItem.mask & LVIF_TEXT) // *have* to check that flag!!
 		switch (rItem.iSubItem) {
 		case IPFILTER_COL_START:
@@ -283,10 +283,7 @@ void CIPFilterDlg::OnCopyIPFilter()
 	CString strData;
 	for (POSITION pos = m_ipfilter.GetFirstSelectedItemPosition(); pos != NULL;) {
 		int iItem = m_ipfilter.GetNextSelectedItem(pos);
-		if (!strData.IsEmpty())
-			strData += _T("\r\n");
-
-		strData.AppendFormat(_T("%-15s - %-15s  Hits=%-5s  %s")
+		strData.AppendFormat(_T("%-15s - %-15s  Hits=%-5s  %s\r\n")
 			, (LPCTSTR)m_ipfilter.GetItemText(iItem, IPFILTER_COL_START)
 			, (LPCTSTR)m_ipfilter.GetItemText(iItem, IPFILTER_COL_END)
 			, (LPCTSTR)m_ipfilter.GetItemText(iItem, IPFILTER_COL_HITS)
@@ -294,11 +291,8 @@ void CIPFilterDlg::OnCopyIPFilter()
 		++iSelected;
 	}
 
-	if (!strData.IsEmpty()) {
-		if (iSelected > 1)
-			strData += _T("\r\n");
-		theApp.CopyTextToClipboard(strData);
-	}
+	if (iSelected)
+		theApp.emuledlg->CopyTextToClipboard(strData);
 }
 
 void CIPFilterDlg::OnSelectAllIPFilter()
@@ -319,13 +313,14 @@ void CIPFilterDlg::OnBnClickedAppend()
 		CWaitCursor curWait;
 
 		const CString &sConfDir(thePrefs.GetMuleDirectory(EMULE_CONFIGDIR));
-		CString szExt(::PathFindExtension(strFilePath));
+		LPCTSTR pDot = ::PathFindExtension(strFilePath);
+		CString szExt(&pDot[static_cast<int>(*pDot != _T('\0'))]); //skip the dot
 		szExt.MakeLower();
-		bool bIsArchiveFile = (szExt == _T(".zip") || szExt == _T(".rar") || szExt == _T(".gz"));
+		bool bIsArchiveFile = (szExt == _T("zip") || szExt == _T("rar") || szExt == _T("gz"));
 		bool bExtractedArchive = false;
 
 		CString strTempUnzipFilePath;
-		if (szExt == _T(".zip")) {
+		if (szExt == _T("zip")) {
 			CZIPFile zip;
 			if (zip.Open(strFilePath)) {
 				CZIPFile::File *zfile = zip.GetFile(_T("ipfilter.dat"));
@@ -355,7 +350,7 @@ void CIPFilterDlg::OnBnClickedAppend()
 				strError.Format(_T("Failed to open file \"%s\".\r\n\r\nInvalid file format?"), (LPCTSTR)strFilePath);
 				AfxMessageBox(strError, MB_ICONERROR);
 			}
-		} else if (szExt == _T(".rar")) {
+		} else if (szExt == _T("rar")) {
 			CRARFile rar;
 			if (rar.Open(strFilePath)) {
 				CString strFile;
@@ -385,14 +380,14 @@ void CIPFilterDlg::OnBnClickedAppend()
 				strError.Format(_T("Failed to open file \"%s\".\r\n\r\nInvalid file format?\r\n\r\n%s"), (LPCTSTR)strFilePath, CRARFile::sUnrar_download);
 				AfxMessageBox(strError, MB_ICONERROR);
 			}
-		} else if (szExt == _T(".gz")) {
+		} else if (szExt == _T("gz")) {
 			CGZIPFile gz;
 			if (gz.Open(strFilePath)) {
 				_tmakepathlimit(strTempUnzipFilePath.GetBuffer(MAX_PATH), NULL, sConfDir, DFLT_IPFILTER_FILENAME, _T(".unzip.tmp"));
 				strTempUnzipFilePath.ReleaseBuffer();
 
 				// add filename and extension of uncompressed file to temporary file
-				const CString &strUncompressedFileName = gz.GetUncompressedFileName();
+				const CString &strUncompressedFileName(gz.GetUncompressedFileName());
 				if (!strUncompressedFileName.IsEmpty())
 					strTempUnzipFilePath.AppendFormat(_T(".%s"), (LPCTSTR)strUncompressedFileName);
 
@@ -408,7 +403,7 @@ void CIPFilterDlg::OnBnClickedAppend()
 			}
 		}
 
-		if ((!bIsArchiveFile || bExtractedArchive) && theApp.ipfilter->AddFromFile(strFilePath, true)) {
+		if ((!bIsArchiveFile || bExtractedArchive) && theApp.ipfilter->AppendFromFile(strFilePath, true)) {
 			if (thePrefs.GetFilterServerByIP())
 				theApp.emuledlg->serverwnd->serverlistctrl.RemoveAllFilteredServers();
 			InitIPFilters();
@@ -533,7 +528,7 @@ bool CIPFilterDlg::FindItem(const CListCtrlX &lv, int iItem, DWORD_PTR lParam)
 	ASSERT_VALID(dlg);
 	u_long ip = htonl(inet_addr((CStringA)lv.GetFindText()));
 	const SIPFilter *filter = dlg->m_ppIPFilterItems[iItem];
-	return (ip >= filter->start && ip <= filter->end);
+	return ip >= filter->start && ip <= filter->end;
 }
 
 void CIPFilterDlg::OnFind()

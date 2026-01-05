@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -37,7 +37,6 @@
 #include "DownloadQueue.h"
 #include "server.h"
 #include "IrcSocket.h"
-#include "MenuCmds.h"
 #include "ServerConnect.h"
 #include "FriendList.h"
 #include "emuleDlg.h"
@@ -68,8 +67,7 @@ void CIrcMain::PreParseMessage(const char *pszBufferA)
 {
 	try {
 		m_sPreParseBufferA += pszBufferA;
-		int iIndex = m_sPreParseBufferA.Find('\n');
-		while (iIndex != -1) {
+		for (int iIndex; (iIndex = m_sPreParseBufferA.Find('\n')) >= 0;) {
 			int iRawMessageLen = iIndex;
 			LPCSTR pszRawMessageA = m_sPreParseBufferA;
 			if (iRawMessageLen > 0 && pszRawMessageA[iRawMessageLen - 1] == '\r')
@@ -78,11 +76,10 @@ void CIrcMain::PreParseMessage(const char *pszBufferA)
 				ASSERT(0);
 			TRACE(_T("%s\n"), (LPCTSTR)CString(pszRawMessageA, iRawMessageLen));
 			if (thePrefs.GetIRCEnableUTF8())
-				ParseMessage(OptUtf8ToStr(pszRawMessageA, iRawMessageLen));
+				ParseMessage((CString)OptUtf8ToStr(pszRawMessageA, iRawMessageLen));
 			else
 				ParseMessage(CString(pszRawMessageA, iRawMessageLen));
 			m_sPreParseBufferA.Delete(0, iIndex + 1);
-			iIndex = m_sPreParseBufferA.Find('\n');
 		}
 	}
 	CATCH_DFLT_EXCEPTIONS(_T(__FUNCTION__))
@@ -92,7 +89,7 @@ void CIrcMain::PreParseMessage(const char *pszBufferA)
 void CIrcMain::ProcessLink(const CString &sED2KLink)
 {
 	try {
-		const CString &sLink(OptUtf8ToStr(URLDecode(sED2KLink)));
+		const CString sLink(OptUtf8ToStr(URLDecode(sED2KLink)));
 		CED2KLink *pLink = CED2KLink::CreateLinkFromUrl(sLink);
 		ASSERT(pLink);
 		switch (pLink->GetKind()) {
@@ -125,10 +122,10 @@ void CIrcMain::ProcessLink(const CString &sED2KLink)
 				if (thePrefs.GetManualAddedServersHighPriority())
 					pSrv->SetPreference(SRV_PR_HIGH);
 
-				if (!theApp.emuledlg->serverwnd->serverlistctrl.AddServer(pSrv, true))
-					delete pSrv;
-				else
+				if (theApp.emuledlg->serverwnd->serverlistctrl.AddServer(pSrv, true))
 					AddLogLine(true, GetResString(IDS_SERVERADDED), (LPCTSTR)pSrv->GetListName());
+				else
+					delete pSrv;
 			}
 		}
 		delete pLink;
@@ -286,7 +283,7 @@ void CIrcMain::ParseMessage(const CString &sRawMessage)
 					} else {
 						//Not on a server.
 						sIP = _T("0.0.0.0");
-						sPort += _T('0');
+						sPort += _T("0");
 					}
 					//Create our response.
 					CString sBuild;
@@ -654,7 +651,7 @@ void CIrcMain::ParseMessage(const CString &sRawMessage)
 				if (uCommand == 317) {
 					CString s(sRawMessage.Tokenize(_T(" "), iIndex));
 					CTimeSpan idle(_tstoi64(sRawMessage.Tokenize(_T(" "), iIndex)));
-					s += _T(' ');
+					s += _T(" ");
 					if (idle.GetHours() > 0)
 						s += idle.Format(_T("%Hhrs %Mmins %Ssecs"));
 					else if (idle.GetMinutes() > 0)
@@ -812,7 +809,7 @@ void CIrcMain::ParseMessage(const CString &sRawMessage)
 				//to answer a WHO message.  The RPL_WHOREPLY is only
 				//sent if there is an appropriate match to the WHO
 				//query.  If there is a list of parameters supplied
-				//with a WHO message, a RPL_ENDOFWHO MUST be sent
+				//with a WHO message, an RPL_ENDOFWHO MUST be sent
 				//after processing each list item with <name> being
 				//the item.
 				//352    RPL_WHOREPLY
@@ -835,7 +832,7 @@ void CIrcMain::ParseMessage(const CString &sRawMessage)
 				//returned.  The exception to this is when a NAMES
 				//message is sent with no parameters and all visible
 				//channels and contents are sent back in a series of
-				//RPL_NAMEREPLY messages with a RPL_ENDOFNAMES to mark
+				//RPL_NAMEREPLY messages with an RPL_ENDOFNAMES to mark
 				//the end.
 				//353    RPL_NAMREPLY
 				//"( "=" / "*" / "@" ) <channel>
@@ -872,7 +869,7 @@ void CIrcMain::ParseMessage(const CString &sRawMessage)
 
 				//- In replying to the LINKS message, a server MUST send
 				//replies back using the RPL_LINKS numeric and mark the
-				//end of the list using a RPL_ENDOFLINKS reply.
+				//end of the list using an RPL_ENDOFLINKS reply.
 				//364    RPL_LINKS
 				//"<mask> <server> :<hopcount> <server info>"
 				//365    RPL_ENDOFLINKS
@@ -895,7 +892,7 @@ void CIrcMain::ParseMessage(const CString &sRawMessage)
 
 				//- A server responding to an INFO message is required to
 				//send all its 'info' in a series of RPL_INFO messages
-				//with a RPL_ENDOFINFO reply to indicate the end of the
+				//with an RPL_ENDOFINFO reply to indicate the end of the
 				//replies.
 				//371    RPL_INFO
 				//":<string>"
@@ -908,7 +905,7 @@ void CIrcMain::ParseMessage(const CString &sRawMessage)
 				//is found, the file is displayed line by line, with
 				//each line no longer than 80 characters, using
 				//RPL_MOTD format replies.  These MUST be surrounded
-				//by a RPL_MOTDSTART (before the RPL_MOTDs) and an
+				//by an RPL_MOTDSTART (before the RPL_MOTDs) and an
 				//RPL_ENDOFMOTD (after).
 				//375    RPL_MOTDSTART
 				//":- <server> Message of the day - "
@@ -928,7 +925,7 @@ void CIrcMain::ParseMessage(const CString &sRawMessage)
 			case 381:
 
 				//- If the REHASH option is used and an operator sends
-				//a REHASH message, a RPL_REHASHING is sent back to
+				//a REHASH message, an RPL_REHASHING is sent back to
 				//the operator.
 				//382    RPL_REHASHING
 				//"<config file> :Rehashing"
@@ -1192,7 +1189,7 @@ void CIrcMain::ParseMessage(const CString &sRawMessage)
 				//"<target> :<error code> recipients. <abort message>"
 			case 407:
 
-				//- Returned to a client which is attempting to send a SQUERY
+				//- Returned to a client which is attempting to send an SQUERY
 				//to a service which does not exist.
 				//408    ERR_NOSUCHSERVICE
 				//"<service name> :No such service"
@@ -1532,20 +1529,10 @@ int CIrcMain::SendString(const CString &sSend)
 	return m_pIRCSocket->SendString(sSend);
 }
 
-void CIrcMain::SetIRCWnd(CIrcWnd *pwndIRC)
-{
-	m_pwndIRC = pwndIRC;
-}
-
 uint32 CIrcMain::SetVerify()
 {
 	m_uVerify = GetRandomUInt32();
 	return m_uVerify;
-}
-
-CString CIrcMain::GetNick() const
-{
-	return m_sNick;
 }
 
 void CIrcMain::PerformString(const CString &sPerform)

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,12 +15,17 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
+#include "ClientListCtrl.h"
+#include "DownloadClientsCtrl.h"
+#include "DownloadListCtrl.h"
 #include "emule.h"
 #include "emuleDlg.h"
-#include "TransferDlg.h"
-#include "OtherFunctions.h"
 #include "HelpIDs.h"
+#include "OtherFunctions.h"
 #include "Preferences.h"
+#include "TransferDlg.h"
+#include "QueueListCtrl.h"
+#include "UploadListCtrl.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -29,7 +34,7 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 
-#define	IDBAR_DOWNLOAD_TOOLBAR		(AFX_IDW_CONTROLBAR_FIRST + 32 + 2)	// do NOT change that ID, if not absolutely needed (it is stored by MFC in the bar profile!)
+#define	IDBAR_DOWNLOAD_TOOLBAR		(AFX_IDW_CONTROLBAR_FIRST + 32 + 2)	// do NOT change this ID, if not absolutely needed (it is stored by MFC in the bar profile!)
 #define	DOWNLOAD_TOOLBAR_PROFILE	_T("DownloadFrmBarState")
 
 IMPLEMENT_DYNCREATE(CTransferDlg, CFrameWnd)
@@ -55,8 +60,7 @@ BOOL CTransferDlg::CreateWnd(CWnd *pParent)
 	// *) The dialog resource template's window size (of the search results window) must not
 	//	  exceed the minimum client area of the frame window.
 	// Otherwise we may get scrollbars in the search results window
-	static const RECT rc = { 0, 0, 50, 50 };
-	return CFrameWnd::Create(NULL, _T("Transfer"), WS_CHILD | WS_CLIPCHILDREN, rc, pParent, NULL, 0, NULL);
+	return CFrameWnd::Create(NULL, _T("Transfer"), WS_CHILD | WS_CLIPCHILDREN, RECT{0, 0, 50, 50}, pParent, NULL, 0, NULL);
 }
 
 int CTransferDlg::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -86,14 +90,14 @@ int CTransferDlg::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndToolbar.EnableDocking(CBRS_ALIGN_ANY);
 
 	EnableDocking(CBRS_ALIGN_ANY);
-	DockControlBar(&m_wndToolbar, AFX_IDW_DOCKBAR_LEFT, (LPRECT)NULL);
+	DockControlBar(&m_wndToolbar, AFX_IDW_DOCKBAR_LEFT, NULL);
 
 	m_pwndTransfer->SendMessage(WM_INITIALUPDATE);
 
 	LoadBarState(DOWNLOAD_TOOLBAR_PROFILE);
 	DockToolbarWnd(); // Too many bug reports about vanished search parameters window. Force to dock.
 	ShowToolbar(thePrefs.IsDownloadToolbarEnabled());
-	m_wndToolbar.SetCommandTargetWnd(GetDownloadList());
+	m_wndToolbar.SetCommandTargetWnd(&GetDownloadList());
 	Localize();
 
 	return 0;
@@ -235,28 +239,28 @@ int CTransferDlg::AddCategory(const CString &newtitle, const CString &newincomin
 }
 
 
-CUploadListCtrl* CTransferDlg::GetUploadList()
+CUploadListCtrl& CTransferDlg::GetUploadList()
 {
-	return &m_pwndTransfer->uploadlistctrl;
+	return m_pwndTransfer->uploadlistctrl;
 }
 
-CDownloadListCtrl* CTransferDlg::GetDownloadList()
+CDownloadListCtrl& CTransferDlg::GetDownloadList()
 {
-	return &m_pwndTransfer->downloadlistctrl;
+	return m_pwndTransfer->downloadlistctrl;
 }
 
-CQueueListCtrl*	CTransferDlg::GetQueueList()
+CQueueListCtrl&	CTransferDlg::GetQueueList()
 {
-	return &m_pwndTransfer->queuelistctrl;
+	return m_pwndTransfer->queuelistctrl;
 }
 
-CClientListCtrl* CTransferDlg::GetClientList()
+CClientListCtrl& CTransferDlg::GetClientList()
 {
-	return &m_pwndTransfer->clientlistctrl;
+	return m_pwndTransfer->clientlistctrl;
 }
 
-CDownloadClientsCtrl* CTransferDlg::GetDownloadClientsList()
+CDownloadClientsCtrl& CTransferDlg::GetDownloadClientsList()
 {
-	return &m_pwndTransfer->downloadclientsctrl;
+	return m_pwndTransfer->downloadclientsctrl;
 }
 //////////////////////////////////////////////////////////////////

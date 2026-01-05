@@ -1,6 +1,6 @@
 // parts of this file are based on work from pan One (http://home-3.tiscali.nl/~meost/pms/)
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -23,7 +23,6 @@
 #include "DebugHelpers.h"
 #endif
 #include "emule.h"
-#include "KnownFile.h"
 #include "KnownFileList.h"
 #include "SharedFileList.h"
 #include "UpDownClient.h"
@@ -31,7 +30,6 @@
 #include "opcodes.h"
 #include "ini2.h"
 #include "FrameGrabThread.h"
-#include "CxImage/xImage.h"
 #include "Preferences.h"
 #include "PartFile.h"
 #include "Packets.h"
@@ -47,7 +45,6 @@
 #include "SharedFilesWnd.h"
 #include "MediaInfo.h"
 #include "id3/tag.h"
-#include "id3/misc_support.h"
 #include "uploaddiskiothread.h"
 extern wchar_t* ID3_GetStringW(const ID3_Frame *frame, ID3_FieldID fldName);
 
@@ -67,8 +64,8 @@ static char THIS_FILE[] = __FILE__;
 IMPLEMENT_DYNAMIC(CKnownFile, CShareableFile)
 
 CKnownFile::CKnownFile()
-	: m_tUtcLastModified((time_t)-1)
-	, m_nCompleteSourcesTime() //(time(NULL))
+	: m_tUTClastModified((time_t)-1)
+	, m_tCompleteSourcesTime() //(time(NULL))
 	, m_nCompleteSourcesCount(1)
 	, m_nCompleteSourcesCountLo(1)
 	, m_nCompleteSourcesCountHi(1)
@@ -107,9 +104,9 @@ void CKnownFile::AssertValid() const
 {
 	CAbstractFile::AssertValid();
 
-	(void)m_tUtcLastModified;
+	(void)m_tUTClastModified;
 	(void)statistic;
-	(void)m_nCompleteSourcesTime;
+	(void)m_tCompleteSourcesTime;
 	(void)m_nCompleteSourcesCount;
 	(void)m_nCompleteSourcesCountLo;
 	(void)m_nCompleteSourcesCountHi;
@@ -138,7 +135,7 @@ void CKnownFile::Dump(CDumpContext &dc) const
 
 CBarShader CKnownFile::s_ShareStatusBar(16);
 
-void CKnownFile::DrawShareStatusBar(CDC *dc, LPCRECT rect, bool onlygreyrect, bool  bFlat) const
+void CKnownFile::DrawShareStatusBar(CDC &dc, LPCRECT rect, bool onlygreyrect, bool  bFlat) const
 {
 	s_ShareStatusBar.SetFileSize(GetFileSize());
 	s_ShareStatusBar.SetRect(rect);
@@ -192,10 +189,7 @@ void CKnownFile::UpdateFileRatingCommentAvail(bool bForceUpdate)
 		}
 	}
 
-	if (uRatings)
-		m_uUserRating = (uint32)ROUND((float)uUserRatings / uRatings);
-	else
-		m_uUserRating = 0;
+	m_uUserRating = uRatings ? (uint32)ROUND((float)uUserRatings / (float)uRatings) : 0;
 
 	if (bOldHasComment != m_bHasComment || uOldUserRatings != m_uUserRating || bForceUpdate)
 		theApp.emuledlg->sharedfileswnd->sharedfilesctrl.UpdateFile(this);
@@ -204,7 +198,7 @@ void CKnownFile::UpdateFileRatingCommentAvail(bool bForceUpdate)
 void CKnownFile::UpdatePartsInfo()
 {
 	time_t tNow = time(NULL);
-	bool bRefresh = (tNow - m_nCompleteSourcesTime > 0);
+	bool bRefresh = (tNow - m_tCompleteSourcesTime > 0);
 
 	// Reset part counters
 	if (m_AvailPartFrequency.GetCount() < GetPartCount())
@@ -212,7 +206,7 @@ void CKnownFile::UpdatePartsInfo()
 	if (GetPartCount())
 		memset(&m_AvailPartFrequency[0], 0, GetPartCount() * sizeof m_AvailPartFrequency[0]);
 
-	CArray<uint16, uint16> acount;
+	CArray<uint16> acount;
 	if (bRefresh)
 		acount.SetSize(0, m_ClientUploadList.GetCount());
 	for (POSITION pos = m_ClientUploadList.GetHeadPosition(); pos != NULL;) {
@@ -289,7 +283,7 @@ void CKnownFile::UpdatePartsInfo()
 			if (m_nCompleteSourcesCountHi < m_nCompleteSourcesCount)
 				m_nCompleteSourcesCountHi = m_nCompleteSourcesCount;
 		}
-		m_nCompleteSourcesTime = tNow + MIN2S(1);
+		m_tCompleteSourcesTime = tNow + MIN2S(1);
 	}
 	if (theApp.emuledlg->sharedfileswnd->m_hWnd)
 		theApp.emuledlg->sharedfileswnd->sharedfilesctrl.UpdateFile(this);
@@ -328,26 +322,24 @@ void Dump(const Kademlia::WordList &wordlist)
 
 void CKnownFile::SetFileName(LPCTSTR pszFileName, bool bReplaceInvalidFileSystemChars, bool bRemoveControlChars)
 {
-	// If this is called within the shared files object during startup,
-	// we cannot reference it yet.
+	// The shared files object may not exist early in startup sequence.
+	bool bSharedFiles = theApp.sharedfiles && theApp.sharedfiles->GetFileByID(GetFileHash()) == this;
 
-	const CKnownFile *pFile = theApp.sharedfiles ? theApp.sharedfiles->GetFileByID(GetFileHash()) : NULL;
-
-	if (pFile == this)
+	if (bSharedFiles)
 		theApp.sharedfiles->RemoveKeywords(this);
 
 	SetAFileName(pszFileName, bReplaceInvalidFileSystemChars, true, bRemoveControlChars);
 	m_verifiedFileType = FILETYPE_UNKNOWN;
 
 	wordlist.clear();
-	if (m_pCollection) {
-		CStringW sKeyWords(m_pCollection->GetCollectionAuthorKeyString());
-		sKeyWords.AppendFormat(_T(" %s"), (LPCTSTR)GetFileName());
-		Kademlia::CSearchManager::GetWords(sKeyWords, wordlist);
-	} else
-		Kademlia::CSearchManager::GetWords((CStringW)GetFileName(), wordlist); //make sure that it is a CStringW
+	CString sKeyWords;
+	if (m_pCollection && m_pCollection->HasAuthorKey())
+		sKeyWords.Format(_T("%s %s"), (LPCTSTR)m_pCollection->GetCollectionAuthorKeyString(), (LPCTSTR)GetFileName());
+	else
+		sKeyWords = GetFileName();
+	Kademlia::CSearchManager::GetWords((CStringW)sKeyWords, wordlist);
 
-	if (pFile == this)
+	if (bSharedFiles)
 		theApp.sharedfiles->AddKeywords(this);
 }
 
@@ -380,7 +372,7 @@ bool CKnownFile::CreateFromFile(LPCTSTR in_directory, LPCTSTR in_filename, LPVOI
 		fclose(file);
 		return false; // not supported by network
 	}
-	SetFileSize((EMFileSize)(uint64)llFileSize);
+	SetFileSize((EMFileSize)llFileSize);
 
 	// we are reading the file data later in 8K blocks, adjust the internal file stream buffer accordingly
 	::setvbuf(file, NULL, _IOFBF, 1024 * 8 * 2);
@@ -391,7 +383,7 @@ bool CKnownFile::CreateFromFile(LPCTSTR in_directory, LPCTSTR in_filename, LPVOI
 
 	// create hashset
 	CAICHRecoveryHashSet cAICHHashSet(this, m_nFileSize);
-	uint64 togo = (uint64)m_nFileSize;
+	uint64 togo = m_nFileSize;
 	UINT hashcount;
 	for (hashcount = 0; ; ++hashcount) {
 		UINT uSize = (UINT)min(togo, PARTSIZE);
@@ -429,12 +421,12 @@ bool CKnownFile::CreateFromFile(LPCTSTR in_directory, LPCTSTR in_filename, LPVOI
 			else
 				break;
 
+		if (theApp.IsClosing()) {
+			LogError(_T("Hashing cancelled (closing eMule), file \"%s\""), (LPCTSTR)strFilePath);
+			fclose(file);
+			return false;
+		}
 		if (pvProgressParam) {
-			if (theApp.IsClosing()) {
-				LogError(_T("Hashing cancelled (closing eMule), file \"%s\""), (LPCTSTR)strFilePath);
-				fclose(file);
-				return false;
-			}
 			if (reinterpret_cast<CPartFile*>(pvProgressParam)->IsKindOf(RUNTIME_CLASS(CPartFile))
 				&& reinterpret_cast<CPartFile*>(pvProgressParam)->IsDeleting())
 			{
@@ -442,9 +434,10 @@ bool CKnownFile::CreateFromFile(LPCTSTR in_directory, LPCTSTR in_filename, LPVOI
 				fclose(file);
 				return false;
 			}
+
 			ASSERT(reinterpret_cast<CKnownFile*>(pvProgressParam)->IsKindOf(RUNTIME_CLASS(CKnownFile)));
 			ASSERT(reinterpret_cast<CKnownFile*>(pvProgressParam)->GetFileSize() == GetFileSize());
-			WPARAM uProgress = (WPARAM)((((uint64)GetFileSize() - togo) * 100) / (uint64)GetFileSize());
+			WPARAM uProgress = (WPARAM)(100 - 100 * togo / (uint64)GetFileSize());
 			ASSERT(uProgress <= 100);
 			VERIFY(theApp.emuledlg->PostMessage(TM_FILEOPPROGRESS, uProgress, (LPARAM)pvProgressParam));
 		}
@@ -454,24 +447,25 @@ bool CKnownFile::CreateFromFile(LPCTSTR in_directory, LPCTSTR in_filename, LPVOI
 		m_FileIdentifier.CalculateMD4HashByHashSet(false);
 
 	cAICHHashSet.ReCalculateHash(false);
-	if (cAICHHashSet.VerifyHashTree(true)) {
-		cAICHHashSet.SetStatus(AICH_HASHSETCOMPLETE);
-		m_FileIdentifier.SetAICHHash(cAICHHashSet.GetMasterHash());
-		if (!m_FileIdentifier.SetAICHHashSet(cAICHHashSet)) {
-			ASSERT(0);
-			DebugLogError(_T("CreateFromFile() - failed to create AICH PartHashSet out of RecoveryHashSet - %s"), (LPCTSTR)GetFileName());
-		}
-		if (!cAICHHashSet.SaveHashSet())
-			LogError(LOG_STATUSBAR, GetResString(IDS_SAVEACFAILED));
-		else
-			SetAICHRecoverHashSetAvailable(true);
-	} else
-		// now something went pretty wrong
-		DebugLogError(LOG_STATUSBAR, _T("Failed to calculate AICH Hashset from file %s"), (LPCTSTR)GetFileName());
+	if (llFileSize) //bypass for empty part files
+		if (cAICHHashSet.VerifyHashTree(true)) {
+			cAICHHashSet.SetStatus(AICH_HASHSETCOMPLETE);
+			m_FileIdentifier.SetAICHHash(cAICHHashSet.GetMasterHash());
+			if (!m_FileIdentifier.SetAICHHashSet(cAICHHashSet)) {
+				ASSERT(0);
+				DebugLogError(_T("CreateFromFile() - failed to create AICH PartHashSet out of RecoveryHashSet - %s"), (LPCTSTR)GetFileName());
+			}
+			if (cAICHHashSet.SaveHashSet())
+				SetAICHRecoverHashSetAvailable(true);
+			else
+				LogError(LOG_STATUSBAR, GetResString(IDS_SAVEACFAILED));
+		} else
+			// now something went pretty wrong
+			DebugLogError(LOG_STATUSBAR, _T("Failed to calculate AICH Hashset from file %s"), (LPCTSTR)GetFileName());
 
 	if (pvProgressParam && !theApp.IsClosing()) {
 		ASSERT(reinterpret_cast<CKnownFile*>(pvProgressParam)->IsKindOf(RUNTIME_CLASS(CKnownFile)));
-		ASSERT(reinterpret_cast<CKnownFile*>(pvProgressParam)->GetFileSize() == GetFileSize());
+		ASSERT(!llFileSize || reinterpret_cast<CKnownFile*>(pvProgressParam)->GetFileSize() == GetFileSize());
 		WPARAM uProgress = 100;
 		ASSERT(uProgress <= 100);
 		VERIFY(theApp.emuledlg->PostMessage(TM_FILEOPPROGRESS, uProgress, (LPARAM)pvProgressParam));
@@ -480,8 +474,8 @@ bool CKnownFile::CreateFromFile(LPCTSTR in_directory, LPCTSTR in_filename, LPVOI
 	// set last write date
 	struct _stat64 st;
 	if (statUTC((HANDLE)_get_osfhandle(_fileno(file)), st) == 0) {
-		m_tUtcLastModified = (time_t)st.st_mtime;
-		AdjustNTFSDaylightFileTime(m_tUtcLastModified, (LPCTSTR)strFilePath);
+		m_tUTClastModified = (time_t)st.st_mtime;
+		AdjustNTFSDaylightFileTime(m_tUTClastModified, (LPCTSTR)strFilePath);
 	}
 
 	fclose(file);
@@ -508,7 +502,7 @@ bool CKnownFile::CreateAICHHashSetOnly()
 
 	// create aich hashset
 	CAICHRecoveryHashSet cAICHHashSet(this, m_nFileSize);
-	uint64 togo = (uint64)m_nFileSize;
+	uint64 togo = m_nFileSize;
 	for (UINT hashcount = 0; togo; ++hashcount) {
 		uint64 uSize = min(togo, PARTSIZE);
 		CAICHHashTree *pBlockAICHHashTree = cAICHHashSet.m_pHashTree.FindHash(hashcount * PARTSIZE, uSize);
@@ -537,10 +531,10 @@ bool CKnownFile::CreateAICHHashSetOnly()
 			ASSERT(0);
 			DebugLogError(_T("CreateAICHHashSetOnly() - failed to create AICH PartHashSet out of RecoveryHashSet - %s"), (LPCTSTR)GetFileName());
 		}
-		if (!cAICHHashSet.SaveHashSet())
-			LogError(LOG_STATUSBAR, GetResString(IDS_SAVEACFAILED));
-		else
+		if (cAICHHashSet.SaveHashSet())
 			SetAICHRecoverHashSetAvailable(true);
+		else
+			LogError(LOG_STATUSBAR, GetResString(IDS_SAVEACFAILED));
 	} else {
 		// now something went pretty wrong
 		DebugLogError(LOG_STATUSBAR, _T("Failed to calculate AICH Hashset from file %s"), (LPCTSTR)GetFileName());
@@ -611,15 +605,15 @@ void CKnownFile::SetFileSize(EMFileSize nFileSize)
 	// PARTSIZE*2+1    3               3               3					3
 
 	if ((uint64)nFileSize == 0) {
-		ASSERT(0);
+		ASSERT(!IsPartFile());
 		m_iPartCount = 0;
 		m_iED2KPartCount = 0;
 		return;
 	}
 
 	// nr. of data parts
-	ASSERT(((uint64)nFileSize + (PARTSIZE - 1)) / PARTSIZE <= _UI16_MAX);
-	m_iPartCount = (uint16)(((uint64)nFileSize + (PARTSIZE - 1)) / PARTSIZE);
+	ASSERT(((uint64)nFileSize + PARTSIZE - 1) / PARTSIZE <= _UI16_MAX);
+	m_iPartCount = (uint16)(((uint64)nFileSize + PARTSIZE - 1) / PARTSIZE);
 
 	// nr. of parts to be used with OP_FILESTATUS
 	m_iED2KPartCount = (uint16)((uint64)nFileSize / PARTSIZE + 1);
@@ -768,7 +762,7 @@ bool CKnownFile::LoadTagsFromFile(CFileDataIO &file)
 
 bool CKnownFile::LoadDateFromFile(CFileDataIO &file)
 {
-	m_tUtcLastModified = (time_t)file.ReadUInt32();
+	m_tUTClastModified = (time_t)file.ReadUInt32();
 	return true;
 }
 
@@ -786,7 +780,7 @@ bool CKnownFile::LoadFromFile(CFileDataIO &file)
 bool CKnownFile::WriteToFile(CFileDataIO &file)
 {
 	// date
-	file.WriteUInt32((uint32)m_tUtcLastModified);
+	file.WriteUInt32((uint32)m_tUTClastModified);
 
 	// hashset
 	m_FileIdentifier.WriteMD4HashsetToFile(file);
@@ -1383,9 +1377,9 @@ void CKnownFile::UpdateMetaDataTags()
 	if (thePrefs.GetExtractMetaData() == 0)
 		return;
 
-	CString szExt(::PathFindExtension(GetFileName()));
-	szExt.MakeLower();
-	if (szExt == _T(".mp3") || szExt == _T(".mp2") || szExt == _T(".mp1") || szExt == _T(".mpa")) {
+	LPCTSTR pszExt = ::PathFindExtension(GetFileName());
+	pszExt += static_cast<int>(*pszExt != _T('\0'));
+	if (!_tcsicmp(pszExt, _T("mp3")) || !_tcsicmp(pszExt, _T("mp2")) || !_tcsicmp(pszExt, _T("mp1")) || !_tcsicmp(pszExt, _T("mpa"))) {
 		TCHAR szFullPath[MAX_PATH];
 		if (_tmakepathlimit(szFullPath, NULL, GetPath(), GetFileName(), NULL)) {
 			wchar_t *pszText = NULL;
@@ -1544,8 +1538,10 @@ void CKnownFile::UpdateMetaDataTags()
 
 void CKnownFile::SetPublishedED2K(bool val)
 {
-	m_PublishedED2K = val;
-	theApp.emuledlg->sharedfileswnd->sharedfilesctrl.UpdateFile(this);
+	if (m_PublishedED2K != val) {
+		m_PublishedED2K = val;
+		theApp.emuledlg->sharedfileswnd->sharedfilesctrl.UpdateFile(this);
+	}
 }
 
 bool CKnownFile::PublishNotes()
@@ -1585,7 +1581,7 @@ bool CKnownFile::PublishSrc()
 
 bool CKnownFile::IsMovie() const
 {
-	return (ED2KFT_VIDEO == GetED2KFileTypeID(GetFileName()));
+	return GetED2KFileTypeID(GetFileName()) == ED2KFT_VIDEO;
 }
 
 // function assumes that this file is shared and that any needed permission to preview exists. checks have to be done before calling!
@@ -1605,7 +1601,7 @@ bool CKnownFile::GrabImage(const CString &strFileName, uint8 nFramesToGrab, doub
 }
 
 // imgResults[i] can be NULL
-void CKnownFile::GrabbingFinished(CxImage **imgResults, uint8 nFramesGrabbed, void *pSender)
+void CKnownFile::GrabbingFinished(HBITMAP *imgResults, uint8 nFramesGrabbed, void *pSender)
 {
 	// continue processing
 	if (theApp.clientlist->IsValidClient(reinterpret_cast<CUpDownClient*>(pSender)))
@@ -1615,7 +1611,8 @@ void CKnownFile::GrabbingFinished(CxImage **imgResults, uint8 nFramesGrabbed, vo
 
 	//cleanup
 	for (int i = nFramesGrabbed; --i >= 0;)
-		delete imgResults[i];
+		if (imgResults[i])
+			::DeleteObject(imgResults[i]);
 	delete[] imgResults;
 }
 
@@ -1646,10 +1643,10 @@ bool CKnownFile::ImportParts()
 
 	CAddFileThread *addfilethread = (CAddFileThread*)AfxBeginThread(RUNTIME_CLASS(CAddFileThread), THREAD_PRIORITY_LOWEST, 0, CREATE_SUSPENDED);
 	if (addfilethread) {
-		const CString &pathName = dlg.GetPathName();
+		const CString &pathName(dlg.GetPathName());
 		partfile->SetFileOpProgress(0);
 		addfilethread->SetValues(theApp.sharedfiles, partfile->GetPath(), partfile->m_hpartfile.GetFileName(), _T(""), partfile);
-		partfile->SetFileOp(addfilethread->SetPartToImport(pathName) ? PFOP_IMPORTPARTS : PFOP_HASHING);
+		partfile->SetFileOp(addfilethread->SetPartsToImport(pathName) ? PFOP_IMPORTPARTS : PFOP_HASHING);
 		addfilethread->ResumeThread();
 	}
 	return true;
@@ -1667,7 +1664,7 @@ CString CKnownFile::GetInfoSummary(bool bNoFormatCommands) const
 	strTransferred.AppendFormat(_T(" (%s)"), (LPCTSTR)CastItoXBytes(statistic.GetAllTimeTransferred()));
 	CString strType(GetFileTypeDisplayStr());
 	if (strType.IsEmpty())
-		strType += _T('-');
+		strType += _T("-");
 	CString dbgInfo;
 #ifdef _DEBUG
 	dbgInfo.Format(_T("\nAICH Part HashSet: %s\nAICH Rec HashSet: %s"), m_FileIdentifier.HasExpectedAICHHashCount() ? _T("Yes") : _T("No")

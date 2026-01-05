@@ -1,59 +1,52 @@
 #pragma once
-#include "GDIThread.h"
 
-class CCreditsThread : public CGDIThread
+class CCreditsThread : public CWinThread
 {
+	enum
+	{
+		SCROLL_DOWN = -1,
+		SCROLL_PAUSE = 0,
+		SCROLL_UP = 1
+	};
+	HDC		m_hDC;
+	CDC		m_dc;
+	CRect	m_rectScreen;
+	CRgn	m_rgnScreen;
+
+	// credits bitmap
+	CDC		m_dcCredits;
+	CBitmap	m_bmpCredits;
+	CBitmap	*m_pbmpOldCredits;
+
+	CStringArray		m_arCredits;
+	CArray<COLORREF>	m_arColors;
+	CArray<CFont*>		m_arFonts;
+	CArray<int>			m_arFontHeights;
+
+	int		m_nCreditsBmpWidth;
+	int		m_nCreditsBmpHeight;
+	// options
+	int		m_nDelay; //milliseconds
+	int		m_nScrollInc;
+
+	int		m_nScrollPos;
+	bool	m_Run;
 public:
 	DECLARE_DYNAMIC(CCreditsThread)
 	CCreditsThread(CWnd *pWnd, HDC hDC, LPCRECT rectScreen);
 
-// Attributes
-public:
-	CRect		m_rectScreen;
-	CRgn		m_rgnScreen;
+	virtual BOOL InitInstance();
+	virtual int Run();
 
-	int			m_nScrollPos;
-
-	// background bitmap
-	CDC			m_dcBk;
-	CBitmap		m_bmpBk;
-	CBitmap		*m_pbmpOldBk;
-
-	// credits bitmap
-	CDC			m_dcCredits;
-	CBitmap		m_bmpCredits;
-	CBitmap		*m_pbmpOldCredits;
-
-	// screen bitmap
-	CDC			m_dcScreen;
-	CBitmap		m_bmpScreen;
-	CBitmap		*m_pbmpOldScreen;
-
-	// mask bitmap
-	CDC			m_dcMask;
-	CBitmap		m_bmpMask;
-	CBitmap		*m_pbmpOldMask;
-
-	int			m_nCreditsBmpWidth;
-	int			m_nCreditsBmpHeight;
-
-	CArray<CString>				m_arCredits;
-	CArray<COLORREF, COLORREF>	m_arColors;
-	CArray<CFont*, CFont*>		m_arFonts;
-	CArray<int, int>			m_arFontHeights;
-
-// Operations
-public:
-	int CalcCreditsHeight();
+	void SetRunning(bool bRun)			{ m_Run = bRun; }
+	void SetDelay(int delay)			{ m_nDelay = delay; }
+	void SetScrollInc(int inc)			{ m_nScrollInc = inc; }
+	int  CalcCreditsHeight();
 	void InitText();
 	void InitColors();
 	void InitFonts();
 	void CreateCredits();
-	virtual BOOL InitInstance();
-	virtual void SingleStep();
-	void PaintBk(CDC *pDC);
-
-// Implementation
+	void SingleStep();
 protected:
 	DECLARE_MESSAGE_MAP()
 };

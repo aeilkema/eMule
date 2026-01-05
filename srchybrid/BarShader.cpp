@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -29,8 +29,8 @@ static char THIS_FILE[] = __FILE__;
 #define HALF(X) (((X) + 1) / 2)
 
 CBarShader::CBarShader(uint32 height, uint32 width)
-	: m_dPixelsPerByte()
-	, m_dBytesPerPixel()
+	: m_fPixelsPerByte()
+	, m_fBytesPerPixel()
 	, m_uFileSize(1ull)
 	, m_iWidth(width)
 	, m_iHeight(height)
@@ -67,21 +67,21 @@ void CBarShader::BuildModifiers()
 
 	int depth = (7 - m_used3dlevel);
 	int count = HALF(m_iHeight);
-	double piOverDepth = M_PI / depth;
-	double base = piOverDepth * (depth / 2.0 - 1);
-	double increment = piOverDepth / (count - 1);
+	float piOverDepth = (float)M_PI / (float)depth;
+	float base = piOverDepth * ((float)depth / 2 - 1);
+	float increment = piOverDepth / (float)(count - 1);
 
 	m_Modifiers = new float[count];
-	for (int i = 0; i < count; ++i)
-		m_Modifiers[i] = (float)(sin(base + i * increment));
+	for (int i = count; --i >= 0;)
+		m_Modifiers[i] = sinf(base + (float)i * increment);
 }
 
 void CBarShader::SetWidth(int width)
 {
 	if (m_iWidth != width) {
 		m_iWidth = width;
-		m_dPixelsPerByte = ((uint64)m_uFileSize > 0) ? (double)m_iWidth / (uint64)m_uFileSize : 0.0;
-		m_dBytesPerPixel = (m_iWidth > 0) ? (uint64)m_uFileSize / (double)m_iWidth : 0.0;
+		m_fPixelsPerByte = (uint64)m_uFileSize ? (float)m_iWidth / (float)m_uFileSize : 0.0f;
+		m_fBytesPerPixel = (m_iWidth > 0) ? (float)m_uFileSize / (float)m_iWidth : 0.0f;
 	}
 }
 
@@ -89,8 +89,8 @@ void CBarShader::SetFileSize(EMFileSize fileSize)
 {
 	if (m_uFileSize != fileSize) {
 		m_uFileSize = fileSize;
-		m_dPixelsPerByte = ((uint64)m_uFileSize > 0) ? (double)m_iWidth / (uint64)m_uFileSize : 0.0;
-		m_dBytesPerPixel = (m_iWidth > 0) ? (uint64)m_uFileSize / (double)m_iWidth : 0.0;
+		m_fPixelsPerByte = (uint64)m_uFileSize ? (float)m_iWidth / (float)m_uFileSize : 0.0f;
+		m_fBytesPerPixel = (m_iWidth > 0) ? (float)m_uFileSize / (float)m_iWidth : 0.0f;
 	}
 }
 
@@ -102,7 +102,7 @@ void CBarShader::SetHeight(int height)
 	}
 }
 
-void CBarShader::SetRect(const CRect & rect)
+void CBarShader::SetRect(const CRect &rect)
 {
 	SetWidth(rect.Width());
 	SetHeight(rect.Height());
@@ -110,8 +110,8 @@ void CBarShader::SetRect(const CRect & rect)
 
 void CBarShader::FillRange(uint64 start, uint64 end, COLORREF color)
 {
-	if (end > (uint64)m_uFileSize)
-		end = (uint64)m_uFileSize;
+	if (end > m_uFileSize)
+		end = m_uFileSize;
 
 	if (start >= end)
 		return;
@@ -151,13 +151,13 @@ void CBarShader::Fill(COLORREF color)
 	// SLUGFILLER: speedBarShader
 }
 
-void CBarShader::Draw(CDC *dc, int iLeft, int iTop, bool bFlat)
+void CBarShader::Draw(CDC &dc, int iLeft, int iTop, bool bFlat)
 {
 	//FillSolidRect() is simpler and faster, though FillRect() did not alter background colour
 	//minor additional trouble: to save and restore background colour for CMuleListCtrl
-	COLORREF cBk = dc->GetBkColor();
+	COLORREF cBk = dc.GetBkColor();
 	RECT rectSpan = { 0, iTop, iLeft, iTop + m_iHeight };
-	uint64 uBytesInOnePixel = (uint64)(m_dBytesPerPixel + 0.5);
+	uint64 uBytesInOnePixel = (uint64)(m_fBytesPerPixel + 0.5);
 	uint64 start = 0; //bsCurrent->start;
 
 	POSITION pos = m_Spans.GetHeadPosition();	// SLUGFILLER: speedBarShader
@@ -165,12 +165,12 @@ void CBarShader::Draw(CDC *dc, int iLeft, int iTop, bool bFlat)
 	// SLUGFILLER: speedBarShader
 	while (pos != NULL && rectSpan.right < (iLeft + m_iWidth)) {	// SLUGFILLER: speedBarShader
 		uint64 uSpan = m_Spans.GetKeyAt(pos) - start;	// SLUGFILLER: speedBarShader
-		uint64 uPixels = (uint64)(uSpan * m_dPixelsPerByte + 0.5);
+		uint64 uPixels = (uint64)((float)uSpan * m_fPixelsPerByte + 0.5f);
 		if (uPixels > 0) {
 			rectSpan.left = rectSpan.right;
 			rectSpan.right += (int)uPixels;
 			FillBarRect(dc, &rectSpan, color, bFlat);	// SLUGFILLER: speedBarShader
-			start += (uint64)(uPixels * m_dBytesPerPixel + 0.5);
+			start += (uint64)((float)uPixels * m_fBytesPerPixel + 0.5f);
 		} else {
 			float fRed = 0;
 			float fGreen = 0;
@@ -180,7 +180,7 @@ void CBarShader::Draw(CDC *dc, int iLeft, int iTop, bool bFlat)
 			// SLUGFILLER: speedBarShader
 			do {
 				uint64 uKey = m_Spans.GetKeyAt(pos);
-				float fWeight = (float)((min(uKey, iEnd) - iLast) * m_dPixelsPerByte);
+				float fWeight = (float)(min(uKey, iEnd) - iLast) * m_fPixelsPerByte;
 				fRed += GetRValue(color) * fWeight;
 				fGreen += GetGValue(color) * fWeight;
 				fBlue += GetBValue(color) * fWeight;
@@ -203,21 +203,21 @@ void CBarShader::Draw(CDC *dc, int iLeft, int iTop, bool bFlat)
 			color = m_Spans.GetNextValue(pos);
 		// SLUGFILLER: speedBarShader
 	}
-	dc->SetBkColor(cBk); //restore background colour
+	dc.SetBkColor(cBk); //restore background colour
 }
 
-void CBarShader::FillBarRect(CDC *dc, LPRECT rectSpan, COLORREF color, bool bFlat)
+void CBarShader::FillBarRect(CDC &dc, LPRECT rectSpan, COLORREF color, bool bFlat)
 {
 	if (!color || bFlat)
-		dc->FillSolidRect(rectSpan, color);
+		dc.FillSolidRect(rectSpan, color);
 	else
 		FillBarRect(dc, rectSpan, GetRValue(color), GetGValue(color), GetBValue(color), false);
 }
 
-void CBarShader::FillBarRect(CDC *dc, LPRECT rectSpan, float fRed, float fGreen, float fBlue, bool bFlat)
+void CBarShader::FillBarRect(CDC &dc, LPRECT rectSpan, float fRed, float fGreen, float fBlue, bool bFlat)
 {
 	if (bFlat)
-		dc->FillSolidRect(rectSpan, RGB((int)(fRed + .5f), (int)(fGreen + .5f), (int)(fBlue + .5f)));
+		dc.FillSolidRect(rectSpan, RGB((int)(fRed + .5f), (int)(fGreen + .5f), (int)(fBlue + .5f)));
 	else {
 		if (m_Modifiers == NULL || (m_used3dlevel != thePrefs.Get3DDepth() && !m_bIsPreview))
 			BuildModifiers();
@@ -230,16 +230,16 @@ void CBarShader::FillBarRect(CDC *dc, LPRECT rectSpan, float fRed, float fGreen,
 
 			rect.top = iTop + i;
 			rect.bottom = iTop + i + 1;
-			dc->FillSolidRect(&rect, cbNew);
+			dc.FillSolidRect(&rect, cbNew);
 
 			rect.top = iBot - i - 1;
 			rect.bottom = iBot - i;
-			dc->FillSolidRect(&rect, cbNew);
+			dc.FillSolidRect(&rect, cbNew);
 		}
 	}
 }
 
-void CBarShader::DrawPreview(CDC *dc, int iLeft, int iTop, UINT previewLevel)		//Cax2 aqua bar
+void CBarShader::DrawPreview(CDC &dc, int iLeft, int iTop, UINT previewLevel)		//Cax2 aqua bar
 {
 	m_bIsPreview = true;
 	m_used3dlevel = previewLevel;

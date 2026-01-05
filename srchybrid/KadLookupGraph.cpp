@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2010-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2010-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,6 +15,7 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "StdAfx.h"
+#include <uxtheme.h>
 #include "kadlookupgraph.h"
 #include "emule.h"
 #include "otherfunctions.h"
@@ -25,7 +26,6 @@
 #include "MemDC.h"
 #include "ToolTipCtrlX.h"
 #include "MenuCmds.h"
-#include "VisualStylesXP.h"
 #include "preferences.h"
 //#include "log.h" //only for m_bDbgLog
 
@@ -145,11 +145,11 @@ void CKadLookupGraph::OnPaint()
 
 	CMemoryDC dc(&pdc, rcClient);
 	CPen *pOldPen = dc.SelectObject(&m_penAxis);
-	if (g_xpStyle.IsThemeActive() && g_xpStyle.IsAppThemed()) {
-		HTHEME hTheme = g_xpStyle.OpenThemeData(NULL, L"ListView");
+	if (::IsThemeActive() && ::IsAppThemed()) {
+		HTHEME hTheme = ::OpenThemeData(NULL, L"ListView");
 		if (hTheme) {
-			g_xpStyle.DrawThemeBackground(hTheme, dc.m_hDC, 3, 0, &rcClient, NULL);
-			g_xpStyle.CloseThemeData(hTheme);
+			::DrawThemeBackground(hTheme, dc.m_hDC, 3, 0, &rcClient, NULL);
+			::CloseThemeData(hTheme);
 		}
 	} else
 		dc.Rectangle(&rcClient);
@@ -310,13 +310,13 @@ void CKadLookupGraph::OnPaint()
 		m_pToolTip->Activate(static_cast<BOOL>(m_iHotItemIdx >= 0));
 		UpdateToolTip();
 
-		CArray<bool, bool> abHotItemConnected;
+		CArray<bool> abHotItemConnected;
 		if (m_iHotItemIdx >= 0) {
 			abHotItemConnected.SetSize(iVisibleNodes);
 			for (INT_PTR i = (INT_PTR)iVisibleNodes; --i >= 0;)
 				abHotItemConnected[i] = (m_iHotItemIdx == i);
 		}
-		// start drawing, beginning with the arrowClines connecting the nodes
+		// start drawing, beginning with the arrow lines connecting the nodes
 		// if possible use GDI+ for Anti Aliasing
 		// NOTE: Do *NOT* forget to specify /DELAYLOAD:gdiplus.dll as link parameter.
 		ULONG_PTR gdiplusToken = 0;
@@ -338,8 +338,8 @@ void CKadLookupGraph::OnPaint()
 					for (INT_PTR j = 0; j < sEntry->m_liReceivedFromIdx.GetCount(); ++j) {
 						INT_PTR iIdx = sEntry->m_liReceivedFromIdx[j];
 						if (iIdx >= hecount - iVisibleNodes) {
-							CPoint pFrom = m_aNodesDrawRects[hecount - (iIdx + 1)].CenterPoint();
-							CPoint pointTo = m_aNodesDrawRects[i].CenterPoint();
+							CPoint pFrom(m_aNodesDrawRects[hecount - (iIdx + 1)].CenterPoint());
+							CPoint pointTo(m_aNodesDrawRects[i].CenterPoint());
 
 							Gdiplus::Pen *pen;
 							if (hecount - (iIdx + 1) == m_iHotItemIdx) {
@@ -364,8 +364,8 @@ void CKadLookupGraph::OnPaint()
 					INT_PTR iIdx = sEntry->m_liReceivedFromIdx[j];
 					if (iIdx >= hecount - iVisibleNodes) {
 
-						CPoint pFrom = m_aNodesDrawRects[hecount - (iIdx + 1)].CenterPoint();
-						CPoint pointTo = m_aNodesDrawRects[i].CenterPoint();
+						CPoint pFrom(m_aNodesDrawRects[hecount - (iIdx + 1)].CenterPoint());
+						CPoint pointTo(m_aNodesDrawRects[i].CenterPoint());
 
 						if (hecount - (iIdx + 1) == m_iHotItemIdx) {
 							abHotItemConnected[i] = true;
@@ -383,26 +383,26 @@ void CKadLookupGraph::OnPaint()
 						aptPoly[0] = pointTo;
 
 						// build the line vector
-						const float vecLine[2] = { (float)aptPoly[0].x - pFrom.x, (float)aptPoly[0].y - pFrom.y };
+						const float vecLine[2] = { (float)(aptPoly[0].x - pFrom.x), (float)(aptPoly[0].y - pFrom.y) };
 
 						// build the arrow base vector - normal to the line
 						const float vecLeft[2] = { -vecLine[1], vecLine[0] };
 
-						// setup length parameters
+						// set up length parameters
 						float fLength = sqrt(vecLine[0] * vecLine[0] + vecLine[1] * vecLine[1]);
-						float th = nWidth / (2.0f * fLength);
-						float ta = nWidth / (tanf(0.3f) * fLength);
+						float th = (float)nWidth / (2 * fLength);
+						float ta = (float)nWidth / (tanf(0.3f) * fLength);
 
 						// find the base of the arrow
 						POINT pBase;
-						pBase.x = (LONG)(aptPoly[0].x - ta * vecLine[0]);
-						pBase.y = (LONG)(aptPoly[0].y - ta * vecLine[1]);
+						pBase.x = (LONG)((float)aptPoly[0].x - ta * vecLine[0]);
+						pBase.y = (LONG)((float)aptPoly[0].y - ta * vecLine[1]);
 
 						// build the points on the sides of the arrow
-						aptPoly[1].x = (LONG)(pBase.x + th * vecLeft[0]);
-						aptPoly[1].y = (LONG)(pBase.y + th * vecLeft[1]);
-						aptPoly[2].x = (LONG)(pBase.x + -th * vecLeft[0]);
-						aptPoly[2].y = (LONG)(pBase.y + -th * vecLeft[1]);
+						aptPoly[1].x = (LONG)((float)pBase.x + th * vecLeft[0]);
+						aptPoly[1].y = (LONG)((float)pBase.y + th * vecLeft[1]);
+						aptPoly[2].x = (LONG)((float)pBase.x + -th * vecLeft[0]);
+						aptPoly[2].y = (LONG)((float)pBase.y + -th * vecLeft[1]);
 						dc.MoveTo(pFrom);
 						dc.LineTo(aptPoly[0].x, aptPoly[0].y);
 						dc.Polygon(aptPoly, 3);
@@ -413,9 +413,7 @@ void CKadLookupGraph::OnPaint()
 
 		// draw the nodes images
 		for (INT_PTR i = 0; i < (INT_PTR)iVisibleNodes; ++i) {
-			CPoint pointNode = m_aNodesDrawRects[i].CenterPoint();
-			pointNode.x -= 8;
-			pointNode.y -= 8;
+			CPoint pointNode(m_aNodesDrawRects[i].CenterPoint() - SIZE{8, 8});
 
 			int iIconIdx;
 			const CLookupHistory::SLookupHistoryEntry *sEntry = he[hecount - (i + 1)];
@@ -439,7 +437,7 @@ void CKadLookupGraph::OnPaint()
 			if (sEntry->m_dwAskedSearchItemTime > 0) {
 				// Draw the Icon indicating that we asked this Node for results
 				// enough space above? if not below
-				CPoint pointIndicator = pointNode;
+				CPoint pointIndicator(pointNode);
 				if (pointIndicator.y - 16 - 4 >= iTopBorder)
 					pointIndicator.y -= 20;
 				else
@@ -485,7 +483,7 @@ void CKadLookupGraph::OnPaint()
 void CKadLookupGraph::OnMouseMove(UINT nFlags, CPoint point)
 {
 	CWnd::OnMouseMove(nFlags, point);
-	if (CheckHotItem(point) != m_iHotItemIdx && m_hWnd != NULL)
+	if (CheckHotItem(point) != m_iHotItemIdx && m_hWnd)
 		Invalidate();
 }
 

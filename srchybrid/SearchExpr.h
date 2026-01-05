@@ -84,11 +84,11 @@ public:
 			case FT_MEDIA_ALBUM:
 			case FT_MEDIA_ARTIST:
 				ASSERT(m_uIntegerOperator == ED2K_SEARCH_OP_EQUAL);
-				strDbg.Format(_T("%s=%s"), (LPCTSTR)DbgGetFileMetaTagName(m_iTag), (LPCTSTR)OptUtf8ToStr(m_str));
+				strDbg.Format(_T("%s=%ls"), (LPCTSTR)DbgGetFileMetaTagName(m_iTag), (LPCWSTR)OptUtf8ToStr(m_str));
 				break;
 			default:
 				ASSERT(m_iTag == FT_FILENAME);
-				strDbg.Format(_T("\"%s\""), (LPCTSTR)OptUtf8ToStr(m_str));
+				strDbg.Format(_T("\"%ls\""), (LPCWSTR)OptUtf8ToStr(m_str));
 		}
 		return strDbg;
 	}

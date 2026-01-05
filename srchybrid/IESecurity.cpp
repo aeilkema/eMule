@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -16,6 +16,7 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
 #include "IESecurity.h"
+#include "preferences.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -62,7 +63,7 @@ CMuleBrowserControlSite::CMuleBrowserControlSite(COleControlContainer *pCtrlCont
 
 void CMuleBrowserControlSite::InitInternetSecurityZone()
 {
-	const CString &strZone(AfxGetApp()->GetProfileString(_T("eMule"), _T("InternetSecurityZone"), _T("Untrusted")));
+	const CString &strZone(thePrefs.GetInternetSecurityZone());
 	if (strZone.CompareNoCase(_T("LocalMachine")) == 0)
 		m_eUrlZone = URLZONE_LOCAL_MACHINE;
 	else if (strZone.CompareNoCase(_T("Intranet")) == 0)
@@ -77,7 +78,6 @@ void CMuleBrowserControlSite::InitInternetSecurityZone()
 	}
 }
 
-
 #ifdef _DEBUG
 #define DUMPIID(iid, name) DumpIID(iid, name)
 #else
@@ -85,26 +85,26 @@ void CMuleBrowserControlSite::InitInternetSecurityZone()
 #endif
 
 #ifdef _DEBUG
-void DumpIID(REFIID iid, LPCTSTR pszClassName)
+static void DumpIID(REFIID iid, LPCTSTR pszClassName)
 {
 	CRegKey key;
 	TCHAR szName[100];
 	DWORD dwType;
-	DWORD dw = sizeof(szName);
+	DWORD dw = (DWORD)sizeof szName;
 
 	LPOLESTR pszGUID = NULL;
 	if (FAILED(StringFromCLSID(iid, &pszGUID)))
 		return;
-
+	const CString sGUID(pszGUID);
 	OutputDebugString(pszClassName);
 	OutputDebugString(_T(" - "));
 
 	bool bFound = false;
 	// Attempt to find it in the interfaces section
 	if (key.Open(HKEY_CLASSES_ROOT, _T("Interface"), KEY_READ) == ERROR_SUCCESS) {
-		if (key.Open(key, pszGUID, KEY_READ) == ERROR_SUCCESS) {
+		if (key.Open(key, sGUID, KEY_READ) == ERROR_SUCCESS) {
 			*szName = 0;
-			if (RegQueryValueEx(key.m_hKey, (LPTSTR)NULL, NULL, &dwType, (LPBYTE)szName, &dw) == ERROR_SUCCESS) {
+			if (RegQueryValueEx(key.m_hKey, NULL, NULL, &dwType, (LPBYTE)szName, &dw) == ERROR_SUCCESS) {
 				OutputDebugString(szName);
 				bFound = true;
 			}
@@ -112,9 +112,9 @@ void DumpIID(REFIID iid, LPCTSTR pszClassName)
 	}
 	// Attempt to find it in the clsid section
 	else if (key.Open(HKEY_CLASSES_ROOT, _T("CLSID"), KEY_READ) == ERROR_SUCCESS) {
-		if (key.Open(key, pszGUID, KEY_READ) == ERROR_SUCCESS) {
+		if (key.Open(key, sGUID, KEY_READ) == ERROR_SUCCESS) {
 			*szName = 0;
-			if (RegQueryValueEx(key.m_hKey, (LPTSTR)NULL, NULL, &dwType, (LPBYTE)szName, &dw) == ERROR_SUCCESS) {
+			if (RegQueryValueEx(key.m_hKey, NULL, NULL, &dwType, (LPBYTE)szName, &dw) == ERROR_SUCCESS) {
 				OutputDebugString(_T("(CLSID\?\?\?) "));
 				OutputDebugString(szName);
 				bFound = true;
@@ -123,7 +123,7 @@ void DumpIID(REFIID iid, LPCTSTR pszClassName)
 	}
 
 	if (!bFound)
-		OutputDebugString(pszGUID);
+		OutputDebugString(sGUID);
 	OutputDebugString(_T("\n"));
 	::CoTaskMemFree(pszGUID);
 }
@@ -184,10 +184,10 @@ STDMETHODIMP CMuleBrowserControlSite::XInternetSecurityManager::MapUrlToZone(
 	return INET_E_DEFAULT_ACTION;
 }
 
-STDMETHODIMP CMuleBrowserControlSite::XInternetSecurityManager::GetSecurityId(
-										LPCWSTR pwszUrl,
-										BYTE* /*pbSecurityId*/, DWORD* /*pcbSecurityId*/,
-										DWORD_PTR dwReserved) noexcept
+STDMETHODIMP CMuleBrowserControlSite::XInternetSecurityManager::GetSecurityId(LPCWSTR pwszUrl
+	, BYTE* /*pbSecurityId*/
+	, DWORD* /*pcbSecurityId*/
+	, DWORD_PTR dwReserved) noexcept
 {
 	UNREFERENCED_PARAMETER(pwszUrl);
 	UNREFERENCED_PARAMETER(dwReserved);
@@ -196,12 +196,14 @@ STDMETHODIMP CMuleBrowserControlSite::XInternetSecurityManager::GetSecurityId(
 	return INET_E_DEFAULT_ACTION;
 }
 
-STDMETHODIMP CMuleBrowserControlSite::XInternetSecurityManager::ProcessUrlAction(
-										LPCWSTR pwszUrl,
-										DWORD dwAction,
-										BYTE* /*pPolicy*/, DWORD /*cbPolicy*/,
-										BYTE* /*pContext*/, DWORD /*cbContext*/,
-										DWORD dwFlags, DWORD dwReserved) noexcept
+STDMETHODIMP CMuleBrowserControlSite::XInternetSecurityManager::ProcessUrlAction(LPCWSTR pwszUrl
+	, DWORD dwAction
+	, BYTE* /*pPolicy*/
+	, DWORD /*cbPolicy*/
+	, BYTE* /*pContext*/
+	, DWORD /*cbContext*/
+	, DWORD dwFlags
+	, DWORD dwReserved) noexcept
 {
 	UNREFERENCED_PARAMETER(pwszUrl);
 	UNREFERENCED_PARAMETER(dwAction);
@@ -225,11 +227,13 @@ STDMETHODIMP CMuleBrowserControlSite::XInternetSecurityManager::ProcessUrlAction
 }
 
 STDMETHODIMP CMuleBrowserControlSite::XInternetSecurityManager::QueryCustomPolicy(
-										LPCWSTR pwszUrl,
-										REFGUID /*guidKey*/,
-										BYTE** /*ppPolicy*/, DWORD* /*pcbPolicy*/,
-										BYTE* /*pContext*/, DWORD /*cbContext*/,
-										DWORD /*dwReserved*/) noexcept
+	LPCWSTR pwszUrl
+	, REFGUID /*guidKey*/
+	, BYTE** /*ppPolicy*/
+	, DWORD* /*pcbPolicy*/
+	, BYTE* /*pContext*/
+	, DWORD /*cbContext*/
+	, DWORD /*dwReserved*/) noexcept
 {
 	UNREFERENCED_PARAMETER(pwszUrl);
 	METHOD_PROLOGUE(CMuleBrowserControlSite, InternetSecurityManager);
@@ -238,9 +242,9 @@ STDMETHODIMP CMuleBrowserControlSite::XInternetSecurityManager::QueryCustomPolic
 }
 
 STDMETHODIMP CMuleBrowserControlSite::XInternetSecurityManager::SetZoneMapping(
-										DWORD dwZone,
-										LPCWSTR lpszPattern,
-										DWORD dwFlags) noexcept
+	DWORD dwZone
+	, LPCWSTR lpszPattern
+	, DWORD dwFlags) noexcept
 {
 	UNREFERENCED_PARAMETER(dwZone);
 	UNREFERENCED_PARAMETER(lpszPattern);
@@ -251,9 +255,9 @@ STDMETHODIMP CMuleBrowserControlSite::XInternetSecurityManager::SetZoneMapping(
 }
 
 STDMETHODIMP CMuleBrowserControlSite::XInternetSecurityManager::GetZoneMappings(
-										DWORD dwZone,
-										IEnumString** /*ppenumString*/,
-										DWORD dwFlags) noexcept
+	  DWORD dwZone
+	, IEnumString** /*ppenumString*/
+	, DWORD dwFlags) noexcept
 {
 	UNREFERENCED_PARAMETER(dwZone);
 	UNREFERENCED_PARAMETER(dwFlags);

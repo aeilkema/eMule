@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -23,13 +23,11 @@
 #include "MenuCmds.h"
 #include "TransferDlg.h"
 #include "UpDownClient.h"
-#include "UploadQueue.h"
 #include "ClientCredits.h"
 #include "PartFile.h"
 #include "FriendList.h"
 #include "ChatWnd.h"
 #include "Kademlia/Kademlia/Kademlia.h"
-#include "SharedFileList.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -78,13 +76,12 @@ void CDownloadClientsCtrl::Init()
 
 void CDownloadClientsCtrl::Localize()
 {
-	static const UINT uids[8] =
+	static const UINT uids[] =
 	{
 		IDS_QL_USERNAME, IDS_CD_CSOFT, IDS_FILE, IDS_DL_SPEED, IDS_AVAILABLEPARTS
-		, IDS_CL_TRANSFDOWN, IDS_CL_TRANSFUP, IDS_META_SRCTYPE
+		, IDS_CL_TRANSFDOWN, IDS_CL_TRANSFUP, IDS_META_SRCTYPE, 0
 	};
-
-	LocaliseHeaderCtrl(uids, _countof(uids));
+	LocaliseHeader(uids);
 }
 
 void CDownloadClientsCtrl::OnSysColorChange()
@@ -146,7 +143,7 @@ void CDownloadClientsCtrl::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 			default: //any text column
 				rcItem.left += sm_iSubItemInset;
 				rcItem.right -= sm_iSubItemInset;
-				dc.DrawText(sItem, -1, &rcItem, MLC_DT_TEXT | uDrawTextAlignment);
+				dc.DrawText(sItem, &rcItem, MLC_DT_TEXT | uDrawTextAlignment);
 				break;
 			case 4: //download status bar
 				++rcItem.top;
@@ -224,7 +221,6 @@ CString CDownloadClientsCtrl::GetItemDisplayText(const CUpDownClient *client, in
 	return sText;
 }
 
-
 void CDownloadClientsCtrl::OnLvnGetDispInfo(LPNMHDR pNMHDR, LRESULT *pResult)
 {
 	if (!theApp.IsClosing()) {
@@ -239,7 +235,7 @@ void CDownloadClientsCtrl::OnLvnGetDispInfo(LPNMHDR pNMHDR, LRESULT *pResult)
 		//
 		// Vista: That callback is used to get the strings for the label tips for the sub(!)-items.
 		//
-		const LVITEMW &rItem = reinterpret_cast<NMLVDISPINFO*>(pNMHDR)->item;
+		const LVITEM &rItem = reinterpret_cast<NMLVDISPINFO*>(pNMHDR)->item;
 		if (rItem.mask & LVIF_TEXT) {
 			const CUpDownClient *pClient = reinterpret_cast<CUpDownClient*>(rItem.lParam);
 			if (pClient != NULL)
@@ -329,7 +325,7 @@ int CALLBACK CDownloadClientsCtrl::SortProc(LPARAM lParam1, LPARAM lParam2, LPAR
 
 	//call secondary sort order, if the first one resulted as equal
 	if (iResult == 0) {
-		LPARAM iNextSort = theApp.emuledlg->transferwnd->GetDownloadClientsList()->GetNextSortOrder(lParamSort);
+		LPARAM iNextSort = theApp.emuledlg->transferwnd->GetDownloadClientsList().GetNextSortOrder(lParamSort);
 		if (iNextSort != -1)
 			iResult = SortProc(lParam1, lParam2, iNextSort);
 	}
@@ -356,7 +352,7 @@ void CDownloadClientsCtrl::OnContextMenu(CWnd*, CPoint point)
 	const CUpDownClient *client = reinterpret_cast<CUpDownClient*>(iSel >= 0 ? GetItemData(iSel) : NULL);
 	const bool is_ed2k = client && client->IsEd2kClient();
 
-	CTitleMenu ClientMenu;
+	CTitledMenu ClientMenu;
 	ClientMenu.CreatePopupMenu();
 	ClientMenu.AddMenuTitle(GetResString(IDS_CLIENTS), true);
 	ClientMenu.AppendMenu(MF_STRING | (client ? MF_ENABLED : MF_GRAYED), MP_DETAIL, GetResString(IDS_SHOWDETAILS), _T("CLIENTDETAILS"));
@@ -438,8 +434,8 @@ void CDownloadClientsCtrl::RemoveClient(const CUpDownClient *client)
 void CDownloadClientsCtrl::RefreshClient(const CUpDownClient *client)
 {
 	if (theApp.emuledlg->activewnd == theApp.emuledlg->transferwnd
-		&& !theApp.IsClosing()
-		&& theApp.emuledlg->transferwnd->GetDownloadClientsList()->IsWindowVisible())
+		&& theApp.emuledlg->transferwnd->GetDownloadClientsList().IsWindowVisible()
+		&& !theApp.IsClosing())
 	{
 		LVFINDINFO find;
 		find.flags = LVFI_PARAM;
@@ -462,7 +458,7 @@ void CDownloadClientsCtrl::ShowSelectedUserDetails()
 
 	SetItemState(-1, 0, LVIS_SELECTED);
 	SetItemState(it, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-	SetSelectionMark(it);   // display selection mark correctly!
+	SetSelectionMark(it);	// display selection mark correctly!
 
 	CUpDownClient *client = reinterpret_cast<CUpDownClient*>(GetItemData(GetSelectionMark()));
 	if (client) {

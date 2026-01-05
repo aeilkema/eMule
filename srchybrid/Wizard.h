@@ -10,7 +10,7 @@ class CConnectionWizardDlg : public CDialog
 	};
 
 public:
-	explicit CConnectionWizardDlg(CWnd *pParent = NULL);   // standard constructor
+	explicit CConnectionWizardDlg(CWnd *pParent = NULL);	// standard constructor
 	virtual	~CConnectionWizardDlg();
 
 	void Localize();
@@ -23,7 +23,7 @@ protected:
 	void SetCustomItemsActivation();
 
 	virtual BOOL OnInitDialog();
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnBnClickedApply();

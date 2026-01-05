@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,16 +15,13 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
-#include <io.h>
 #include "emule.h"
 #include "PartFileConvert.h"
 #include "OtherFunctions.h"
 #include "DownloadQueue.h"
 #include "PartFile.h"
 #include "Preferences.h"
-#include "SafeFile.h"
 #include "SharedFileList.h"
-#include "emuledlg.h"
 #include "Log.h"
 #include "opcodes.h"
 #include "MuleListCtrl.h"
@@ -71,7 +68,7 @@ struct ConvertJob
 };
 
 static CWinThread	*convertPfThread;
-static CList<ConvertJob*, ConvertJob*> m_jobs;
+static CList<ConvertJob*> m_jobs;
 static ConvertJob	*pfconverting;
 static CPartFileConvertDlg *m_convertgui;
 
@@ -104,7 +101,7 @@ void CPartFileConvert::ConvertToeMule(const CString &folder, bool deletesource)
 {
 	if (!::PathFileExists(folder))
 		return;
-	//if (folder.Left(strlen(thePrefs.GetTempDir())).CompareNoCase(thePrefs.GetTempDir()) == 0)
+	//if (folder.Left(_tcslen(thePrefs.GetTempDir())).CompareNoCase(thePrefs.GetTempDir()) == 0)
 	//	return;
 
 	ConvertJob *newjob = new ConvertJob();
@@ -220,17 +217,15 @@ int CPartFileConvert::performConvertToeMule(const CString &folder)
 				if (fileindex > maxindex)
 					maxindex = fileindex;
 			}
-			float stepperpart;
+			float stepperpart = 80.0f;
 			if (partfilecount > 0) {
-				stepperpart = (80.0f / partfilecount);
+				stepperpart /= (float)partfilecount;
 				if (maxindex * PARTSIZE <= pfconverting->size)
 					pfconverting->spaceneeded = maxindex * PARTSIZE;
 				else
 					pfconverting->spaceneeded = ((pfconverting->size / PARTSIZE) * PARTSIZE) + (pfconverting->size % PARTSIZE);
-			} else {
-				stepperpart = 80.0f;
+			} else
 				pfconverting->spaceneeded = 0;
-			}
 
 			if (GetFreeDiskSpaceX(thePrefs.GetTempDir()) < maxindex * PARTSIZE) {
 				delete file;
@@ -254,7 +249,7 @@ int CPartFileConvert::performConvertToeMule(const CString &folder)
 
 				//stats
 				++curindex;
-				float fPercent = 10 + curindex * stepperpart;
+				float fPercent = 10 + (float)curindex * stepperpart;
 				buffer.Format(GetResString(IDS_IMP_LOADDATA), curindex, partfilecount);
 				UpdateGUI(fPercent, buffer);
 
@@ -276,7 +271,7 @@ int CPartFileConvert::performConvertToeMule(const CString &folder)
 				UpdateGUI(fPercent, buffer);
 
 				// write the buffered data
-				OVERLAPPED ov = { 0, 0, {{LODWORD(chunkstart), HIDWORD(chunkstart)}} };
+				OVERLAPPED ov{0, 0, {{LODWORD(chunkstart), HIDWORD(chunkstart)}}};
 				if (!::WriteFile((HANDLE)file->m_hpartfile, ba.GetData(), nRead, NULL, &ov))
 					CFileException::ThrowOsError((LONG)::GetLastError(), file->m_hpartfile.GetFileName());
 			}
@@ -414,21 +409,25 @@ void CPartFileConvert::ShowGUI()
 		InitWindowStyles(m_convertgui);
 		m_convertgui->ShowWindow(SW_SHOW);
 
-		m_convertgui->AddAnchor(IDC_CONV_PB_CURRENT, TOP_LEFT, TOP_RIGHT);
 		m_convertgui->AddAnchor(IDC_CURJOB, TOP_LEFT, TOP_RIGHT);
 		m_convertgui->AddAnchor(IDC_CONV_PB_LABEL, TOP_LEFT, TOP_RIGHT);
+		m_convertgui->AddAnchor(IDC_CONV_PB_CURRENT, TOP_LEFT, TOP_RIGHT);
 		m_convertgui->AddAnchor(IDC_CONV_PROZENT, TOP_RIGHT);
-		m_convertgui->AddAnchor(IDC_JOBLIST, TOP_LEFT, BOTTOM_RIGHT);
 		m_convertgui->AddAnchor(IDC_ADDITEM, BOTTOM_LEFT);
+		m_convertgui->AddAnchor(IDC_HIDECONVDLG, BOTTOM_RIGHT);
 		m_convertgui->AddAnchor(IDC_RETRY, BOTTOM_LEFT);
 		m_convertgui->AddAnchor(IDC_CONVREMOVE, BOTTOM_LEFT);
-		m_convertgui->AddAnchor(IDC_HIDECONVDLG, BOTTOM_RIGHT);
+		m_convertgui->AddAnchor(IDC_JOBLIST, TOP_LEFT, BOTTOM_RIGHT);
 
 		m_convertgui->SetIcon(m_convertgui->m_icoWnd = theApp.LoadIcon(_T("Convert")), FALSE);
 
 		// init GUI
 		m_convertgui->pb_current.SetRange(0, 100);
 		m_convertgui->joblist.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_INFOTIP);
+		m_convertgui->joblist.InsertColumn(0, _T(""), LVCFMT_LEFT, DFLT_FILENAME_COL_WIDTH);	//IDS_DL_FILENAME
+		m_convertgui->joblist.InsertColumn(1, _T(""), LVCFMT_LEFT, 110);						//IDS_STATUS
+		m_convertgui->joblist.InsertColumn(2, _T(""), LVCFMT_LEFT, DFLT_SIZE_COL_WIDTH);		//IDS_DL_SIZE
+		m_convertgui->joblist.InsertColumn(3, _T(""), LVCFMT_LEFT, DFLT_HASH_COL_WIDTH);		//IDS_FILEHASH
 
 		if (!pfconverting == NULL) {
 			UpdateGUI(pfconverting);
@@ -448,23 +447,21 @@ void CPartFileConvert::ShowGUI()
 
 void CPartFileConvert::Localize()
 {
+	static const UINT uids[] =
+	{
+		IDS_DL_FILENAME, IDS_STATUS, IDS_DL_SIZE, IDS_FILEHASH, 0
+	};
+
 	if (!m_convertgui)
 		return;
+	m_convertgui->SetWindowText(GetResString(IDS_IMPORTSPLPF));
 
-	for (int i = 0; i < 4; ++i)
-		m_convertgui->joblist.DeleteColumn(0);
-
-	m_convertgui->joblist.InsertColumn(0, GetResString(IDS_DL_FILENAME), LVCFMT_LEFT, DFLT_FILENAME_COL_WIDTH);
-	m_convertgui->joblist.InsertColumn(1, GetResString(IDS_STATUS), LVCFMT_LEFT, 110);
-	m_convertgui->joblist.InsertColumn(2, GetResString(IDS_DL_SIZE), LVCFMT_LEFT, DFLT_SIZE_COL_WIDTH);
-	m_convertgui->joblist.InsertColumn(3, GetResString(IDS_FILEHASH), LVCFMT_LEFT, DFLT_HASH_COL_WIDTH);
-
+	LocaliseHeaderCtrl(m_convertgui->joblist.GetHeaderCtrl(), uids);
 	// set GUI labels
 	m_convertgui->SetDlgItemText(IDC_ADDITEM, GetResString(IDS_IMP_ADDBTN));
 	m_convertgui->SetDlgItemText(IDC_RETRY, GetResString(IDS_IMP_RETRYBTN));
 	m_convertgui->SetDlgItemText(IDC_CONVREMOVE, GetResString(IDS_IMP_REMOVEBTN));
 	m_convertgui->SetDlgItemText(IDC_HIDECONVDLG, GetResString(IDS_FD_CLOSE));
-	m_convertgui->SetWindowText(GetResString(IDS_IMPORTSPLPF));
 }
 
 void CPartFileConvert::CloseGUI()

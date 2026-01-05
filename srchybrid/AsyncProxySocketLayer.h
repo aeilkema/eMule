@@ -148,9 +148,9 @@ public:
 	BOOL PrepareListen(unsigned long ip);
 
 	//Returns the type of the proxy
-	int GetProxyType() const;
+	int GetProxyType() const			{ return m_ProxyData.nProxyType; }
 
-	virtual bool GetPeerName(CString &rPeerAddress, UINT &rPeerPort);
+	virtual BOOL GetPeerName(CString &rPeerAddress, UINT &rPeerPort);
 	virtual BOOL GetPeerName(LPSOCKADDR lpSockAddr, int *lpSockAddrLen);
 	//Returns the address of the server behind the SOCKS proxy you are connected to
 
@@ -164,19 +164,19 @@ protected:
 
 private:
 	void Reset();
-	void ClearBuffer();		//Clears the receive buffer
+	void ClearBuffer();			//Clears the receive buffer
 
-	char *m_pRecvBuffer;	//The receive buffer
-	int m_nRecvBufferLen;	//Length of the RecvBuffer
-	int m_nRecvBufferPos;	//Position within the receive buffer
+	char *m_pRecvBuffer;		//The receive buffer
+	int m_nRecvBufferLen;		//Length of the RecvBuffer
+	int m_nRecvBufferPos;		//Position within the receive buffer
 
-	char *m_pStrBuffer;		//Recvbuffer needed by HTTP1.1 proxy
-	int m_nProxyOpState;	//State of an operation
-	int m_nProxyOpID;		//Currently active operation (0 if none)
+	char *m_pStrBuffer;			//Recvbuffer needed by HTTP1.1 proxy
+	int m_nProxyOpState;		//State of an operation
+	int m_nProxyOpID;			//Currently active operation (0 if none)
 
-	ULONG m_nProxyPeerIp;	//IP of the server you are connected to, retrieve via GetPeerName
-	USHORT m_nProxyPeerPort;//Port of the server you are connected to, retrieve via GetPeerName
-	typedef struct
+	ULONG m_nProxyPeerIP;		//IP of the server you are connected to, retrieve via GetPeerName
+	USHORT m_nProxyPeerPort;	//Port of the server you are connected to, retrieve via GetPeerName
+	struct t_proxydata			//This structure will be used to hold the proxy details
 	{
 		CString	pProxyHost;
 		CString	pProxyUser;
@@ -184,9 +184,8 @@ private:
 		int		nProxyType;
 		USHORT	nProxyPort;
 		bool	bUseLogon;
-	} t_proxydata;			//This structure will be used to hold the proxy details
-	t_proxydata m_ProxyData;//Structure to hold the data set by SetProxy
-	CString	m_pProxyPeerHost;//The host connected to
+	} m_ProxyData;				//The data set by SetProxy
+	CString	m_pProxyPeerHost;	//The host connected to
 };
 
 //Error codes

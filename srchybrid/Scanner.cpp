@@ -18,7 +18,6 @@
 /* begin standard C headers. */
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 #include <stdlib.h>
 
 /* end standard C headers. */
@@ -1345,7 +1344,7 @@ YY_RULE_SETUP
 {
 					BEGIN(INITIAL);
 					UINT m, s;
-					if (sscanf(yytext, "%u:%u", &m, &s) != 2) {
+					if (sscanf_s(yytext, "%u:%u", &m, &s) != 2) {
 						yyerrorf(GetResString(IDS_SEARCH_ATTRERR), _T("@length"));
 						yyterminate();
 						/*NOT REACHED*/
@@ -1359,7 +1358,7 @@ YY_RULE_SETUP
 {
 					BEGIN(INITIAL);
 					UINT h, m, s;
-					if (sscanf(yytext, "%u:%u:%u", &h, &m, &s) != 3) {
+					if (sscanf_s(yytext, "%u:%u:%u", &h, &m, &s) != 3) {
 						yyerrorf(GetResString(IDS_SEARCH_ATTRERR), _T("@length"));
 						yyterminate();
 						/*NOT REACHED*/
@@ -2256,7 +2255,7 @@ static void yyensure_buffer_stack (void)
 	}
 }
 
-/** Setup the input buffer state to scan directly from a user-specified character buffer.
+/** Set up the input buffer state to scan directly from a user-specified character buffer.
  * @param base the character buffer
  * @param size the size in bytes of the character buffer
  *
@@ -2291,7 +2290,7 @@ YY_BUFFER_STATE yy_scan_buffer  (char *base, yy_size_t  size )
 	return b;
 }
 
-/** Setup the input buffer state to scan a string. The next call to yylex() will
+/** Set up the input buffer state to scan a string. The next call to yylex() will
  * scan from a @e copy of @a str.
  * @param yystr a NUL-terminated string to scan
  *
@@ -2305,7 +2304,7 @@ YY_BUFFER_STATE yy_scan_string (yyconst char *yystr )
 	return yy_scan_bytes(yystr, (int)strlen(yystr) );
 }
 
-/** Setup the input buffer state to scan the given bytes. The next call to yylex() will
+/** Set up the input buffer state to scan the given bytes. The next call to yylex() will
  * scan from a @e copy of @a bytes.
  * @param bytes the byte buffer to scan
  * @param len the number of bytes in the buffer pointed to by @a bytes.

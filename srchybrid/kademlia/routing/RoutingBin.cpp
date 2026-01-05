@@ -18,8 +18,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 This work is based on the java implementation of the Kademlia protocol.
 Kademlia: Peer-to-peer routing based on the XOR metric
-Copyright (C) 2002  Petar Maymounkov [petar@post.harvard.edu]
-http://kademlia.scs.cs.nyu.edu
+Copyright (C) 2002  Petar Maymounkov [petar@maymounkov.org]
+https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf
 */
 
 // Note To Mods //
@@ -114,7 +114,7 @@ bool CRoutingBin::AddContact(CContact *pContact)
 	return false;
 }
 
-void CRoutingBin::SetAlive(CContact *pContact)
+void CRoutingBin::SetAlive(const CContact *pContact)
 {
 	ASSERT(pContact != NULL);
 	// Check if we already have a contact with this ID in the list.
@@ -158,7 +158,7 @@ CContact* CRoutingBin::GetContact(uint32 uIP, uint16 nPort, bool bTCPPort)
 	return NULL;
 }
 
-void CRoutingBin::RemoveContact(CContact *pContact, bool bNoTrackingAdjust)
+void CRoutingBin::RemoveContact(CContact *const pContact, bool bNoTrackingAdjust)
 {
 	if (!bNoTrackingAdjust)
 		AdjustGlobalTracking(pContact->GetIPAddress(), false);

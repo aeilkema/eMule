@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -21,7 +21,6 @@
 #include "PPgDirectories.h"
 #include "otherfunctions.h"
 #include "InputBox.h"
-#include "SharedFileList.h"
 #include "Preferences.h"
 #include "HelpIDs.h"
 #include "UserMsgs.h"
@@ -89,7 +88,7 @@ void CPPgDirectories::LoadSettings()
 	CString tempfolders;
 	for (INT_PTR i = 0; i < thePrefs.GetTempDirCount(); ++i) {
 		if (i > 0)
-			tempfolders += _T('|');
+			tempfolders += _T("|");
 		tempfolders += thePrefs.GetTempDir(i);
 	}
 	SetDlgItemText(IDC_TEMPFILES, tempfolders);
@@ -127,7 +126,7 @@ BOOL CPPgDirectories::OnApply()
 	}
 
 	const CString &sOldIncoming(thePrefs.GetMuleDirectory(EMULE_INCOMINGDIR));
-	if (strIncomingDir.CompareNoCase(sOldIncoming) != 0 && strIncomingDir.CompareNoCase(thePrefs.GetDefaultDirectory(EMULE_INCOMINGDIR, false)) != 0) {
+	if (!EqualPaths(strIncomingDir , sOldIncoming) && !EqualPaths(strIncomingDir, thePrefs.GetDefaultDirectory(EMULE_INCOMINGDIR, false))) {
 		// if the user chooses a non-default directory which already contains files,
 		// inform him that all those files will be shared
 		bool bExistingFile = false;
@@ -180,7 +179,7 @@ BOOL CPPgDirectories::OnApply()
 
 		bool bDup = false;
 		for (INT_PTR i = temptempfolders.GetCount(); --i >= 0;)	// avoid duplicate tempdirs
-			if (atmp.CompareNoCase(temptempfolders[i]) == 0) {
+			if (EqualPaths(atmp, temptempfolders[i])) {
 				bDup = true;
 				break;
 			}
@@ -188,7 +187,7 @@ BOOL CPPgDirectories::OnApply()
 		if (!bDup) {
 			temptempfolders.Add(atmp);
 			if (thePrefs.GetTempDirCount() < temptempfolders.GetCount()
-				|| atmp.CompareNoCase(thePrefs.GetTempDir(temptempfolders.GetCount() - 1)) != 0)
+				|| !EqualPaths(atmp, thePrefs.GetTempDir(temptempfolders.GetCount() - 1)))
 			{
 				testtempdirchanged = true;
 			}
@@ -230,12 +229,12 @@ BOOL CPPgDirectories::OnApply()
 	}
 
 	// on changing incoming dir, update directories for categories with the same path
-	if (sOldIncoming.CompareNoCase(thePrefs.GetMuleDirectory(EMULE_INCOMINGDIR)) != 0) {
+	if (!EqualPaths(sOldIncoming, thePrefs.GetMuleDirectory(EMULE_INCOMINGDIR))) {
 		thePrefs.GetCategory(0)->strIncomingPath = thePrefs.GetMuleDirectory(EMULE_INCOMINGDIR);
 		bool bAskedOnce = false;
 		for (INT_PTR cat = thePrefs.GetCatCount(); --cat > 0;) { //skip 0
 			const CString &oldpath(thePrefs.GetCatPath(cat));
-			if (oldpath.Left(sOldIncoming.GetLength()).CompareNoCase(sOldIncoming) == 0) {
+			if (EqualPaths(oldpath.Left(sOldIncoming.GetLength()), sOldIncoming)) {
 				if (!bAskedOnce) {
 					bAskedOnce = true;
 					if (LocMessageBox(IDS_UPDATECATINCOMINGDIRS, MB_YESNO, 0) == IDNO)
@@ -276,6 +275,7 @@ void CPPgDirectories::Localize()
 		SetDlgItemText(IDC_INCOMING_FRM, GetResString(IDS_PW_INCOMING));
 		SetDlgItemText(IDC_TEMP_FRM, GetResString(IDS_PW_TEMP));
 		SetDlgItemText(IDC_SHARED_FRM, GetResString(IDS_PW_SHARED));
+		SetDlgItemText(IDC_UNCADD, GetResString(IDS_UNCADD));
 	}
 }
 

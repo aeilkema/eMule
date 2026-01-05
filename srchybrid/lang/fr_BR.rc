@@ -1,4 +1,4 @@
-//Microsoft Developer Studio generated resource script.
+﻿//Microsoft Developer Studio generated resource script.
 //
 #include "fr_BR.h"
 
@@ -19,7 +19,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FRA)
 #ifdef _WIN32
 LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -433,7 +432,7 @@ BEGIN
 	IDS_PW_INCOMING	"Restroù resevet"
 	IDS_PW_TEMP	"Restroù dibadus"
 	IDS_PW_BROWSE	"Furchal"
-	IDS_PW_SHARED	"Teuliadoù eskemmet (Ctrl-klik evit kemer an is-teuliadoù)"
+	IDS_PW_SHARED	"Teuliadoù eskemmet (Ctrl+klik evit kemer an is-teuliadoù)"
 	IDS_CONNECTION   	"Kennaskañ"
 	IDS_PW_DOWNL	"Harz R"
 	IDS_PW_UPL	"Harz E"
@@ -676,7 +675,7 @@ BEGIN
 	IDS_IRC_PRIVMESSAGE	"Kemennadenn brevez"
 	IDS_WEB_REMOTE_LINK_ADDED			"Ere ouzhpennet"
 	IDS_WEB_REMOTE_LINK_NOT_ADDED			"Ere ket ouzhpennet. Ger tremen direizh"
-	IDS_DL_TRY_TO_GET_PREVIEW_PARTS	"Tevet war al lodennoù rekis evit an alberz"
+	IDS_DL_PRIO_FOR_PREVIEW_CHUNKS	"Tevet war al lodennoù rekis evit an alberz"
 	IDS_IRC_KICK	"Kick"
 	IDS_IRC_SLAP	"Slap"
 	IDS_IRC_JOIN	"Join"
@@ -1523,7 +1522,6 @@ BEGIN
 	IDS_NEWMSG	"Kemennadenn nevez a-berzh '%s' (IP:%s)"
 	IDS_PREF_STARTNEXTFILECATONLY	"Nemet er memes rummad"
 	IDS_LOG_ULDL_EVENTS	"Enskrivañ an darvoudoù kas/degemer"
-//    IDS_PEERCACHE_ENABLED	"Skorañ a ra ho pourchaser Internet an deknologiezh PeerCache, krubuilh gweredekaet !"
 	IDS_IRC_EMULEPROTO_ALLOWADDFRIEND	"Aotreañ an implijour d'ho lakaat en e roll mignoned."
 	IDS_SOURCESWAPBLOCKED	"Eskemm harpet"
 	IDS_TRICKLING	"A-gostez"
@@ -1563,9 +1561,6 @@ BEGIN
 	IDS_WIZ_STARTWITHWINDOWS	"Loc'hañ eMule gant Windows en ur ser (diweredekaet dre ziouer)"
 	IDS_KAD_WAITCBK	"O c'hortoz PCV Kad"
 	IDS_KAD_TOOMANDYKADLKPS	"Re a weladennoù Kad"
-//    IDS_PCDS_CLIENTWAIT	"O c'hortoz ostiz"
-//    IDS_PCDS_CACHEWAIT	"O c'hortoz krubuilh"
-//    IDS_CACHE	"Kuzhet"
 	IDS_INDEXED	"Merket"
 	IDS_KADINFO_SRC	"\tOrin : %u\r\n"
 	IDS_KADINFO_KEYW	"\tGer-alc'hwez : %u\r\n"
@@ -1652,8 +1647,6 @@ END
 
 STRINGTABLE
 BEGIN
-	IDS_COMCTRL32_DLL_TOOOLD
-	"Windows Common Controls library (COMCTL32.DLL) is too old!\r\n\r\neMule detected a version of the ""Windows Common Controls library (COMCTL32.DLL)"" which is too old to be properly used by eMule. To ensure full and flawless functionality of eMule we strongly recommend to update the ""Windows Common Controls library (COMCTL32.DLL)"" to at least version 5.8.\r\n\r\nDownload and install an update of the ""Windows Common Controls library (COMCTL32.DLL)"" at Microsoft (R) Download Center. Do you want to visit the corresponding URL?"
 	IDS_ASREGEXPR	"Evel riñvenn reizh"
 	IDS_STATIC_REGEXP	"Riñvenn reizh evit sil gwereañ :"
 	IDS_CARE4ALL	"Jediñ pep restr"
@@ -1885,10 +1878,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Mark as not Spam"
     IDS_SEARCHSPAMFILTER    "Enable Spam Filter for search results"
     IDS_SHOWSMILEYS         "Show Smileys"
-    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a captcha before you can send him a message. Please enter the letters you see on this image as response:"
-    IDS_CAPTCHAFAILED       "Your response to the captcha was wrong and your message has been ignored. You can request a new captcha by sending a new message."
-    IDS_CAPTCHASOLVED       "You have passed the captcha check and the user has received your message."
-    IDS_USECAPTCHAS         "Require captcha authentication"
+    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a CAPTCHA before you can send him a message. Please enter the letters you see on this image as response:"
+    IDS_CAPTCHAFAILED       "Your response to the CAPTCHA was wrong and your message has been ignored. You can request a new CAPTCHA by sending a new message."
+    IDS_CAPTCHASOLVED       "You have passed the CAPTCHA check and the user has received your message."
+    IDS_USECAPTCHAS         "Require CAPTCHA authentication"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat from URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "Downloading nodes.dat from %s"
     IDS_DOWNLOADING_NODESDAT "Downloading nodes.dat..."

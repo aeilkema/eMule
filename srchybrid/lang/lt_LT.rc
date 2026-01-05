@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "lt_LT.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_LTH)
 #ifdef _WIN32
 LANGUAGE LANG_LITHUANIAN, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -1546,9 +1546,8 @@ BEGIN
     IDS_NEWMSG              "Naujas pranešimas iš '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "tik toje pačioje kategorijoje"
     IDS_LOG_ULDL_EVENTS     "Loginti išsiuntimo/gavimo įvykius"
-//    IDS_PEERCACHE_ENABLED   "Jūsų ISP palaiko PeerCache technologiją, įjungiu gavimą iš kešo!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Leisti vartotojam pridėti jus kaip draugą."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Pirma gauti dalis reikalingas peržiūrai"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Pirma gauti dalis reikalingas peržiūrai"
 END
 
 STRINGTABLE
@@ -1588,9 +1587,6 @@ BEGIN
                             "Įjunkite ir eMule pasileis kartu su Windows. (pagal nutilėjimą išjungta)"
     IDS_KAD_WAITCBK         "Laukti Kad Callback"
     IDS_KAD_TOOMANDYKADLKPS "Perdaug Kad paieškų"
-//    IDS_PCDS_CLIENTWAIT     "KlientoLaukimas"
-//    IDS_PCDS_CACHEWAIT      "KešoLaukimas"
-//    IDS_CACHE               "Kešas"
     IDS_INDEXED             "Indeksuota"
     IDS_KADINFO_SRC         "\tŠaltinių: %u\r\n"
     IDS_KADINFO_KEYW        "\tRaktažodžių: %u\r\n"
@@ -1686,8 +1682,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Windows Common Controls library (COMCTL32.DLL) yra per senos!\r\n\r\neMule aptiko ""Windows Common Controls library (COMCTL32.DLL)"" versiją, kuri yra per sena ir netinka eMule eMule. Norėdami užtikrinti sklandų eMule veikimą, rekomenduojame atnaujinti ""Windows Common Controls library (COMCTL32.DLL)"" nors iji 5.8 versijos.\r\n\r\nAtsisiųskite ir instaliuokite atnaujinimą ""Windows Common Controls library (COMCTL32.DLL)"" iš Microsoft (R) Download Centro. Ar norite ten dabar apsilankyti?"
     IDS_ASREGEXPR           "Reguliarios išraiškos"
     IDS_STATIC_REGEXP       "Reguliari išraiška vaizdavimo filtrui:"
     IDS_CARE4ALL            "Įvertinti visus failus"
@@ -1924,10 +1918,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Žymėti kaip ne spamas"
     IDS_SEARCHSPAMFILTER    "Įjungti spam filtrą paieškos rezultatams"
     IDS_SHOWSMILEYS         "Rodyti šypsenėles"
-    IDS_CAPTCHAREQUEST      "Norėdamas išvengti spamo, šis vartotojas iš jūsų reikalauja išspręsti captcha, prieš išsiunčiant jam žinutę. Prašom įvesti raides kurias matote paveiksliuke kaip atsakymą:"
-    IDS_CAPTCHAFAILED       "Jūsų atsakymas į captcha neteisingas bei jūsų žinutė ignoruojama. Galite užklausti naują captcha siųsdami naują žinutę."
-    IDS_CAPTCHASOLVED       "Jūs praėjote captcha patikrinimą ir vartotojas gavo jūsų žinutę."
-    IDS_USECAPTCHAS         "Reikalinga captcha autorizacija"
+    IDS_CAPTCHAREQUEST      "Norėdamas išvengti spamo, šis vartotojas iš jūsų reikalauja išspręsti CAPTCHA, prieš išsiunčiant jam žinutę. Prašom įvesti raides kurias matote paveiksliuke kaip atsakymą:"
+    IDS_CAPTCHAFAILED       "Jūsų atsakymas į CAPTCHA neteisingas bei jūsų žinutė ignoruojama. Galite užklausti naują CAPTCHA siųsdami naują žinutę."
+    IDS_CAPTCHASOLVED       "Jūs praėjote CAPTCHA patikrinimą ir vartotojas gavo jūsų žinutę."
+    IDS_USECAPTCHAS         "Reikalinga CAPTCHA autorizacija"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat iš URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "Gaunamas nodes.dat iš %s"
     IDS_DOWNLOADING_NODESDAT "Gaunamas nodes.dat..."

@@ -73,7 +73,7 @@ time_t		CKademlia::m_tExternPortLookup;
 time_t		CKademlia::m_tLANModeCheck = 0;
 volatile bool	CKademlia::m_bRunning = false;
 bool		CKademlia::m_bLANMode = false;
-CList<uint32, uint32> CKademlia::m_liStatsEstUsersProbes;
+CList<uint32> CKademlia::m_liStatsEstUsersProbes;
 _ContactList CKademlia::s_liBootstrapList;
 bool		CKademlia::m_bootstrapping = false;
 
@@ -559,7 +559,7 @@ uint32 CKademlia::CalculateKadUsersNew()
 	if (m_liStatsEstUsersProbes.GetCount() < 10)
 		return 0;
 
-	CList<uint32, uint32> liMedian;
+	CList<uint32> liMedian;
 	for (POSITION pos = m_liStatsEstUsersProbes.GetHeadPosition(); pos != NULL;) {
 		uint32 nProbe = m_liStatsEstUsersProbes.GetNext(pos);
 		bool bInserted = false;
@@ -588,17 +588,17 @@ uint32 CKademlia::CalculateKadUsersNew()
 	// Modify count by assuming 20% of the users are firewalled and can't be a contact for < 0.49b nodes
 	// Modify count by actual statistics of Firewalled ratio for >= 0.49b if we are not firewalled ourself
 	// Modify count by 40% for >= 0.49b if we are firewalled ourself (the actual Firewalled count at this date on kad is 35-55%)
-	const float fFirewalledModifyOld = 1.20F;
+	const float fFirewalledModifyOld = 1.20f;
 	float fNewRatio = 0;
 	float fFirewalledModifyNew;
 	if (CUDPFirewallTester::IsFirewalledUDP(true))
-		fFirewalledModifyNew = 1.40F; // we are firewalled and get the real statistic, assume 40% firewalled >=0.49b nodes
+		fFirewalledModifyNew = 1.40f; // we are firewalled and get the real statistic, assume 40% firewalled >=0.49b nodes
 	else {
 		CPrefs *pPrefs = GetPrefs();
 		if (pPrefs && pPrefs->StatsGetFirewalledRatio(true) > 0) {
-			fFirewalledModifyNew = 1.0F + (pPrefs->StatsGetFirewalledRatio(true)); // apply the firewalled ratio to the modify
+			fFirewalledModifyNew = 1.00f + (pPrefs->StatsGetFirewalledRatio(true)); // apply the firewalled ratio to the modify
 			fNewRatio = pPrefs->StatsGetKadV8Ratio();
-			ASSERT(fFirewalledModifyNew > 1.0F && fFirewalledModifyNew < 1.90F);
+			ASSERT(fFirewalledModifyNew > 1.00f && fFirewalledModifyNew < 1.90f);
 		} else
 			fFirewalledModifyNew = 0;
 	}
@@ -607,9 +607,9 @@ uint32 CKademlia::CalculateKadUsersNew()
 		fFirewalledModifyTotal = (fNewRatio * fFirewalledModifyNew) + ((1 - fNewRatio) * fFirewalledModifyOld);
 	else
 		fFirewalledModifyTotal = fFirewalledModifyOld;
-	ASSERT(fFirewalledModifyTotal > 1.0F && fFirewalledModifyTotal < 1.90F);
+	ASSERT(fFirewalledModifyTotal > 1.00f && fFirewalledModifyTotal < 1.90f);
 
-	return (uint32)(nMedian * fFirewalledModifyTotal);
+	return (uint32)((float)nMedian * fFirewalledModifyTotal);
 }
 
 bool CKademlia::IsRunningInLANMode()

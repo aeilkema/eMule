@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "va_ES.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CAT)
 #ifdef _WIN32
 LANGUAGE 0x902,0
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -1544,9 +1544,8 @@ BEGIN
     IDS_NEWMSG              "Missatge nou procedent de «%s» (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "només a la mateixa categoria"
     IDS_LOG_ULDL_EVENTS     "Registra els esdeveniments de pujada/baixada"
-//    IDS_PEERCACHE_ENABLED   "El vostre proveïdor d'Internet admet la tecnologia de cau-entre-iguals (PeerCache). S'activarà la cau de baixades"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Permet a l'usuari que vos afegisca com a amic."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Baixa primer les parts que calen per a la previsualització"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Baixa primer les parts que calen per a la previsualització"
 END
 
 STRINGTABLE
@@ -1586,9 +1585,6 @@ BEGIN
                             "Activeu-ho per i fer que l'eMule s'execute quan inicieu el Windows."
     IDS_KAD_WAITCBK         "Espera el retorn de la crida Kad"
     IDS_KAD_TOOMANDYKADLKPS "Hi ha massa resolucions Kad"
-//    IDS_PCDS_CLIENTWAIT     "Espera del client"
-//    IDS_PCDS_CACHEWAIT      "Espera de la cau"
-//    IDS_CACHE               "Cau"
     IDS_INDEXED             "Indexat"
     IDS_KADINFO_SRC         "\tFont: %u\r\n"
     IDS_KADINFO_KEYW        "\tParaula clau: %u\r\n"
@@ -1684,8 +1680,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "La biblioteca de Controls Comuns de Windows (COMCTL32.DLL) és massa antiga.\r\n\r\nL'eMule ha detectat una versió de la «biblioteca de Controls Comuns de Windows (COMCTL32.DLL)» que és massa antiga perquè l'eMule la puga utilitzar. Per a assegurar el funcionament complet i correcte de l'eMule, es recomana que actualitzeu la «biblioteca de Controls Comuns de Windows (COMCTL32.DLL)» a la versió 5.8 o superior.\r\n\r\nPodeu baixar i instal·lar una actualització de la «biblioteca de Controls Comuns de Windows (COMCTL32.DLL)» al Centre de Decàrregues de Microsoft (R). Voleu anar a la URL corresponent?"
     IDS_ASREGEXPR           "Com a expressió regular"
     IDS_STATIC_REGEXP       "Expressió regular per al filtre de visualització:"
     IDS_CARE4ALL            "Avalua tots els fitxers"
@@ -1927,10 +1921,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Marca com a no brossa"
     IDS_SEARCHSPAMFILTER    "Activa el filtre de brossa per als resultats de les cerques"
     IDS_SHOWSMILEYS         "Mostra les emoticones"
-    IDS_CAPTCHAREQUEST      "Per a evitar missatges no desitjats, este usuari et demana que resolguis un captcha. Escriviu ací les lletres de la imatge:"
-    IDS_CAPTCHAFAILED       "La resposta al captcha ha estat errònia, i s'ha ignorat el vostre missatge. Podeu demanar un captcha nou si envieu un missatge nou."
-    IDS_CAPTCHASOLVED       "Heu superat la prova del captcha i l'usuari ha rebut el vostre missatge."
-    IDS_USECAPTCHAS         "Sol·licita autenticació per captcha"
+    IDS_CAPTCHAREQUEST      "Per a evitar missatges no desitjats, este usuari et demana que resolguis un CAPTCHA. Escriviu ací les lletres de la imatge:"
+    IDS_CAPTCHAFAILED       "La resposta al CAPTCHA ha estat errònia, i s'ha ignorat el vostre missatge. Podeu demanar un CAPTCHA nou si envieu un missatge nou."
+    IDS_CAPTCHASOLVED       "Heu superat la prova del CAPTCHA i l'usuari ha rebut el vostre missatge."
+    IDS_USECAPTCHAS         "Sol·licita autenticació per CAPTCHA"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat des d'URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "S'estan baixant els nodes.dat des de %s"
     IDS_DOWNLOADING_NODESDAT "S'estan baixant els nodes.dat..."

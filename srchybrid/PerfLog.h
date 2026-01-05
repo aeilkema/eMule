@@ -10,24 +10,24 @@ public:
 	void LogSamples();
 
 protected:
-	DWORD	m_dwInterval;
-	DWORD	m_dwLastSampled;
-	CString	m_strFilePath;
-	CString	m_strMRTGDataFilePath;
-	CString	m_strMRTGOverheadFilePath;
 	uint64	m_nLastSessionSentBytes;
 	uint64	m_nLastSessionRecvBytes;
 	uint64	m_nLastDnOH;
 	uint64	m_nLastUpOH;
+	CString	m_strFilePath;
+	CString	m_strMRTGDataFilePath;
+	CString	m_strMRTGOverheadFilePath;
+	DWORD	m_dwInterval;
+	DWORD	m_dwLastSampled;
 	// those values have to be specified in 'preferences.ini' -> hardcode them
-	enum ELogMode : uint8
+	enum EPerfLogMode : uint8
 	{
 		None = 0,
 		OneSample = 1,
 		AllSamples = 2
 	} m_eMode;
 	// those values have to be specified in 'preferences.ini' -> hardcode them
-	enum ELogFileFormat : uint8
+	enum EPerfLogFileFormat : uint8
 	{
 		CSV = 0,
 		MRTG = 1

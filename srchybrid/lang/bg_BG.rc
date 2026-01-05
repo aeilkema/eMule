@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "bg_BG.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_BGR)
 #ifdef _WIN32
 LANGUAGE LANG_BULGARIAN, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -802,7 +802,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "Лично съобщение"
     IDS_WEB_REMOTE_LINK_ADDED "Добавен линк:"
     IDS_WEB_REMOTE_LINK_NOT_ADDED "Линка не е добавен. Грешна парола."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Сваляй първо частите за преглед"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Сваляй първо частите за преглед"
     IDS_IRC_KICK            "Ритни"
     IDS_IRC_SLAP            "Зашливи"
     IDS_IRC_JOIN            "Влез"
@@ -819,7 +819,6 @@ BEGIN
     IDS_NEWMSG              "Съобщение от '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "само в същата категория"
     IDS_LOG_ULDL_EVENTS     "Отчет за качване/сваляне"
-//    IDS_PEERCACHE_ENABLED   "Вашият ISP поддържа технологията PeerCache, разрешете сваляне от кеша!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Разрешавам потребителите да ме добавят като приятел"
     IDS_SOURCESWAPBLOCKED   "Прехвърли блокираните"
     IDS_TRICKLING           "В готовност"
@@ -1608,9 +1607,6 @@ BEGIN
                             "Стартирай eMule заедно с Windows. (По подразбиране: Изкл.)"
     IDS_KAD_WAITCBK         "Изчаквай отговор от Kad"
     IDS_KAD_TOOMANDYKADLKPS "Твърде много търсения в Kad"
-//    IDS_PCDS_CLIENTWAIT     "Изчакване на клиента"
-//    IDS_PCDS_CACHEWAIT      "Изчакване на кеша"
-//    IDS_CACHE               "Кеш"
     IDS_INDEXED             "Индексирани"
     IDS_KADINFO_SRC         "\tИзточник: %u\r\n"
     IDS_KADINFO_KEYW        "\tКлюч. фраза: %u\r\n"
@@ -1697,7 +1693,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD "Версията на бибилиотеката Windows Common Controls (COMCTL32.DLL) е много стара!\r\n\r\neMule е определил версията на библиотеката ""Windows Common Controls (COMCTL32.DLL)"", която е много стара и ще бъде използвана от eMule. За да осигурите пълно и безупречно функциониране на eMule препоръчваме ви да обновите библиотеката ""Windows Common Controls (COMCTL32.DLL)"" поне до версия 5.8.\r\n\r\nСвалете и инсталирайте обновяване за библиотеката ""Windows Common Controls (COMCTL32.DLL)"". Искате ли да посетите съответстващия URL адрес?"
     IDS_ASREGEXPR           "Като обичен израз"
     IDS_STATIC_REGEXP       "Обичаен израз за преглед на филтъра:"
     IDS_CARE4ALL            "Оцени всички файлове"
@@ -1901,10 +1896,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Маркирай като Не е Спам"
     IDS_SEARCHSPAMFILTER    "Използвай филтър за Спам за резултатите от търсене"
     IDS_SHOWSMILEYS         "Показвай анимирани икони"
-    IDS_CAPTCHAREQUEST      "За да се предпази от Спам този потребител, изисква от вас captcha удостоверяване преди да му изпратите съобщение. Моля, въведете символите, които виждате на изображението:"
-    IDS_CAPTCHAFAILED       "Вашият отговор е грешен и вашето съобщение е игнорорано. Можете да заявите нова captcha сесия, като изпратите ново съобщение."
+    IDS_CAPTCHAREQUEST      "За да се предпази от Спам този потребител, изисква от вас CAPTCHA удостоверяване преди да му изпратите съобщение. Моля, въведете символите, които виждате на изображението:"
+    IDS_CAPTCHAFAILED       "Вашият отговор е грешен и вашето съобщение е игнорорано. Можете да заявите нова CAPTCHA сесия, като изпратите ново съобщение."
     IDS_CAPTCHASOLVED       "Вие сте издържали проверката и потребителя е получил вашето съобщение."
-    IDS_USECAPTCHAS         "Изисква captcha удостоверяване"
+    IDS_USECAPTCHAS         "Изисква CAPTCHA удостоверяване"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat от URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "Сваляне на 'nodes.dat' от %s"
     IDS_DOWNLOADING_NODESDAT "Сваляне на 'nodes.dat'..."

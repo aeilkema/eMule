@@ -22,12 +22,11 @@
 class CColourPicker;
 
 // To hold the colours and their names
-typedef struct
+struct ColourTableEntry
 {
 	COLORREF crColour;
 	TCHAR	 *szName;
-}
-ColourTableEntry;
+};
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -78,7 +77,7 @@ protected:
 			return m_crColours[nIndex].crColour;
 		return colourArrayPassed[nIndex];
 	}
-	LPCTSTR GetColourName(int nIndex)			{ return m_crColours[nIndex].szName; }
+	LPCTSTR GetColourName(int nIndex) const		{ return m_crColours[nIndex].szName; }
 	int	 GetIndex(int row, int col) const;
 	int	 GetRow(int nIndex) const;
 	int	 GetColumn(int nIndex) const;

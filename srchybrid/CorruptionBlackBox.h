@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -26,9 +26,8 @@ enum EBBRStatus
 };
 
 
-class CCBBRecord
+struct CCBBRecord
 {
-public:
 	CCBBRecord(uint64 nStartPos = 0, uint64 nEndPos = 0, uint32 dwIP = 0, EBBRStatus BBRStatus = BBR_NONE);
 
 	bool	Merge(uint64 nStartPos, uint64 nEndPos, uint32 dwIP, EBBRStatus BBRStatus = BBR_NONE);
@@ -45,16 +44,15 @@ typedef CArray<CCBBRecord> CRecordArray;
 
 class CCorruptionBlackBox
 {
+	CArray<CRecordArray> m_aaRecords;
+	bool	Split(CCBBRecord &cbbRec, INT_PTR nPart, uint64 nRelStartPos, uint64 nRelEndPos);
 public:
 	CCorruptionBlackBox() = default;
 	~CCorruptionBlackBox() = default;
 	void	Init(EMFileSize nFileSize);
 	void	Free();
-	void	TransferredData(uint64 nStartPos, uint64 nEndPos, const CUpDownClient *pSender);
+	void	ReceivedData(uint64 nStartPos, uint64 nEndPos, const CUpDownClient *pSender);
 	void	VerifiedData(uint64 nStartPos, uint64 nEndPos);
 	void	CorruptedData(uint64 nStartPos, uint64 nEndPos);
 	void	EvaluateData(uint16 nPart);
-
-private:
-	CArray<CRecordArray> m_aaRecords;
 };

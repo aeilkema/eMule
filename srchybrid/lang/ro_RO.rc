@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "ro_RO.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ROM)
 #ifdef _WIN32
 LANGUAGE LANG_ROMANIAN, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -794,7 +794,7 @@ BEGIN
     IDS_IRC_PRIVATECHANSTART "* Am început un chat privat"
     IDS_IRC_SLAPMSG         "* %s îl face din vorbe pe %s!"
     IDS_IRC_PRIVMESSAGE     "Mesaj privat"
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS
                             "Descarc întîi părţi necesare pre-vizualizării"
     IDS_IRC_KICK            "Alungă"
     IDS_IRC_SLAP            "Slap" //!
@@ -1548,7 +1548,6 @@ BEGIN
     IDS_NEWMSG              "Mesaj nou de la '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "doar din aceeaşi categorie"
     IDS_LOG_ULDL_EVENTS     "Loghez evenimentele upload/download"
-//    IDS_PEERCACHE_ENABLED   "ISP-ul tău permite tehnologia PeerCache, activez descărcarea cache!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND
                             "Permit utilizatorului să te adauge la Prieteni."
     IDS_SOURCESWAPBLOCKED   "Swap blocat"
@@ -1590,9 +1589,6 @@ BEGIN
                             "Activează pentru ca eMule să pornească odată cu Windows. (Implicit: dezactivat)"
     IDS_KAD_WAITCBK         "Aştept răspuns Kad"
     IDS_KAD_TOOMANDYKADLKPS "Prea multe căutări Kad"
-//    IDS_PCDS_CLIENTWAIT     "Aştept Client"
-//    IDS_PCDS_CACHEWAIT      "Aştept Cache"
-//    IDS_CACHE               "Cache" //!
     IDS_INDEXED             "Indexat"
     IDS_KADINFO_SRC         "\tSursă: %u\r\n"
     IDS_KADINFO_KEYW        "\tKeyword: %u\r\n" //!
@@ -1692,8 +1688,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Biblioteca Windows Common Controls (COMCTL32.DLL) e prea veche!\r\n\r\neMule a detectat o versiune a ""bibliotecii Windows Common Controls (COMCTL32.DLL)"" prea veche pentru buna funcţionare a eMule. Pentru ca eMule să funcţioneze perfect la întreaga capacitate, îţi recomandăm insistent să updatezi ""biblioteca Windows Common Controls (COMCTL32.DLL)"" minim la versiunea 5.8.\r\n\r\nDescarcă şi instalează un update la ""biblioteca Windows Common Controls (COMCTL32.DLL)"" de la Microsoft (R) Download Center. Vrei să vizitezi adresa URL respectivă?"
     IDS_ASREGEXPR           "Ca Expresie Obişnuită"
     IDS_STATIC_REGEXP       "Expresia Obişnuită pentru filtrul de afişare:"
     IDS_CARE4ALL            "Evaluează toate fişierele"
@@ -1926,10 +1920,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Marchează ca ne-Spam"
     IDS_SEARCHSPAMFILTER    "Activare Filtru Spam ptr. rezultatele căutării"
     IDS_SHOWSMILEYS         "Arată emoticonuri"
-    IDS_CAPTCHAREQUEST      "Pentru a evita mesajele spam, acest utilizator cere să rezolvi un captcha înainte de a-i putea trimite un mesaj. Te rog tastează literele din această imagine ca răspuns:"
-    IDS_CAPTCHAFAILED       "Răspunsul tău la captcha a fost greşit, deci mesajul ţi-a fost ignorat. Poţi cere un nou captcha trimiţînd un alt mesaj."
-    IDS_CAPTCHASOLVED       "Ai trecut testul captcha iar utilizatorul a primit mesajul tău."
-    IDS_USECAPTCHAS         "Cere autentificare captcha"
+    IDS_CAPTCHAREQUEST      "Pentru a evita mesajele spam, acest utilizator cere să rezolvi un CAPTCHA înainte de a-i putea trimite un mesaj. Te rog tastează literele din această imagine ca răspuns:"
+    IDS_CAPTCHAFAILED       "Răspunsul tău la CAPTCHA a fost greşit, deci mesajul ţi-a fost ignorat. Poţi cere un nou CAPTCHA trimiţînd un alt mesaj."
+    IDS_CAPTCHASOLVED       "Ai trecut testul CAPTCHA iar utilizatorul a primit mesajul tău."
+    IDS_USECAPTCHAS         "Cere autentificare CAPTCHA"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat de la URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "Descarc nodes.dat de la %s"
     IDS_DOWNLOADING_NODESDAT "Descarc nodes.dat..."

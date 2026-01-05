@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -49,8 +49,8 @@ public:
 	virtual uint64 ReadUInt64();
 	virtual void ReadUInt128(Kademlia::CUInt128 &Val);
 	virtual void ReadHash16(uchar *pVal);
-	virtual CString ReadString(bool bOptUTF8);
-	virtual CString ReadString(bool bOptUTF8, UINT uRawSize);
+	virtual CStringW ReadString(bool bOptUTF8);
+	virtual CStringW ReadString(bool bOptUTF8, UINT uRawSize);
 	virtual CStringW ReadStringUTF8();
 
 	virtual void WriteUInt8(uint8 nVal);

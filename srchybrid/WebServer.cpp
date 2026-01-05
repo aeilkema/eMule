@@ -1,13 +1,11 @@
 #include "stdafx.h"
 #include <locale.h>
-#include <algorithm>
 #include "emule.h"
 #include "StringConversion.h"
 #include "WebServer.h"
 #include "ClientCredits.h"
 #include "ClientList.h"
 #include "DownloadQueue.h"
-#include "ED2KLink.h"
 #include "emuledlg.h"
 #include "FriendList.h"
 #include "MD5Sum.h"
@@ -19,7 +17,6 @@
 #include "KnownFileList.h"
 #include "ListenSocket.h"
 #include "Log.h"
-#include "MenuCmds.h"
 #include "Preferences.h"
 #include "Server.h"
 #include "ServerList.h"
@@ -35,6 +32,7 @@
 #include "TransferDlg.h"
 #include "UploadQueue.h"
 #include "UpDownClient.h"
+#include "PartFile.h"
 #include "UserMsgs.h"
 
 #ifdef _DEBUG
@@ -56,22 +54,22 @@ static char THIS_FILE[] = __FILE__;
 #define WEB_SERVER_TEMPLATES_VERSION	7
 
 //SyruS CQArray-Sorting operators
-bool operator > (QueueUsers &first, QueueUsers &second)
+static bool operator > (QueueUsers &first, QueueUsers &second)
 {
-	return (first.sIndex.CompareNoCase(second.sIndex) > 0);
+	return first.sIndex.CompareNoCase(second.sIndex) > 0;
 }
-bool operator < (QueueUsers &first, QueueUsers &second)
+static bool operator < (QueueUsers &first, QueueUsers &second)
 {
-	return (first.sIndex.CompareNoCase(second.sIndex) < 0);
+	return first.sIndex.CompareNoCase(second.sIndex) < 0;
 }
 
-bool operator > (SearchFileStruct &first, SearchFileStruct &second)
+static bool operator > (SearchFileStruct &first, SearchFileStruct &second)
 {
-	return (first.m_strIndex.CompareNoCase(second.m_strIndex) > 0);
+	return first.m_strIndex.CompareNoCase(second.m_strIndex) > 0;
 }
-bool operator < (SearchFileStruct &first, SearchFileStruct &second)
+static bool operator < (SearchFileStruct &first, SearchFileStruct &second)
 {
-	return (first.m_strIndex.CompareNoCase(second.m_strIndex) < 0);
+	return first.m_strIndex.CompareNoCase(second.m_strIndex) < 0;
 }
 
 static BOOL	WSdownloadColumnHidden[8];
@@ -151,11 +149,13 @@ bool CWebServer::ReloadTemplates()
 {
 	//Last-Modified: <day-name>, <day> <month-name> <year> <hour>:<minute>:<second> GMT
 	//Day and month names must be 3 English letters, 30 characters total.
-	_locale_t locale = _tcreate_locale(LC_TIME, _T("en-US"));
 	TCHAR szTime[32];
 	time_t t = time(NULL);
+	_locale_t locale = _tcreate_locale(LC_TIME, _T("en-US"));
 	if (!_tcsftime_l(szTime, _countof(szTime), _T("%a, %d %b %Y %H:%M:%S GMT"), gmtime(&t), locale))
 		*szTime = _T('\0');
+	if (locale)
+		_free_locale(locale);
 	m_Params.sLastModified = szTime;
 	m_Params.sETag = MD5Sum(m_Params.sLastModified).GetHashString();
 
@@ -218,10 +218,10 @@ bool CWebServer::ReloadTemplates()
 			m_Templates.sCommentList = _LoadTemplate(sAll, _T("TMPL_COMMENTLIST"));
 			m_Templates.sCommentListLine = _LoadTemplate(sAll, _T("TMPL_COMMENTLIST_LINE"));
 
-			m_Templates.sProgressbarImgsPercent.Replace(_T("[PROGRESSGIFNAME]"), _T("%s"));
-			m_Templates.sProgressbarImgsPercent.Replace(_T("[PROGRESSGIFINTERNAL]"), _T("%i"));
 			m_Templates.sProgressbarImgs.Replace(_T("[PROGRESSGIFNAME]"), _T("%s"));
 			m_Templates.sProgressbarImgs.Replace(_T("[PROGRESSGIFINTERNAL]"), _T("%i"));
+			m_Templates.sProgressbarImgsPercent.Replace(_T("[PROGRESSGIFNAME]"), _T("%s"));
+			m_Templates.sProgressbarImgsPercent.Replace(_T("[PROGRESSGIFINTERNAL]"), _T("%i"));
 			return true;
 		}
 		if (thePrefs.GetWSIsEnabled() || m_bServerWorking) {
@@ -361,14 +361,14 @@ void CWebServer::_ProcessURL(const ThreadData &Data)
 	// Here we are in real trouble! We are accessing the entire emule main thread
 	// data without any synchronization!! Either we use the message pump for m_pdlgEmule
 	// or use some hundreds of critical sections... For now, an exception handler
-	// should avoid the worse things.
+	// should prevent the worst things.
 	//////////////////////////////////////////////////////////////////////////
-	(void)CoInitialize(NULL);
+	(void)::CoInitialize(NULL);
 
 #ifndef _DEBUG
 	try {
 #endif
-		bool isUseGzip = thePrefs.GetWebUseGzip();
+		bool bUseGzip = thePrefs.GetWebUseGzip();
 
 		srand((unsigned)time(NULL));
 
@@ -377,16 +377,15 @@ void CWebServer::_ProcessURL(const ThreadData &Data)
 		// check for being banned
 		int myfaults = 0;
 		const DWORD curTick = ::GetTickCount();
-		for (INT_PTR i = pThis->m_Params.badlogins.GetCount(); --i >= 0;) {
+		for (INT_PTR i = pThis->m_Params.badlogins.GetCount(); --i >= 0;)
 			if (curTick >= pThis->m_Params.badlogins[i].timestamp + MIN2MS(15))
 				pThis->m_Params.badlogins.RemoveAt(i); // remove outdated entries
 			else
-				if (pThis->m_Params.badlogins[i].datalen == myip)
-					++myfaults;
-		}
+				myfaults += static_cast<int>(pThis->m_Params.badlogins[i].ip == myip);
+
 		if (myfaults > 4) {
 			Data.pSocket->SendContent(HTTPInit, _GetPlainResString(IDS_ACCESSDENIED));
-			CoUninitialize();
+			::CoUninitialize();
 			return;
 		}
 
@@ -431,18 +430,18 @@ void CWebServer::_ProcessURL(const ThreadData &Data)
 			} else {
 				LogWarning(LOG_STATUSBAR, GetResString(IDS_WEB_BADLOGINATTEMPT) + _T(" (%s)"), (LPCTSTR)ip);
 
-				BadLogin newban = {myip, curTick};	// save failed attempt (ip,time)
+				BadLogin newban = BadLogin{myip, curTick};	// remember the failed attempt
 				pThis->m_Params.badlogins.Add(newban);
 				if (++myfaults > 4) {
 					Data.pSocket->SendContent(HTTPInit, _GetPlainResString(IDS_ACCESSDENIED));
-					CoUninitialize();
+					::CoUninitialize();
 					return;
 				}
 			}
-			isUseGzip = false; // [Julien]
+			bUseGzip = false; // [Julien]
 			if (login)	// on login, forget previous failed attempts
 				for (INT_PTR i = pThis->m_Params.badlogins.GetCount(); --i >= 0;)
-					if (pThis->m_Params.badlogins[i].datalen == myip)
+					if (pThis->m_Params.badlogins[i].ip == myip)
 						pThis->m_Params.badlogins.RemoveAt(i);
 		}
 
@@ -451,46 +450,29 @@ void CWebServer::_ProcessURL(const ThreadData &Data)
 			_RemoveSession(Data, lSession);
 
 		TCHAR *gzipOut = NULL;
-		DWORD gzipLen = 0;
+		uLongf gzipLen;
 		CString Out;
 		if (_IsLoggedIn(Data, lSession)) {
 			bool bAdmin = _IsSessionAdmin(Data, sSession);
 			if (_ParseURL(Data.sURL, _T("w")) == _T("close") && bAdmin && thePrefs.GetWebAdminAllowedHiLevFunc()) {
 				theApp.m_app_state = APP_STATE_SHUTTINGDOWN;
-				_RemoveSession(Data, lSession);
-
-				// send answer...
-				Out += _GetLoginScreen(Data);
-				Data.pSocket->SendContent(HTTPInit, Out);
-
-				SendMessage(theApp.emuledlg->m_hWnd, WM_CLOSE, 0, 0);
-
-				CoUninitialize();
+				_LockSession(Data, lSession);
+				::CoUninitialize();
+				PostMessage(theApp.emuledlg->m_hWnd, WM_CLOSE, 0, 0);
 				return;
 			}
 
 			if (_ParseURL(Data.sURL, _T("w")) == _T("shutdown") && bAdmin) {
-				_RemoveSession(Data, lSession);
-				// send answer...
-				Out += _GetLoginScreen(Data);
-				Data.pSocket->SendContent(HTTPInit, Out);
-
-				SendMessage(theApp.emuledlg->m_hWnd, WEB_GUI_INTERACTION, WEBGUIIA_WINFUNC, 1);
-
-				CoUninitialize();
+				_LockSession(Data, lSession);
+				::CoUninitialize();
+				PostMessage(theApp.emuledlg->m_hWnd, WEB_GUI_INTERACTION, WEBGUIIA_WINFUNC, 1);
 				return;
 			}
 
 			if (_ParseURL(Data.sURL, _T("w")) == _T("reboot") && bAdmin) {
-				_RemoveSession(Data, lSession);
-
-				// send answer...
-				Out += _GetLoginScreen(Data);
-				Data.pSocket->SendContent(HTTPInit, Out);
-
-				SendMessage(theApp.emuledlg->m_hWnd, WEB_GUI_INTERACTION, WEBGUIIA_WINFUNC, 2);
-
-				CoUninitialize();
+				_LockSession(Data, lSession);
+				::CoUninitialize();
+				PostMessage(theApp.emuledlg->m_hWnd, WEB_GUI_INTERACTION, WEBGUIIA_WINFUNC, 2);
 				return;
 			}
 
@@ -500,7 +482,7 @@ void CWebServer::_ProcessURL(const ThreadData &Data)
 				if (!Out1.IsEmpty()) {
 					Data.pSocket->SendContent(HTTPInit, Out1);
 
-					CoUninitialize();
+					::CoUninitialize();
 					return;
 				}
 			} else if (_ParseURL(Data.sURL, _T("w")) == _T("getfile") && bAdmin) {
@@ -511,7 +493,7 @@ void CWebServer::_ProcessURL(const ThreadData &Data)
 					if (thePrefs.GetMaxWebUploadFileSizeMB() != 0 && kf->GetFileSize() > (uint64)thePrefs.GetMaxWebUploadFileSizeMB() * 1024 * 1024) {
 						Data.pSocket->SendReply("HTTP/1.1 403 Forbidden\r\n");
 
-						CoUninitialize();
+						::CoUninitialize();
 						return;
 					}
 
@@ -523,7 +505,7 @@ void CWebServer::_ProcessURL(const ThreadData &Data)
 						char *buffer = (char*)malloc(SENDFILEBUFSIZE);
 						if (!buffer) {
 							Data.pSocket->SendReply("HTTP/1.1 500 Internal Server Error\r\n");
-							CoUninitialize();
+							::CoUninitialize();
 							return;
 						}
 
@@ -539,7 +521,7 @@ void CWebServer::_ProcessURL(const ThreadData &Data)
 
 						for (UINT r = 1; (uint64)filesize > 0 && r;) {
 							r = file.Read(buffer, SENDFILEBUFSIZE);
-							filesize -= r;
+							filesize -= (uint64)r;
 							Data.pSocket->SendData(buffer, r);
 						}
 						file.Close();
@@ -547,12 +529,12 @@ void CWebServer::_ProcessURL(const ThreadData &Data)
 						free(buffer);
 					} else
 						Data.pSocket->SendReply("HTTP/1.1 404 File not found\r\n");
-					CoUninitialize();
+					::CoUninitialize();
 					return;
 				}
 			}
 
-			Out += _GetHeader(Data, lSession);
+			Out = _GetHeader(Data, lSession);
 			const CString &sPage(_ParseURL(Data.sURL, _T("w")));
 			if (sPage == _T("server"))
 				Out += _GetServerList(Data);
@@ -577,44 +559,44 @@ void CWebServer::_ProcessURL(const ThreadData &Data)
 			else if (sPage == _T("kad"))
 				Out += _GetKadDlg(Data);
 			else if (sPage == _T("options")) {
-				isUseGzip = false;
+				bUseGzip = false;
 				Out += _GetPreferences(Data);
 			} else if (sPage.IsEmpty())
-				isUseGzip = false;
+				bUseGzip = false;
 
 			Out += _GetFooter(Data);
 
-			if (isUseGzip) {
-				bool bOk = false;
-				try {
-					CStringA strA(wc2utf8(Out));
-					uLongf destLen = strA.GetLength() + 1024;
-					gzipOut = new TCHAR[destLen];
-					if (_GzipCompress((Bytef*)gzipOut, &destLen, (Bytef*)(LPCSTR)strA, strA.GetLength(), Z_DEFAULT_COMPRESSION) == Z_OK) {
-						bOk = true;
-						gzipLen = destLen;
+			if (bUseGzip) {
+				CStringA strA(wc2utf8(Out));
+				gzipLen = strA.GetLength();
+				if (gzipLen < 32)
+					bUseGzip = false; //do not bother
+				else {
+					gzipLen -= 16; //save something, at least
+					try {
+						gzipOut = new TCHAR[gzipLen];
+						bUseGzip = (_GzipCompress((Bytef*)gzipOut, &gzipLen, (Bytef*)(LPCSTR)strA, strA.GetLength(), Z_DEFAULT_COMPRESSION) == Z_OK);
+					} catch (...) {
+						ASSERT(0);
 					}
-				} catch (...) {
-					ASSERT(0);
-				}
-				if (!bOk) {
-					isUseGzip = false;
-					delete[] gzipOut;
-					gzipOut = NULL;
+					if (!bUseGzip) {
+						delete[] gzipOut;
+						gzipOut = NULL;
+					}
 				}
 			}
 		} else if (justAddLink && login)
-			Out += _GetRemoteLinkAddedOk(Data);
+			Out = _GetRemoteLinkAddedOk(Data);
 		else {
-			isUseGzip = false;
-			Out += justAddLink ? _GetRemoteLinkAddedFailed(Data) : _GetLoginScreen(Data);
+			bUseGzip = false;
+			Out = justAddLink ? _GetRemoteLinkAddedFailed(Data) : _GetLoginScreen(Data);
 		}
 
 		// send answer...
-		if (!isUseGzip)
-			Data.pSocket->SendContent(HTTPInit, Out);
-		else
+		if (bUseGzip)
 			Data.pSocket->SendContent(HTTPInitGZ, gzipOut, gzipLen);
+		else
+			Data.pSocket->SendContent(HTTPInit, Out);
 
 		delete[] gzipOut;
 
@@ -625,16 +607,16 @@ void CWebServer::_ProcessURL(const ThreadData &Data)
 	}
 #endif
 
-	CoUninitialize();
+	::CoUninitialize();
 }
 
 CString CWebServer::_ParseURLArray(CString URL, CString fieldname)
 {
-	URL.MakeLower();
 	fieldname.MakeLower();
+	const CString fieldeq(fieldname + _T('='));
 	CString res;
-	while (!URL.IsEmpty()) {
-		int pos = URL.Find(fieldname + _T('='));
+	for (URL.MakeLower(); !URL.IsEmpty();) {
+		int pos = URL.Find(fieldeq);
 		if (pos < 0)
 			break;
 		const CString &temp(_ParseURL(URL, fieldname));
@@ -668,7 +650,7 @@ CString CWebServer::_ParseURL(const CString &URL, const CString &fieldname)
 				Parameter.Truncate(iPos);
 			Parameter.Replace(_T('+'), _T(' '));
 			// decode value...
-			return OptUtf8ToStr(URLDecode(Parameter, true));
+			return (CString)OptUtf8ToStr(URLDecode(Parameter, true));
 		}
 	}
 	return CString();
@@ -692,7 +674,7 @@ CString CWebServer::_GetHeader(const ThreadData &Data, long lSession)
 
 	CString sRefresh;
 	if (sPage == _T("options") || sPage == _T("stats") || sPage == _T("password"))
-		sRefresh += _T('0');
+		sRefresh += _T("0");
 	else
 		sRefresh.Format(_T("%d"), SEC2MS(thePrefs.GetWebPageRefresh()));
 
@@ -775,8 +757,8 @@ CString CWebServer::_GetHeader(const ThreadData &Data, long lSession)
 	} else if (theApp.serverconnect->IsConnected() && !disconnectissued) {
 		HTTPConState = theApp.serverconnect->IsLowID() ? _T("low") : _T("high");
 		CServer *cur_server = theApp.serverlist->GetServerByAddress(
-			theApp.serverconnect->GetCurrentServer()->GetAddress(),
-			theApp.serverconnect->GetCurrentServer()->GetPort());
+			theApp.serverconnect->GetCurrentServer()->GetAddress()
+			, theApp.serverconnect->GetCurrentServer()->GetPort());
 
 		if (cur_server) {
 			HTTPConText = cur_server->GetListName();
@@ -784,13 +766,16 @@ CString CWebServer::_GetHeader(const ThreadData &Data, long lSession)
 				HTTPConText = HTTPConText.Left(SHORT_LENGTH - 3) + _T("...");
 
 			if (bAdmin)
-				HTTPConText.AppendFormat(_T(" (<a href=\"?ses=%s&amp;w=server&amp;c=disconnect\">%s</a>)"), (LPCTSTR)sSession, (LPCTSTR)_GetPlainResString(IDS_IRC_DISCONNECT));
+				HTTPConText.AppendFormat(
+					_T(" (<a href=\"?ses=%s&amp;w=server&amp;c=disconnect\">%s</a>)")
+					, (LPCTSTR)sSession
+					, (LPCTSTR)_GetPlainResString(IDS_IRC_DISCONNECT));
 
 			HTTPHelpU = CastItoIShort(cur_server->GetUsers());
 			HTTPHelpM = CastItoIShort(cur_server->GetMaxUsers());
 			HTTPHelpF = CastItoIShort(cur_server->GetFiles());
 			if (cur_server->GetMaxUsers() > 0)
-				HTTPHelpV.Format(_T("%.0f"), (100.0 * cur_server->GetUsers()) / cur_server->GetMaxUsers());
+				HTTPHelpV.Format(_T("%.0f"), (float)(100 * cur_server->GetUsers()) / (float)cur_server->GetMaxUsers());
 			else
 				HTTPHelpV = _T("0");
 		}
@@ -799,7 +784,10 @@ CString CWebServer::_GetHeader(const ThreadData &Data, long lSession)
 		HTTPConState = _T("disconnected");
 		HTTPConText = _GetPlainResString(IDS_DISCONNECTED);
 		if (bAdmin)
-			HTTPConText.AppendFormat(_T(" (<a href=\"?ses=%s&amp;w=server&amp;c=connect\">%s</a>)"), (LPCTSTR)sSession, (LPCTSTR)_GetPlainResString(IDS_CONNECTTOANYSERVER));
+			HTTPConText.AppendFormat(
+				_T(" (<a href=\"?ses=%s&amp;w=server&amp;c=connect\">%s</a>)")
+				, (LPCTSTR)sSession
+				, (LPCTSTR)_GetPlainResString(IDS_CONNECTTOANYSERVER));
 	}
 	uint32 allUsers = 0;
 	uint32 allFiles = 0;
@@ -817,11 +805,20 @@ CString CWebServer::_GetHeader(const ThreadData &Data, long lSession)
 	if (Kademlia::CKademlia::IsConnected()) {
 		if (Kademlia::CKademlia::IsFirewalled()) {
 			HTTPConText = GetResString(IDS_FIREWALLED);
-			HTTPConText.AppendFormat(_T(" (<a href=\"?ses=%s&amp;w=kad&amp;c=rcfirewall\">%s</a>"), (LPCTSTR)sSession, (LPCTSTR)GetResString(IDS_KAD_RECHECKFW));
-			HTTPConText.AppendFormat(_T(", <a href=\"?ses=%s&amp;w=kad&amp;c=disconnect\">%s</a>)"), (LPCTSTR)sSession, (LPCTSTR)GetResString(IDS_IRC_DISCONNECT));
+			HTTPConText.AppendFormat(
+				_T(" (<a href=\"?ses=%s&amp;w=kad&amp;c=rcfirewall\">%s</a>")
+				, (LPCTSTR)sSession
+				, (LPCTSTR)GetResString(IDS_KAD_RECHECKFW));
+			HTTPConText.AppendFormat(
+				_T(", <a href=\"?ses=%s&amp;w=kad&amp;c=disconnect\">%s</a>)")
+				, (LPCTSTR)sSession
+				, (LPCTSTR)GetResString(IDS_IRC_DISCONNECT));
 		} else {
 			HTTPConText = GetResString(IDS_CONNECTED);
-			HTTPConText.AppendFormat(_T(" (<a href=\"?ses=%s&amp;w=kad&amp;c=disconnect\">%s</a>)"), (LPCTSTR)sSession, (LPCTSTR)GetResString(IDS_IRC_DISCONNECT));
+			HTTPConText.AppendFormat(
+				_T(" (<a href=\"?ses=%s&amp;w=kad&amp;c=disconnect\">%s</a>)")
+				, (LPCTSTR)sSession
+				, (LPCTSTR)GetResString(IDS_IRC_DISCONNECT));
 		}
 	} else {
 		if (Kademlia::CKademlia::IsRunning())
@@ -836,22 +833,22 @@ CString CWebServer::_GetHeader(const ThreadData &Data, long lSession)
 	TCHAR HTTPHeader[100];
 	//100/1024 equals to 1/10.24
 	if (thePrefs.GetMaxDownload() == UNLIMITED)
-		_stprintf(HTTPHeader, _T("%.0f"), theApp.downloadqueue->GetDatarate() / 10.24 / thePrefs.GetMaxGraphDownloadRate());
+		_stprintf(HTTPHeader, _T("%.0f"), (float)theApp.downloadqueue->GetDatarate() / 10.24f / (float)thePrefs.GetMaxGraphDownloadRate());
 	else
-		_stprintf(HTTPHeader, _T("%.0f"), theApp.downloadqueue->GetDatarate() / 10.24 / thePrefs.GetMaxDownload());
+		_stprintf(HTTPHeader, _T("%.0f"), (float)theApp.downloadqueue->GetDatarate() / 10.24f / (float)thePrefs.GetMaxDownload());
 	Out.Replace(_T("[DownloadValue]"), HTTPHeader);
 
 	if (thePrefs.GetMaxUpload() == UNLIMITED)
-		_stprintf(HTTPHeader, _T("%.0f"), theApp.uploadqueue->GetDatarate() / 10.24 / thePrefs.GetMaxGraphUploadRate(true));
+		_stprintf(HTTPHeader, _T("%.0f"), (float)theApp.uploadqueue->GetDatarate() / 10.24f / (float)thePrefs.GetMaxGraphUploadRate(true));
 	else
-		_stprintf(HTTPHeader, _T("%.0f"), theApp.uploadqueue->GetDatarate() / 10.24 / thePrefs.GetMaxUpload());
+		_stprintf(HTTPHeader, _T("%.0f"), (float)theApp.uploadqueue->GetDatarate() / 10.24f / (float)thePrefs.GetMaxUpload());
 	Out.Replace(_T("[UploadValue]"), HTTPHeader);
 
-	_stprintf(HTTPHeader, _T("%.0f"), (100.0 * theApp.listensocket->GetOpenSockets()) / thePrefs.GetMaxConnections());
+	_stprintf(HTTPHeader, _T("%.0f"), (float)(100 * theApp.listensocket->GetOpenSockets()) / (float)thePrefs.GetMaxConnections());
 	Out.Replace(_T("[ConnectionValue]"), HTTPHeader);
-	_stprintf(HTTPHeader, _T("%.1f"), theApp.uploadqueue->GetDatarate() / 1024.0);
+	_stprintf(HTTPHeader, _T("%.1f"), (float)theApp.uploadqueue->GetDatarate() / 1024.0f);
 	Out.Replace(_T("[CurUpload]"), HTTPHeader);
-	_stprintf(HTTPHeader, _T("%.1f"), theApp.downloadqueue->GetDatarate() / 1024.0);
+	_stprintf(HTTPHeader, _T("%.1f"), (float)theApp.downloadqueue->GetDatarate() / 1024.0f);
 	Out.Replace(_T("[CurDownload]"), HTTPHeader);
 	_stprintf(HTTPHeader, _T("%u.0"), theApp.listensocket->GetOpenSockets());
 	Out.Replace(_T("[CurConnection]"), HTTPHeader);
@@ -1220,7 +1217,7 @@ CString CWebServer::_GetServerList(const ThreadData &Data)
 		ServerArray.Add(Entry);
 	}
 
-	SortParams prm{ (int)pThis->m_Params.ServerSort, pThis->m_Params.bServerSortReverse };
+	SortParams prm{(int)pThis->m_Params.ServerSort, pThis->m_Params.bServerSortReverse};
 	qsort_s(ServerArray.GetData(), ServerArray.GetCount(), sizeof(ServerEntry), &_ServerCmp, &prm);
 
 	// Displaying
@@ -1284,7 +1281,9 @@ CString CWebServer::_GetServerList(const ThreadData &Data)
 			HTTPProcessData.Replace(_T("[Description]"), _T(""));
 		else if (cur_srv.sServerDescription.GetLength() > SHORT_LENGTH) {
 			CString s;
-			s.Format(_T("<acronym title=\"%s\">%s...</acronym>"), (LPCTSTR)cur_srv.sServerDescription, (LPCTSTR)cur_srv.sServerDescription.Left(SHORT_LENGTH - 3));
+			s.Format(_T("<acronym title=\"%s\">%s...</acronym>")
+				, (LPCTSTR)cur_srv.sServerDescription
+				, (LPCTSTR)cur_srv.sServerDescription.Left(SHORT_LENGTH - 3));
 			HTTPProcessData.Replace(_T("[Description]"), s);
 		} else
 			HTTPProcessData.Replace(_T("[Description]"), cur_srv.sServerDescription);
@@ -1334,7 +1333,9 @@ CString CWebServer::_GetServerList(const ThreadData &Data)
 			HTTPProcessData.Replace(_T("[Version]"), _T(""));
 		else if (cur_srv.sServerVersion.GetLength() > SHORT_LENGTH_MIN) {
 			CString s;
-			s.Format(_T("<acronym title=\"%s\">%s...</acronym>"), (LPCTSTR)cur_srv.sServerVersion, (LPCTSTR)cur_srv.sServerVersion.Left(SHORT_LENGTH_MIN - 3));
+			s.Format(_T("<acronym title=\"%s\">%s...</acronym>")
+				, (LPCTSTR)cur_srv.sServerVersion
+				, (LPCTSTR)cur_srv.sServerVersion.Left(SHORT_LENGTH_MIN - 3));
 			HTTPProcessData.Replace(_T("[Version]"), s);
 		} else
 			HTTPProcessData.Replace(_T("[Version]"), cur_srv.sServerVersion);
@@ -1788,9 +1789,9 @@ CString CWebServer::_GetTransferList(const ThreadData &Data)
 	_InsertCatBox(Out, cat, _T(""), true, true, sSession, _T(""));
 
 	CArray<DownloadFiles> FilesArray;
-	CArray<CPartFile*, CPartFile*> partlist;
+	CArray<CPartFile*> partlist;
 
-	theApp.emuledlg->transferwnd->GetDownloadList()->GetDisplayedFiles(&partlist);
+	theApp.emuledlg->transferwnd->GetDownloadList().GetDisplayedFiles(partlist);
 
 	// Populating array
 	for (INT_PTR i = 0; i < partlist.GetCount(); ++i) {
@@ -1873,8 +1874,8 @@ CString CWebServer::_GetTransferList(const ThreadData &Data)
 			dFile.sFileName = _SpecialChars(pPartFile->GetFileName());
 			dFile.sFileType = _GetWebImageNameForFileType(dFile.sFileName);
 			dFile.sFileNameJS = _SpecialChars(pPartFile->GetFileName());	//for javascript
-			dFile.m_qwFileSize = (uint64)pPartFile->GetFileSize();
-			dFile.m_qwFileTransferred = (uint64)pPartFile->GetCompletedSize();
+			dFile.m_qwFileSize = pPartFile->GetFileSize();
+			dFile.m_qwFileTransferred = pPartFile->GetCompletedSize();
 			dFile.m_dblCompleted = pPartFile->GetPercentCompleted();
 			dFile.lFileSpeed = pPartFile->GetDatarate();
 
@@ -1938,7 +1939,7 @@ CString CWebServer::_GetTransferList(const ThreadData &Data)
 		}
 	}
 
-	SortParams dprm{ (int)pThis->m_Params.DownloadSort, pThis->m_Params.bDownloadSortReverse };
+	SortParams dprm{(int)pThis->m_Params.DownloadSort, pThis->m_Params.bDownloadSortReverse};
 	qsort_s(FilesArray.GetData(), FilesArray.GetCount(), sizeof(DownloadFiles), &_DownloadCmp, &dprm);
 
 	CArray<UploadUsers> UploadArray;
@@ -1988,7 +1989,7 @@ CString CWebServer::_GetTransferList(const ThreadData &Data)
 		UploadArray.Add(dUser);
 	}
 
-	SortParams uprm{ (int)pThis->m_Params.UploadSort, pThis->m_Params.bUploadSortReverse };
+	SortParams uprm{(int)pThis->m_Params.UploadSort, pThis->m_Params.bUploadSortReverse};
 	qsort_s(UploadArray.GetData(), UploadArray.GetCount(), sizeof(UploadUsers), &_UploadCmp, &uprm);
 
 	_MakeTransferList(Out, pThis, Data, &FilesArray, &UploadArray, bAdmin);
@@ -2118,12 +2119,12 @@ void CWebServer::_MakeTransferList(CString &Out, CWebServer *pThis, const Thread
 
 		strFileInfo.Replace(_T("\n"), _T("<br>"));
 
-		if (!downf.iComment) {
-			HTTPProcessData.Replace(_T("[HASCOMMENT]"), _T("<!--"));
-			HTTPProcessData.Replace(_T("[HASCOMMENT_END]"), _T("-->"));
-		} else {
+		if (downf.iComment) {
 			HTTPProcessData.Replace(_T("[HASCOMMENT]"), _T(""));
 			HTTPProcessData.Replace(_T("[HASCOMMENT_END]"), _T(""));
+		} else {
+			HTTPProcessData.Replace(_T("[HASCOMMENT]"), _T("<!--"));
+			HTTPProcessData.Replace(_T("[HASCOMMENT_END]"), _T("-->"));
 		}
 
 		if (downf.sFileState.CompareNoCase(_T("downloading")) == 0 || downf.sFileState.CompareNoCase(_T("waiting")) == 0) {
@@ -2206,14 +2207,14 @@ void CWebServer::_MakeTransferList(CString &Out, CWebServer *pThis, const Thread
 			HTTPProcessData.Replace(_T("[ShortFileName]"), downf.sFileName);
 
 		HTTPProcessData.Replace(_T("[FileInfo]"), strFileInfo);
-		fTotalSize += downf.m_qwFileSize;
+		fTotalSize += (double)downf.m_qwFileSize;
 
 		HTTPProcessData.Replace(_T("[2]"), WSdownloadColumnHidden[1] ? _T("") : (LPCTSTR)CastItoXBytes(downf.m_qwFileSize));
 
 		if (WSdownloadColumnHidden[2])
 			HTTPProcessData.Replace(_T("[3]"), _T(""));
 		else if (downf.m_qwFileTransferred > 0) {
-			fTotalTransferred += downf.m_qwFileTransferred;
+			fTotalTransferred += (double)downf.m_qwFileTransferred;
 			HTTPProcessData.Replace(_T("[3]"), CastItoXBytes(downf.m_qwFileTransferred));
 		} else
 			HTTPProcessData.Replace(_T("[3]"), _T("-"));
@@ -2233,10 +2234,10 @@ void CWebServer::_MakeTransferList(CString &Out, CWebServer *pThis, const Thread
 		if (WSdownloadColumnHidden[5])
 			pcTmp = _T("");
 		else if (downf.lSourceCount > 0) {
-			HTTPTemp.Format(_T("%li&nbsp;/&nbsp;%8li&nbsp;(%li)"),
-				downf.lSourceCount - downf.lNotCurrentSourceCount,
-				downf.lSourceCount,
-				downf.lTransferringSourceCount);
+			HTTPTemp.Format(_T("%li&nbsp;/&nbsp;%8li&nbsp;(%li)")
+						, downf.lSourceCount - downf.lNotCurrentSourceCount
+						, downf.lSourceCount
+						, downf.lTransferringSourceCount);
 			pcTmp = HTTPTemp;
 		} else
 			pcTmp = _T("-");
@@ -2304,8 +2305,8 @@ void CWebServer::_MakeTransferList(CString &Out, CWebServer *pThis, const Thread
 		if (WSuploadColumnHidden[3])
 			pcTmp = _T("");
 		else {
-			fTotalSize += ulu.nTransferredDown;
-			fTotalTransferred += ulu.nTransferredUp;
+			fTotalSize += (double)ulu.nTransferredDown;
+			fTotalTransferred += (double)ulu.nTransferredUp;
 			HTTPTemp.Format(_T("%s / %s"), (LPCTSTR)CastItoXBytes(ulu.nTransferredDown), (LPCTSTR)CastItoXBytes(ulu.nTransferredUp));
 			pcTmp = HTTPTemp;
 		}
@@ -2900,7 +2901,7 @@ CString CWebServer::_GetSharedFilesList(const ThreadData &Data)
 		}
 	} //for
 
-	SortParams prm{ (int)pThis->m_Params.SharedSort, pThis->m_Params.bSharedSortReverse };
+	SortParams prm{(int)pThis->m_Params.SharedSort, pThis->m_Params.bSharedSortReverse};
 	qsort_s(SharedArray.GetData(), SharedArray.GetCount(), sizeof(SharedFiles), &_SharedCmp, &prm);
 
 	// Displaying
@@ -3091,10 +3092,7 @@ CString CWebServer::_GetAddServerBox(const ThreadData &Data)
 				strServerName = strServerAddress;
 			CServer *srv = new CServer((uint16)_tstoi(strServerPort), strServerAddress);
 			srv->SetListName(strServerName);
-			if (!theApp.emuledlg->serverwnd->serverlistctrl.AddServer(srv, true)) {
-				delete srv;
-				Out.Replace(_T("[Message]"), _GetPlainResString(IDS_ERROR));
-			} else {
+			if (theApp.emuledlg->serverwnd->serverlistctrl.AddServer(srv, true)) {
 				const CString &sPrio(_ParseURL(Data.sURL, _T("priority")));
 				if (sPrio == _T("low"))
 					srv->SetPreference(PR_LOW);
@@ -3114,6 +3112,9 @@ CString CWebServer::_GetAddServerBox(const ThreadData &Data)
 				Out.Replace(_T("[Message]"), resultlog);
 				if (_ParseURL(Data.sURL, _T("connectnow")) == _T("true"))
 					_ConnectToServer(_ParseURL(Data.sURL, _T("serveraddr")), _tstoi(_ParseURL(Data.sURL, _T("serverport"))));
+			} else {
+				delete srv;
+				Out.Replace(_T("[Message]"), _GetPlainResString(IDS_ERROR));
 			}
 		} else
 			Out.Replace(_T("[Message]"), _GetPlainResString(IDS_ERROR));
@@ -3223,11 +3224,8 @@ CString CWebServer::_GetMyInfo(const ThreadData &Data)
 	if (pThis == NULL)
 		return CString();
 
-	//(void)_ParseURL(Data.sURL, _T("ses"));
 	CString Out(pThis->m_Templates.sMyInfoLog);
-
 	Out.Replace(_T("[MYINFOLOG]"), theApp.emuledlg->serverwnd->GetMyInfoString());
-
 	return Out;
 }
 
@@ -3460,45 +3458,30 @@ CString CWebServer::_GetLoginScreen(const ThreadData &Data)
 	return Out;
 }
 
-// We have to add gz-header and some other stuff
-// to standard zlib functions
-// in order to use gzip in web pages
+// Using standard zlib functions
 int CWebServer::_GzipCompress(Bytef *dest, uLongf *destLen, const Bytef *source, uLong sourceLen, int level)
 {
-	static const int gz_magic[2] = {0x1f, 0x8b}; // gzip magic header
 	z_stream stream = {};
-	stream.zalloc = (alloc_func)NULL;
-	stream.zfree = (free_func)NULL;
-	stream.opaque = (voidpf)NULL;
-	uLong crc = crc32(0, Z_NULL, 0);
+
 	// init Zlib stream
-	// NOTE windowBits is passed < 0 to suppress zlib header
-	int err = deflateInit2(&stream, level, Z_DEFLATED, -MAX_WBITS, MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY);
+	// NOTE windowBits increased by 16 for gzip wrapping
+	int err = deflateInit2(&stream, level, Z_DEFLATED, MAX_WBITS + 16, MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY);
 	if (err != Z_OK)
 		return err;
 
-	sprintf((char*)dest, "%c%c%c%c%c%c%c%c%c%c", gz_magic[0], gz_magic[1]
-		, Z_DEFLATED, 0 /*flags*/, 0, 0, 0, 0 /*time*/, 0 /*xflags*/, 255);
 	// wire buffers
 	stream.next_in = (Bytef*)source;
 	stream.avail_in = (uInt)sourceLen;
-	stream.next_out = &dest[10];
-	stream.avail_out = *destLen - 18;
+	stream.next_out = dest;
+	stream.avail_out = *destLen;
 	// do it
 	err = deflate(&stream, Z_FINISH);
-	if (err != Z_STREAM_END) {
+	if (err != Z_STREAM_END)
 		deflateEnd(&stream);
-		return err;
+	else {
+		err = deflateEnd(&stream);
+		*destLen = stream.total_out;
 	}
-	err = deflateEnd(&stream);
-	crc = crc32(crc, (Bytef*)source, (uInt)sourceLen);
-	size_t i = 10 + stream.total_out;
-	//CRC
-	*(uLong*)&dest[i] = crc;
-	// Length
-	*(uLong*)&dest[i + sizeof(uLong)] = sourceLen;
-	*destLen = 10 + stream.total_out + 8;
-
 	return err;
 }
 
@@ -3547,6 +3530,15 @@ bool CWebServer::_RemoveSession(const ThreadData &Data, long lSession)
 		}
 
 	return false;
+}
+
+void CWebServer::_LockSession(const ThreadData &Data, long lSession)
+{
+	_RemoveSession(Data, lSession);
+
+	// show initial page
+	const CString &Out(_GetLoginScreen(Data));
+	Data.pSocket->SendContent(HTTPInit, Out);
 }
 
 Session CWebServer::_GetSessionByID(const ThreadData &Data, long sessionID)
@@ -3626,7 +3618,7 @@ CString CWebServer::_GetDownloadGraph(const ThreadData &Data, const CString &fil
 	};
 
 	const CPartFile *pPartFile = theApp.downloadqueue->GetFileByID(fileid);
-	const LPCTSTR *barcolours = (pPartFile && (pPartFile->GetStatus() == PS_PAUSED)) ? styles_paused : styles_active;
+	LPCTSTR const *barcolours = (pPartFile && (pPartFile->GetStatus() == PS_PAUSED)) ? styles_paused : styles_active;
 
 	CString Out;
 	if (pPartFile == NULL || !pPartFile->IsPartFile()) {
@@ -3635,9 +3627,8 @@ CString CWebServer::_GetDownloadGraph(const ThreadData &Data, const CString &fil
 		Out.AppendFormat(pThis->m_Templates.sProgressbarImgs, barcolours[0], pThis->m_Templates.iProgressbarWidth);
 	} else {
 		const CStringA &s_ChunkBar(pPartFile->GetProgressString(pThis->m_Templates.iProgressbarWidth));
-		// and now make a graph out of the array - need to be in a progressive way
-
-		int compl = static_cast<int>((pThis->m_Templates.iProgressbarWidth / 100.0) * pPartFile->GetPercentCompleted());
+		// now draw progress bars based on the character array
+		int compl = static_cast<int>((pThis->m_Templates.iProgressbarWidth / 100.0f) * pPartFile->GetPercentCompleted());
 		Out.Format(pThis->m_Templates.sProgressbarImgsPercent, barcolours[compl > 0 ? 10 : 11], (compl > 0 ? compl : 5));
 		Out += _T("<br>");
 
@@ -3645,7 +3636,7 @@ CString CWebServer::_GetDownloadGraph(const ThreadData &Data, const CString &fil
 		uint16 lastindex = 0;
 		const uint16 uBarWidth = pThis->m_Templates.iProgressbarWidth;
 		for (uint16 i = 0; i < uBarWidth; ++i) {
-			if (lastcolor != (BYTE)(s_ChunkBar[i] - '0')) {
+			if (lastcolor != (BYTE)(s_ChunkBar[i] - '0') || i >= uBarWidth - 1) {
 				if (i > lastindex && lastcolor < _countof(styles_active))
 					Out.AppendFormat(pThis->m_Templates.sProgressbarImgs, barcolours[lastcolor], i - lastindex);
 				lastcolor = (BYTE)(s_ChunkBar[i] - '0');
@@ -3653,7 +3644,6 @@ CString CWebServer::_GetDownloadGraph(const ThreadData &Data, const CString &fil
 				lastindex = i;
 			}
 		}
-		Out.AppendFormat(pThis->m_Templates.sProgressbarImgs, barcolours[lastcolor], uBarWidth - lastindex);
 	}
 	return Out;
 }
@@ -3738,12 +3728,13 @@ CString CWebServer::_GetSearch(const ThreadData &Data)
 		CString strResponse(_GetPlainResString(IDS_SW_SEARCHINGINFO));
 		try {
 			if (pParams->eType != SearchTypeKademlia) {
-				if (!theApp.emuledlg->searchwnd->DoNewEd2kSearch(pParams)) {
+				if (theApp.emuledlg->searchwnd->DoNewEd2kSearch(pParams))
+					::Sleep(SEC2MS(2));	// wait for some results to come in (thanks thread)
+				else {
 					delete pParams;
 					pParams = NULL;
 					strResponse = _GetPlainResString(IDS_ERR_NOTCONNECTED);
-				} else
-					::Sleep(SEC2MS(2));	// wait for some results to come in (thanks thread)
+				}
 			} else if (!theApp.emuledlg->searchwnd->DoNewKadSearch(pParams)) {
 				delete pParams;
 				pParams = NULL;
@@ -3822,8 +3813,10 @@ CString CWebServer::_GetSearch(const ThreadData &Data)
 		strFilename.Replace(_T("'"), _T("\\'"));
 
 		CString strLink;
-		strLink.Format(_T("ed2k://|file|%s|%I64u|%s|/"),
-			(LPCTSTR)_SpecialChars(strFilename), structFile.m_uFileSize, (LPCTSTR)structFile.m_strFileHash);
+		strLink.Format(_T("ed2k://|file|%s|%I64u|%s|/")
+					, (LPCTSTR)_SpecialChars(strFilename)
+					, structFile.m_uFileSize
+					, (LPCTSTR)structFile.m_strFileHash);
 
 		CString s0, s1, s2, s3;
 		if (!WSsearchColumnHidden[0])
@@ -3946,7 +3939,7 @@ INT_PTR CWebServer::UpdateSessionCount()
 void CWebServer::_InsertCatBox(CString &Out, int preselect, LPCTSTR boxlabel, bool jump, bool extraCats, const CString &sSession, const CString &sFileHash, bool ed2kbox)
 {
 	CString tempBuf;
-	tempBuf.Format(_T("<form action=\"\">%s<select name=\"cat\" size=\"1\"%s>")
+	tempBuf.Format(_T("<form>%s<select name=\"cat\" size=\"1\"%s>")
 		, boxlabel
 		, jump ? _T(" onchange=\"GotoCat(this.form.cat.options[this.form.cat.selectedIndex].value)\"") : _T(""));
 
@@ -4029,10 +4022,10 @@ CString CWebServer::_GetSubCatLabel(int cat)
 
 	static const UINT uids[16] =
 	{
-		IDS_ALLOTHERS, IDS_STATUS_NOTCOMPLETED, IDS_DL_TRANSFCOMPL, IDS_WAITING
-		, IDS_DOWNLOADING, IDS_ERRORLIKE, IDS_PAUSED, IDS_SEENCOMPL
-		, IDS_VIDEO, IDS_AUDIO, IDS_SEARCH_ARC, IDS_SEARCH_CDIMG
-		, IDS_SEARCH_DOC, IDS_SEARCH_PICS, IDS_SEARCH_PRG, IDS_SEARCH_EMULECOLLECTION
+		IDS_ALLOTHERS, IDS_STATUS_NOTCOMPLETED, IDS_DL_TRANSFCOMPL, IDS_WAITING, IDS_DOWNLOADING
+		, IDS_ERRORLIKE, IDS_PAUSED, IDS_SEENCOMPL, IDS_VIDEO, IDS_AUDIO
+		, IDS_SEARCH_ARC, IDS_SEARCH_CDIMG, IDS_SEARCH_DOC, IDS_SEARCH_PICS, IDS_SEARCH_PRG
+		, IDS_SEARCH_EMULECOLLECTION
 	};
 	return _GetPlainResString(uids[-cat - 1]);
 }
@@ -4116,9 +4109,9 @@ void CWebServer::_ProcessFileReq(const ThreadData &Data)
 	CString contenttype;
 
 	CString filename(Data.sURL);
-	LPCTSTR pDot = ::PathFindExtension(filename);
-	if (CPTR(filename, filename.GetLength()) > pDot + 2) { //at least 2 characters
-		CString ext(pDot + 1); //skip the dot
+	LPCTSTR const pDot = ::PathFindExtension(filename);
+	if (CPTR(filename, filename.GetLength()) > &pDot[2]) { //at least 2 characters
+		CString ext(&pDot[1]); //skip the dot
 		ext.MakeLower();
 		if (ext == _T("bmp") || ext == _T("gif") || ext == _T("jpeg") || ext == _T("jpg") || ext == _T("png"))
 			contenttype.Format(_T("Content-Type: image/%s\r\n"), (LPCTSTR)ext);
@@ -4136,7 +4129,14 @@ void CWebServer::_ProcessFileReq(const ThreadData &Data)
 	filename.Replace(_T('/'), _T('\\'));
 	if (filename[0] == _T('\\'))
 		filename.Delete(0, 1);
-	filename.Insert(0, thePrefs.GetMuleDirectory(EMULE_WEBSERVERDIR));
+	const CString &sWebDir(thePrefs.GetMuleDirectory(EMULE_WEBSERVERDIR));
+	filename.Insert(0, sWebDir);
+	//quick check if the path is within WebServer's directory subtree
+	canonical(filename);
+	if (!EqualPaths(filename.Left(sWebDir.GetLength()), sWebDir)) {
+		Data.pSocket->SendReply("HTTP/1.1 403 Forbidden\r\n");
+		return;
+	}
 
 	CFile file;
 	if (file.Open(filename, CFile::modeRead | CFile::shareDenyWrite | CFile::typeBinary)) {
@@ -4278,8 +4278,8 @@ CString CWebServer::_GetCommentlist(const ThreadData &Data)
 		const Kademlia::CEntry *entry = list.GetNext(pos);
 		commentlines.AppendFormat(pThis->m_Templates.sCommentListLine
 			, _T("")
-			, (LPCTSTR)_SpecialChars(entry->GetCommonFileName())
-			, (LPCTSTR)_SpecialChars(entry->GetStrTagValue(Kademlia::CKadTagNameString(TAG_DESCRIPTION)))
+			, (LPCTSTR)_SpecialChars((CString)entry->GetCommonFileName())
+			, (LPCTSTR)_SpecialChars((CString)entry->GetStrTagValue(Kademlia::CKadTagNameString(TAG_DESCRIPTION)))
 			, (LPCTSTR)_SpecialChars(GetRateString((UINT)entry->GetIntTagValue(Kademlia::CKadTagNameString(TAG_FILERATING)))));
 	}
 
@@ -4296,7 +4296,7 @@ CString CWebServer::_GetCommentlist(const ThreadData &Data)
 	return Out;
 }
 
-int AFX_CDECL CWebServer::_DownloadCmp(void *prm, void const *pv1, void const *pv2)
+int AFX_CDECL CWebServer::_DownloadCmp(void *prm, void const *pv1, void const *pv2) noexcept
 {
 	const DownloadFiles &p1 = *reinterpret_cast<const DownloadFiles*>(pv1);
 	const DownloadFiles &p2 = *reinterpret_cast<const DownloadFiles*>(pv2);
@@ -4338,7 +4338,7 @@ int AFX_CDECL CWebServer::_DownloadCmp(void *prm, void const *pv1, void const *p
 	return ((SortParams*)prm)->bReverse ? iOrd : -iOrd;
 }
 
-int AFX_CDECL CWebServer::_ServerCmp(void *prm, void const *pv1, void const *pv2)
+int AFX_CDECL CWebServer::_ServerCmp(void *prm, void const *pv1, void const *pv2) noexcept
 {
 	const ServerEntry &p1 = *reinterpret_cast<const ServerEntry*>(pv1);
 	const ServerEntry &p2 = *reinterpret_cast<const ServerEntry*>(pv2);
@@ -4385,7 +4385,7 @@ int AFX_CDECL CWebServer::_ServerCmp(void *prm, void const *pv1, void const *pv2
 	return ((SortParams*)prm)->bReverse ? iOrd : -iOrd;
 }
 
-int AFX_CDECL CWebServer::_SharedCmp(void *prm, void const *pv1, void const *pv2)
+int AFX_CDECL CWebServer::_SharedCmp(void *prm, void const *pv1, void const *pv2) noexcept
 {
 	const SharedFiles &p1 = *reinterpret_cast<const SharedFiles*>(pv1);
 	const SharedFiles &p2 = *reinterpret_cast<const SharedFiles*>(pv2);
@@ -4433,7 +4433,7 @@ int AFX_CDECL CWebServer::_SharedCmp(void *prm, void const *pv1, void const *pv2
 	return ((SortParams*)prm)->bReverse ? iOrd : -iOrd;
 }
 
-int AFX_CDECL CWebServer::_UploadCmp(void *prm, void const *pv1, void const *pv2)
+int AFX_CDECL CWebServer::_UploadCmp(void *prm, void const *pv1, void const *pv2) noexcept
 {
 	const UploadUsers &p1 = *reinterpret_cast<const UploadUsers*>(pv1);
 	const UploadUsers &p2 = *reinterpret_cast<const UploadUsers*>(pv2);

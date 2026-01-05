@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,76 +15,69 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #pragma once
+#include <vector>
+#include <gdiplus.h>
+
 #include "LayeredWindowHelperST.h"
 
-// CMiniMule dialog
-
-class CMiniMule : public CDHtmlDialog
+class CMiniMule : public CDialog
 {
-	DECLARE_DYNCREATE(CMiniMule)
-
 	enum
 	{
-		IDD = IDD_MINIMULE,
-		IDH = IDR_HTML_MINIMULE
+		IDD = IDD_MINIMULE
 	};
 
 public:
-	explicit CMiniMule(CWnd *pParent = NULL);   // standard constructor
-	virtual	~CMiniMule();
+	CMiniMule();
+	BOOL PreTranslateMessage(MSG *pMsg);
 
-	bool GetAutoClose() const				{ return m_bAutoClose; }
-	void SetAutoClose(bool bAutoClose)		{ m_bAutoClose = bAutoClose; }
-	bool IsInCallback() const				{ return m_iInCallback != 0; }
-	bool IsInInitDialog() const				{ return m_iInInitDialog != 0; }
-	bool GetDestroyAfterInitDialog() const	{ return m_bDestroyAfterInitDialog; }
-	void SetDestroyAfterInitDialog()		{ m_bDestroyAfterInitDialog = true; }
-	void UpdateContent(UINT uUpDatarate = UINT_MAX, UINT uDownDatarate = UINT_MAX);
+	bool GetAutoClose() const			{ return m_bAutoClose; }
+	void SetAutoClose(bool bAutoClose)	{ m_bAutoClose = bAutoClose; }
 	void Localize();
 
 protected:
-	CLayeredWindowHelperST m_layeredWnd;
-	int m_iInInitDialog;
-	int m_iInCallback;
-	UINT m_uWndTransparency;
-	bool m_bDestroyAfterInitDialog;
-	bool m_bResolveImages;
-	bool m_bRestoreMainWnd;
-
-	// Auto-close
-	bool m_bAutoClose;
-	UINT_PTR m_uAutoCloseTimer;
-	void CreateAutoCloseTimer();
+	void StartAutoCloseTimer();
 	void KillAutoCloseTimer();
 
-	void AutoSizeAndPosition(CSize sizClient);
-	void RestoreMainWindow();
-
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
 	virtual BOOL OnInitDialog();
-	virtual BOOL CreateControlSite(COleControlContainer *pContainer, COleControlSite **ppSite, UINT nID, REFCLSID clsid);
-	virtual void PostNcDestroy();
-
-	virtual void OnBeforeNavigate(LPDISPATCH pDisp, LPCTSTR pszUrl);
-	virtual void OnNavigateComplete(LPDISPATCH pDisp, LPCTSTR pszUrl);
-	virtual void OnDocumentComplete(LPDISPATCH pDisp, LPCTSTR pszUrl);
-
-	STDMETHOD(GetOptionKeyPath)(LPOLESTR *pchKey, DWORD dw);
-	STDMETHOD(TranslateUrl)(DWORD dwTranslate, OLECHAR *pchURLIn, OLECHAR **ppchURLOut);
-	STDMETHOD(ShowContextMenu)(DWORD dwID, POINT *ppt, IUnknown *pcmdtReserved, IDispatch *pdispReserved);
-	STDMETHOD(TranslateAccelerator)(LPMSG lpMsg, const GUID *pguidCmdGroup, DWORD nCmdID);
-
-	DECLARE_EVENTSINK_MAP()
-	void _OnBeforeNavigate2(LPDISPATCH pDisp, VARIANT *URL, VARIANT *Flags, VARIANT *TargetFrameName, VARIANT *PostData, VARIANT *Headers, BOOL *Cancel);
-
-	DECLARE_DHTML_EVENT_MAP()
-	HRESULT OnRestoreMainWindow(IHTMLElement *pElement);
-	HRESULT OnOpenIncomingFolder(IHTMLElement *pElement);
-	HRESULT OnOptions(IHTMLElement *pElement);
-
-	DECLARE_MESSAGE_MAP()
+	afx_msg void OnBtnIncoming();
+	afx_msg void OnBtnOptions();
+	afx_msg void OnBtnRestore();
 	afx_msg void OnClose();
-	afx_msg void OnDestroy();
+	afx_msg BOOL OnEraseBkgnd(CDC*);
+	afx_msg void OnNcLButtonDblClk(UINT nHitTest, CPoint);
+	afx_msg void OnPaint();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
-	afx_msg void OnNcLButtonDblClk(UINT nHitTest, CPoint point);
+	DECLARE_MESSAGE_MAP()
+
+private:
+	void InitGdiplus();
+	void KillAnimationTimer();
+	bool LoadGifFromResource(UINT resID);
+	bool PreRenderFrames();
+	void ShutdownGdiplus();
+	void StartAnimationTimer();
+	void UpdateContent();
+
+	CToolTipCtrl m_ToolTip;
+	CLayeredWindowHelperST m_layeredWnd;
+	std::vector<HBITMAP> m_frames;		// pre-rendered bitmaps
+	std::vector<UINT> m_frameDelays;	// in milliseconds
+	CRITICAL_SECTION m_cs;				// protect frame access
+	Gdiplus::Bitmap *m_pGif;
+	CString sConnected;
+	CString sUp;
+	CString sDown;
+	CString sCompleted;
+	CString sFree;
+	CArray<HICON> aImage;
+	CStringArray aLabel;
+	ULONG_PTR m_gdiplusToken;
+	UINT_PTR m_uAnimTimer;				// timer id for animation
+	UINT_PTR m_uAutoCloseTimer;
+	UINT m_currentFrame;
+	UINT m_frameCount;
+	UINT m_uWndTransparency;			// 0-100%
+	bool m_bAutoClose;
+	bool m_bAnimate;
 };

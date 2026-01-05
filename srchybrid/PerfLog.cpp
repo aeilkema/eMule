@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -17,13 +17,11 @@
 #include "stdafx.h"
 #include <io.h>
 #include <share.h>
-#include "emule.h"
 #include "PerfLog.h"
 #include "ini2.h"
 #include "Opcodes.h"
 #include "Preferences.h"
 #include "Statistics.h"
-#include "emuledlg.h"
 #include "Log.h"
 #include "otherfunctions.h"
 
@@ -37,12 +35,12 @@ static char THIS_FILE[] = __FILE__;
 CPerfLog thePerfLog;
 
 CPerfLog::CPerfLog()
-	: m_dwInterval(MIN2MS(5))
-	, m_dwLastSampled()
-	, m_nLastSessionSentBytes()
+	: m_nLastSessionSentBytes()
 	, m_nLastSessionRecvBytes()
 	, m_nLastDnOH()
 	, m_nLastUpOH()
+	, m_dwInterval(MIN2MS(5))
+	, m_dwLastSampled()
 	, m_eMode(None)
 	, m_eFileFormat(CSV)
 	, m_bInitialized()
@@ -56,22 +54,16 @@ void CPerfLog::Startup()
 
 	CIni ini(thePrefs.GetConfigFile(), _T("PerfLog"));
 
-	m_eMode = (ELogMode)ini.GetInt(_T("Mode"), None);
+	m_eMode = (EPerfLogMode)ini.GetInt(_T("Mode"), None);
 	if (m_eMode != None && m_eMode != OneSample && m_eMode != AllSamples)
 		m_eMode = None;
 	if (m_eMode != None) {
-		m_eFileFormat = (ELogFileFormat)ini.GetInt(_T("FileFormat"), CSV);
-
-		// set default log file path
-		CString strDefFilePath(thePrefs.GetMuleDirectory(EMULE_CONFIGBASEDIR));
-		if (m_eFileFormat == CSV)
-			strDefFilePath += _T("perflog.csv");
-		else
-			strDefFilePath += _T("perflog.mrtg");
-
-		m_strFilePath = ini.GetString(_T("File"), strDefFilePath);
+		m_eFileFormat = (EPerfLogFileFormat)ini.GetInt(_T("FileFormat"), CSV);
+		m_strFilePath = ini.GetString(_T("File"), _T(""));
 		if (m_strFilePath.IsEmpty())
-			m_strFilePath = strDefFilePath;
+			m_strFilePath.Format(_T("%s%s")
+				, (LPCTSTR)thePrefs.GetMuleDirectory(EMULE_CONFIGBASEDIR)
+				, (m_eFileFormat == CSV) ? _T("perflog.csv") : _T("perflog.mrtg"));
 
 		if (m_eFileFormat == MRTG) {
 			TCHAR drv[_MAX_DRIVE];

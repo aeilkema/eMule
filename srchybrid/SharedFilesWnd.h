@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( devs@emule-project.net / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( devs@emule-project.net / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -62,9 +62,10 @@ class CSharedFilesWnd : public CResizableDialog
 	{
 		IDD = IDD_FILES
 	};
+	int vShift;
 
 public:
-	explicit CSharedFilesWnd(CWnd *pParent = NULL);   // standard constructor
+	explicit CSharedFilesWnd(CWnd *pParent = NULL);	// standard constructor
 	virtual	~CSharedFilesWnd();
 
 	virtual BOOL OnInitDialog();
@@ -95,7 +96,7 @@ protected:
 	void SetAllIcons();
 	void DoResize(int iDelta);
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL PreTranslateMessage(MSG *pMsg);
 	virtual LRESULT DefWindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 

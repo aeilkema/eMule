@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -78,7 +78,7 @@ bool CFileIdentifierBase::CompareRelaxed(const CFileIdentifierBase &rFileIdentif
 	ASSERT(!isnulmd4(m_abyMD4Hash));
 	ASSERT(!isnulmd4(rFileIdentifier.m_abyMD4Hash));
 	return md4equ(m_abyMD4Hash, rFileIdentifier.m_abyMD4Hash)
-		&& (!(uint64)GetFileSize() || !(uint64)rFileIdentifier.GetFileSize() || GetFileSize() == rFileIdentifier.GetFileSize())
+		&& (!GetFileSize() || !rFileIdentifier.GetFileSize() || GetFileSize() == rFileIdentifier.GetFileSize())
 		&& (!m_bHasValidAICHHash || !rFileIdentifier.m_bHasValidAICHHash || m_AICHFileHash == rFileIdentifier.m_AICHFileHash);
 }
 
@@ -161,14 +161,13 @@ bool CFileIdentifier::CalculateMD4HashByHashSet(bool bVerifyOnly, bool bDeleteOn
 	uchar aucResult[MDX_DIGEST_SIZE];
 	CKnownFile::CreateHash(buffer, (uint32)(iCnt * MDX_DIGEST_SIZE), aucResult);
 	delete[] buffer;
-	if (bVerifyOnly) {
-		if (!md4equ(aucResult, m_abyMD4Hash)) {
-			if (bDeleteOnVerifyFail)
-				DeleteMD4Hashset();
-			return false;
-		}
-	} else
+	if (!bVerifyOnly)
 		md4cpy(m_abyMD4Hash, aucResult);
+	else if (!md4equ(aucResult, m_abyMD4Hash)) {
+		if (bDeleteOnVerifyFail)
+			DeleteMD4Hashset();
+		return false;
+	}
 	return true;
 }
 
@@ -183,6 +182,10 @@ bool CFileIdentifier::LoadMD4HashsetFromFile(CFileDataIO &file, bool bVerifyExis
 	DeleteMD4Hashset();
 
 	uint16 parts = file.ReadUInt16();
+	if (parts > MAX_EMULE_FILE_SIZE / PARTSIZE + 1) {
+		ASSERT(0); //too many parts
+		return false;
+	}
 	//TRACE("Nr. hashes: %u\n", (UINT)parts);
 	if (bVerifyExistingHash && (!md4equ(m_abyMD4Hash, checkid) || parts != GetTheoreticalMD4PartHashCount()))
 		return false;
@@ -200,7 +203,7 @@ bool CFileIdentifier::LoadMD4HashsetFromFile(CFileDataIO &file, bool bVerifyExis
 	return m_aMD4HashSet.IsEmpty() || CalculateMD4HashByHashSet(true, true);
 }
 
-bool CFileIdentifier::SetMD4HashSet(const CArray<uchar*, uchar*> &aHashset)
+bool CFileIdentifier::SetMD4HashSet(const CArray<uchar*> &aHashset)
 {
 	// delete hashset
 	DeleteMD4Hashset();
@@ -225,7 +228,7 @@ uchar* CFileIdentifier::GetMD4PartHash(UINT part) const
 // nr. of parts to be used with OP_HASHSETANSWER
 uint16 CFileIdentifier::GetTheoreticalMD4PartHashCount() const
 {
-	if (!(uint64)m_rFileSize) {
+	if (!m_rFileSize) {
 		ASSERT(0);
 		return 0;
 	}
@@ -300,12 +303,11 @@ bool CFileIdentifier::ReadHashSetsFromPacket(CFileDataIO &file, bool &rbMD4, boo
 			file.ReadHash16(tmpHash);
 	} else if (!bMD4Present)
 		rbMD4 = false;
-	else if (/*bMD4Present && */rbMD4) {
-		if (!LoadMD4HashsetFromFile(file, true)) {	// corrupt
-			rbMD4 = false;
-			rbAICH = false;
-			return false;
-		}
+	else if (rbMD4 && !LoadMD4HashsetFromFile(file, true)) {	// corrupt
+		ASSERT(bMD4Present && rbMD4);
+		rbMD4 = false;
+		rbAICH = false;
+		return false;
 	}
 
 	if (bAICHPresent && !rbAICH) {
@@ -315,16 +317,16 @@ bool CFileIdentifier::ReadHashSetsFromPacket(CFileDataIO &file, bool &rbMD4, boo
 	} else if (!bAICHPresent || !HasAICHHash()) {
 		ASSERT(!bAICHPresent);
 		rbAICH = false;
-	} else if (/*bAICHPresent && */rbAICH) {
-		if (!LoadAICHHashsetFromFile(file, true)) {	// corrupt
-			if (rbMD4) {
-				DeleteMD4Hashset();
-				rbMD4 = false;
-			}
-			rbAICH = false;
-			return false;
+	} else if (!LoadAICHHashsetFromFile(file, true)) {	// corrupt
+		ASSERT(bAICHPresent && rbAICH);
+		if (rbMD4) {
+			DeleteMD4Hashset();
+			rbMD4 = false;
 		}
+		rbAICH = false;
+		return false;
 	}
+
 	return true;
 }
 
@@ -374,11 +376,16 @@ bool CFileIdentifier::LoadAICHHashsetFromFile(CFileDataIO &file, bool bVerify)
 		DebugLogError(_T("Loading AICH Part Hashset error: HashSet Masterhash doesn't match with existing masterhash - hashset not loaded"));
 		return false;
 	}
-	for (int i = file.ReadUInt16(); --i >= 0;)
+
+	uint16 i = file.ReadUInt16();
+	if (i > (MAX_EMULE_FILE_SIZE + PARTSIZE - 1) / PARTSIZE) {
+		ASSERT(0);
+		DebugLogError(_T("Loading AICH Part Hashset error: Part count too high; hashset not loaded"));
+		return false;
+	}
+	while (i-- > 0)
 		m_aAICHPartHashSet.Add(CAICHHash(file));
-	if (bVerify)
-		return VerifyAICHHashSet();
-	return true;
+	return !bVerify || VerifyAICHHashSet();
 }
 
 void CFileIdentifier::WriteAICHHashsetToFile(CFileDataIO &file) const
@@ -403,12 +410,12 @@ bool CFileIdentifier::VerifyAICHHashSet()
 	CAICHRecoveryHashSet tmpAICHHashSet(NULL, m_rFileSize);
 	tmpAICHHashSet.SetMasterHash(m_AICHFileHash, AICH_HASHSETCOMPLETE);
 
-	uint32 uPartCount = (uint16)(((uint64)m_rFileSize + (PARTSIZE - 1)) / PARTSIZE);
+	uint32 uPartCount = (uint32)(((uint64)m_rFileSize + PARTSIZE - 1) / PARTSIZE);
 	if (uPartCount <= 1)
 		return true; // No AICH Part Hashes
 	for (uint32 nPart = 0; nPart < uPartCount; ++nPart) {
 		uint64 nPartStartPos = nPart * PARTSIZE;
-		uint32 nPartSize = (uint32)min(PARTSIZE, (uint64)GetFileSize() - nPartStartPos);
+		uint64 nPartSize = min(PARTSIZE, GetFileSize() - nPartStartPos);
 		CAICHHashTree *pPartHashTree = tmpAICHHashSet.m_pHashTree.FindHash(nPartStartPos, nPartSize);
 		if (pPartHashTree == NULL) {
 			ASSERT(0);
@@ -428,7 +435,7 @@ bool CFileIdentifier::VerifyAICHHashSet()
 // CFileIdentifierSA
 
 CFileIdentifierSA::CFileIdentifierSA()
-	: m_nFileSize(0ull)
+	: m_nFileSize()
 {
 }
 
@@ -444,29 +451,29 @@ bool CFileIdentifierSA::ReadIdentifier(CFileDataIO &file, bool bKadValidWithoutM
 {
 	uint8 byIdentifierDesc = file.ReadUInt8();
 	//DebugLog(_T("Read IdentifierDesc: %u"), byIdentifierDesc);
-	bool bMD4	 = ((byIdentifierDesc >> 0) & 0x01) > 0;
-	bool bSize	 = ((byIdentifierDesc >> 1) & 0x01) > 0;
-	bool bAICH	 = ((byIdentifierDesc >> 2) & 0x01) > 0;
 	uint8 byMOpt = ((byIdentifierDesc >> 3) & 0x03);
-	uint8 byOpts = ((byIdentifierDesc >> 5) & 0x07);
-	if (byMOpt > 0) {
+	if (byMOpt) {
 		DebugLogError(_T("Unknown mandatory options (%u) set on reading file identifier, aborting"), byMOpt);
 		return false;
 	}
-	if (byOpts > 0)
-		DebugLogWarning(_T("Unknown options (%u) set on reading file identifier"), byOpts);
-	if (!bMD4 && !bKadValidWithoutMd4) {
+	uint8 byMD4 = byIdentifierDesc & (0x01 << 0);
+	if (byMD4)
+		file.ReadHash16(m_abyMD4Hash);
+	else if (!bKadValidWithoutMd4) {
 		DebugLogError(_T("Mandatory MD4 hash not included on reading file identifier, aborting"));
 		return false;
 	}
-	if (!bSize)
-		DebugLogWarning(_T("Size not included on reading file identifier"));
+	uint8 byOpts = ((byIdentifierDesc >> 5) & 0x07);
+	if (byOpts)
+		DebugLogWarning(_T("Unknown options (%u) set on reading file identifier"), byOpts);
 
-	if (bMD4)
-		file.ReadHash16(m_abyMD4Hash);
-	if (bSize)
+	uint8 bySize = byIdentifierDesc & (0x01 << 1);
+	if (bySize)
 		m_nFileSize = file.ReadUInt64();
-	if (bAICH) {
+	else
+		DebugLogWarning(_T("Size not included on reading file identifier"));
+	uint8 byAICH = byIdentifierDesc & (0x01 << 2);
+	if (byAICH) {
 		m_AICHFileHash.Read(file);
 		m_bHasValidAICHHash = true;
 	}

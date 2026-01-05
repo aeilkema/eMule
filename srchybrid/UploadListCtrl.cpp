@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -22,16 +22,13 @@
 #include "UpDownClient.h"
 #include "MenuCmds.h"
 #include "ClientDetailDialog.h"
-#include "KademliaWnd.h"
 #include "emuledlg.h"
 #include "friendlist.h"
 #include "MemDC.h"
 #include "KnownFile.h"
 #include "SharedFileList.h"
-#include "ClientCredits.h"
 #include "ChatWnd.h"
 #include "kademlia/kademlia/Kademlia.h"
-#include "kademlia/net/KademliaUDPListener.h"
 #include "UploadQueue.h"
 
 #ifdef _DEBUG
@@ -90,13 +87,12 @@ void CUploadListCtrl::Init()
 
 void CUploadListCtrl::Localize()
 {
-	static const UINT uids[8] =
+	static const UINT uids[] =
 	{
 		IDS_QL_USERNAME, IDS_FILE, IDS_DL_SPEED, IDS_DL_TRANSF, IDS_WAITED
-		, IDS_UPLOADTIME, IDS_STATUS, IDS_UPSTATUS
+		, IDS_UPLOADTIME, IDS_STATUS, IDS_UPSTATUS, 0
 	};
-
-	LocaliseHeaderCtrl(uids, _countof(uids));
+	LocaliseHeader(uids);
 }
 
 void CUploadListCtrl::OnSysColorChange()
@@ -160,7 +156,7 @@ void CUploadListCtrl::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 			default: //any text column
 				rcItem.left += sm_iSubItemInset;
 				rcItem.right -= sm_iSubItemInset;
-				dc.DrawText(sItem, -1, &rcItem, MLC_DT_TEXT | uDrawTextAlignment);
+				dc.DrawText(sItem, &rcItem, MLC_DT_TEXT | uDrawTextAlignment);
 				break;
 			case 7: //upload status bar
 				++rcItem.top;
@@ -203,10 +199,10 @@ CString  CUploadListCtrl::GetItemDisplayText(const CUpDownClient *client, int iS
 		sText.Format(_T("%s (%s)"), (LPCTSTR)CastItoXBytes(client->GetSessionUp()), (LPCTSTR)CastItoXBytes(client->GetQueueSessionPayloadUp()));
 		break;
 	case 4:
-		if (!client->HasLowID())
-			sText = CastSecondsToHM(client->GetWaitTime() / SEC2MS(1));
-		else
+		if (client->HasLowID())
 			sText.Format(_T("%s (%s)"), (LPCTSTR)CastSecondsToHM(client->GetWaitTime() / SEC2MS(1)), (LPCTSTR)GetResString(IDS_IDLOW));
+		else
+			sText = CastSecondsToHM(client->GetWaitTime() / SEC2MS(1));
 		break;
 	case 5:
 		sText = CastSecondsToHM(client->GetUpStartTimeDelay() / SEC2MS(1));
@@ -234,7 +230,7 @@ void CUploadListCtrl::OnLvnGetDispInfo(LPNMHDR pNMHDR, LRESULT *pResult)
 		//
 		// Vista: That callback is used to get the strings for the label tips for the sub(!)-items.
 		//
-		const LVITEMW &rItem = reinterpret_cast<NMLVDISPINFO*>(pNMHDR)->item;
+		const LVITEM &rItem = reinterpret_cast<NMLVDISPINFO*>(pNMHDR)->item;
 		if (rItem.mask & LVIF_TEXT) {
 			const CUpDownClient *pClient = reinterpret_cast<CUpDownClient*>(rItem.lParam);
 			if (pClient != NULL)
@@ -264,9 +260,9 @@ void CUploadListCtrl::OnLvnGetInfoTip(LPNMHDR pNMHDR, LRESULT *pResult)
 			const CKnownFile *file = theApp.sharedfiles->GetFileByID(client->GetUploadFileID());
 			if (file) {
 				strInfo.AppendFormat(_T("%s %s\n"), (LPCTSTR)GetResString(IDS_SF_REQUESTED), (LPCTSTR)file->GetFileName());
-				strInfo.AppendFormat(GetResString(IDS_FILESTATS_SESSION) + GetResString(IDS_FILESTATS_TOTAL),
-					file->statistic.GetAccepts(), file->statistic.GetRequests(), (LPCTSTR)CastItoXBytes(file->statistic.GetTransferred()),
-					file->statistic.GetAllTimeAccepts(), file->statistic.GetAllTimeRequests(), (LPCTSTR)CastItoXBytes(file->statistic.GetAllTimeTransferred()));
+				strInfo.AppendFormat(GetResString(IDS_FILESTATS_SESSION) + GetResString(IDS_FILESTATS_TOTAL)
+					, file->statistic.GetAccepts(), file->statistic.GetRequests(), (LPCTSTR)CastItoXBytes(file->statistic.GetTransferred())
+					, file->statistic.GetAllTimeAccepts(), file->statistic.GetAllTimeRequests(), (LPCTSTR)CastItoXBytes(file->statistic.GetAllTimeTransferred()));
 			} else
 				strInfo += GetResString(IDS_REQ_UNKNOWNFILE);
 
@@ -379,7 +375,7 @@ void CUploadListCtrl::OnContextMenu(CWnd*, CPoint point)
 	const CUpDownClient *client = (iSel >= 0) ? reinterpret_cast<CUpDownClient*>(GetItemData(iSel)) : NULL;
 	const bool is_ed2k = client && client->IsEd2kClient();
 
-	CTitleMenu ClientMenu;
+	CTitledMenu ClientMenu;
 	ClientMenu.CreatePopupMenu();
 	ClientMenu.AddMenuTitle(GetResString(IDS_CLIENTS), true);
 	ClientMenu.AppendMenu(MF_STRING | (client ? MF_ENABLED : MF_GRAYED), MP_DETAIL, GetResString(IDS_SHOWDETAILS), _T("CLIENTDETAILS"));
@@ -462,8 +458,8 @@ void CUploadListCtrl::RemoveClient(const CUpDownClient *client)
 void CUploadListCtrl::RefreshClient(const CUpDownClient *client)
 {
 	if (theApp.emuledlg->activewnd == theApp.emuledlg->transferwnd
-		&& !theApp.IsClosing()
-		&& theApp.emuledlg->transferwnd->m_pwndTransfer->uploadlistctrl.IsWindowVisible())
+		&& theApp.emuledlg->transferwnd->m_pwndTransfer->uploadlistctrl.IsWindowVisible()
+		&& !theApp.IsClosing())
 	{
 		LVFINDINFO find;
 		find.flags = LVFI_PARAM;
@@ -481,12 +477,12 @@ void CUploadListCtrl::ShowSelectedUserDetails()
 		return;
 	ScreenToClient(&point);
 	int it = HitTest(point);
-	if (it == -1)
+	if (it < 0)
 		return;
 
 	SetItemState(-1, 0, LVIS_SELECTED);
 	SetItemState(it, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-	SetSelectionMark(it);   // display selection mark correctly!
+	SetSelectionMark(it);	// display selection mark correctly!
 
 	CUpDownClient *client = reinterpret_cast<CUpDownClient*>(GetItemData(GetSelectionMark()));
 	if (client) {

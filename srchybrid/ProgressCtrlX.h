@@ -61,38 +61,38 @@ public:
 	void GetGradientColors(COLORREF &clrStart, COLORREF &clrEnd) { clrStart = m_ardwGradColors[0]; clrEnd = m_ardwGradColors[1]; }
 
 	void SetGradientColorsX(int nCount, COLORREF clrFirst, COLORREF clrNext, ...);
-	const CDWordArray &GetGradientColorsX()						{ return m_ardwGradColors; }
+	const CDWordArray &GetGradientColorsX() const				{ return m_ardwGradColors; }
 
 	void SetBkColor(COLORREF clrBk)								{ m_clrBk = clrBk; }
-	COLORREF GetBkColor()										{ return m_clrBk; }
+	COLORREF GetBkColor() const									{ return m_clrBk; }
 
 	void SetTextColor(COLORREF clrTextOnBar, COLORREF clrTextOnBk = CLR_NONE) { m_clrTextOnBar = m_clrTextOnBk = clrTextOnBar; if (clrTextOnBk != CLR_NONE) m_clrTextOnBk = clrTextOnBk; }
-	COLORREF GetTextColor()										{ return m_clrTextOnBar; }
-	COLORREF GetTextColorOnBk()									{ return m_clrTextOnBk; }
+	COLORREF GetTextColor() const								{ return m_clrTextOnBar; }
+	COLORREF GetTextColorOnBk() const							{ return m_clrTextOnBk; }
 
 	void SetShowPercent(BOOL fShowPercent = TRUE)				{ SetTextFormat(fShowPercent ? _T("%d%%") : NULL, PBS_SHOW_PERCENT); }
-	BOOL GetShowPercent()										{ return GetStyle() & PBS_SHOW_PERCENT; }
+	BOOL GetShowPercent() const									{ return GetStyle() & PBS_SHOW_PERCENT; }
 
 	void SetTextFormat(LPCTSTR szFormat, DWORD ffFormat = PBS_SHOW_TEXTONLY);
 	void HideText()												{ SetTextFormat(0); }
 
 	void SetTiedText(BOOL fTiedText = TRUE)						{ ModifyStyle(fTiedText ? 0 : PBS_TIED_TEXT, fTiedText ? PBS_TIED_TEXT : 0, SWP_DRAWFRAME); }
-	BOOL GetTiedText()											{ return GetStyle() & PBS_TIED_TEXT; }
+	BOOL GetTiedText() const									{ return GetStyle() & PBS_TIED_TEXT; }
 
 	void SetRubberBar(BOOL fRubberBar = TRUE)					{ ModifyStyle(fRubberBar ? 0 : PBS_RUBBER_BAR, fRubberBar ? PBS_RUBBER_BAR : 0, SWP_DRAWFRAME); }
-	BOOL GetRubberBar()											{ return GetStyle() & PBS_RUBBER_BAR; }
+	BOOL GetRubberBar() const									{ return GetStyle() & PBS_RUBBER_BAR; }
 
 	void SetReverse(BOOL fReverse = TRUE)						{ ModifyStyle(fReverse ? 0 : PBS_REVERSE, fReverse ? PBS_REVERSE : 0, SWP_DRAWFRAME); }
-	BOOL GetReverse()											{ return GetStyle() & PBS_REVERSE; }
+	BOOL GetReverse() const										{ return GetStyle() & PBS_REVERSE; }
 
 	void SetSnake(BOOL fSnake = TRUE)							{ ModifyStyle(fSnake ? 0 : PBS_SNAKE | PBS_RUBBER_BAR, fSnake ? PBS_SNAKE | PBS_RUBBER_BAR : 0, SWP_DRAWFRAME); }
-	BOOL GetSnake()												{ return GetStyle() & PBS_SNAKE; }
+	BOOL GetSnake() const										{ return GetStyle() & PBS_SNAKE; }
 
 	void SetSnakeTail(int nTailSize)							{ m_nTailSize = nTailSize; }
-	int  GetSnakeTail()											{ return m_nTailSize; }
+	int  GetSnakeTail() const									{ return m_nTailSize; }
 
 	void SetBorders(const CRect &rcBorders)						{ m_rcBorders = rcBorders; }
-	const CRect &GetBorders()									{ return m_rcBorders; }
+	const CRect &GetBorders() const								{ return m_rcBorders; }
 
 	void SetEmpty(bool bVal, bool bRefresh = false)				{ m_bEmpty = bVal; if (bRefresh) Invalidate(); }
 

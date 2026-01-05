@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -53,21 +53,16 @@ void CAddSourceDlg::DoDataExchange(CDataExchange *pDX)
 	DDX_Radio(pDX, IDC_RSRC, m_nSourceType);
 }
 
-void CAddSourceDlg::SetFile(CPartFile *pFile)
-{
-	m_pFile = pFile;
-}
-
 BOOL CAddSourceDlg::OnInitDialog()
 {
 	CResizableDialog::OnInitDialog();
 	InitWindowStyles(this);
 
 	AddAnchor(IDC_SOURCE_TYPE, TOP_LEFT, BOTTOM_RIGHT);
-	AddAnchor(IDC_EDIT10, TOP_LEFT, TOP_RIGHT);
-	AddAnchor(IDOK, BOTTOM_RIGHT);
-	AddAnchor(IDC_BUTTON1, BOTTOM_RIGHT);
 	AddAnchor(IDCANCEL, BOTTOM_RIGHT);
+	AddAnchor(IDC_BUTTON1, BOTTOM_RIGHT);
+	AddAnchor(IDOK, BOTTOM_RIGHT);
+	AddAnchor(IDC_EDIT10, TOP_LEFT, TOP_RIGHT);
 
 	if (m_pFile)
 		SetWindowText(m_pFile->GetFileName());

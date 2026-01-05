@@ -18,8 +18,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 This work is based on the java implementation of the Kademlia protocol.
 Kademlia: Peer-to-peer routing based on the XOR metric
-Copyright (C) 2002  Petar Maymounkov [petar@post.harvard.edu]
-http://kademlia.scs.cs.nyu.edu
+Copyright (C) 2002  Petar Maymounkov [petar@maymounkov.org]
+https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf
 */
 
 // Note To Mods //
@@ -91,7 +91,7 @@ namespace Kademlia
 			void DbgWriteBootstrapFile();
 
 			void WriteFile();
-			bool IsLeaf() const					{ return (m_pBin != NULL); }
+			bool IsLeaf() const					{ return m_pBin != NULL; }
 			bool CanSplit() const;
 			// Returns all contacts from this zone tree that are no deeper than *depth* from the current zone.
 			void TopDepth(int iDepth, ContactArray &listResult, bool bEmptyFirst = true);

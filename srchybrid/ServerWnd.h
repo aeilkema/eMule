@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -42,7 +42,7 @@ class CServerWnd : public CResizableDialog
 	};
 
 public:
-	explicit CServerWnd(CWnd *pParent = NULL);   // standard constructor
+	explicit CServerWnd(CWnd *pParent = NULL);	// standard constructor
 	virtual	~CServerWnd();
 	void Localize();
 	bool UpdateServerMetFromURL(const CString &strURL);
@@ -88,7 +88,7 @@ private:
 protected:
 	void SetAllIcons();
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnInitDialog();
 	virtual BOOL PreTranslateMessage(MSG *pMsg);
 	virtual LRESULT DefWindowProc(UINT message, WPARAM wParam, LPARAM lParam);
@@ -99,7 +99,6 @@ protected:
 	afx_msg void OnBnClickedResetLog();
 	afx_msg void OnBnConnect();
 	afx_msg void OnTcnSelchangeTab3(LPNMHDR, LRESULT *pResult);
-	afx_msg void OnEnLinkServerBox(LPNMHDR pNMHDR, LRESULT *pResult);
 	afx_msg void OnSysColorChange();
 	afx_msg void OnDDClicked();
 	afx_msg void OnSvrTextChange();

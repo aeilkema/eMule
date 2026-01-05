@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -18,7 +18,6 @@
 #include "AbstractFile.h"
 
 class CFileDataIO;
-class CxImage;
 
 class CSearchFile : public CAbstractFile
 {
@@ -65,7 +64,7 @@ public:
 	void	SetFoundMultipleAICH()							{ m_bMultipleAICHFound = true; }
 
 	// Spam filter
-	const CString& GetNameWithoutKeyword()	const			{ return m_strNameWithoutKeywords; }
+	const CString& GetNameWithoutKeyword() const			{ return m_strNameWithoutKeywords; }
 	void	SetNameWithoutKeyword(const CString &strName)	{ m_strNameWithoutKeywords = strName; }
 	uint32	GetSpamRating() const							{ return m_nSpamRating; }
 	void	SetSpamRating(uint32 nRating)					{ m_nSpamRating = nRating; }
@@ -148,8 +147,8 @@ public:
 	const CSimpleArray<SServer>& GetServers() const			{ return m_aServers; }
 	SServer &GetServerAt(int iServer)						{ return m_aServers[iServer]; }
 
-	void	AddPreviewImg(CxImage *img)						{ m_listImages.Add(img); }
-	const CSimpleArray<CxImage*>& GetPreviews() const		{ return m_listImages; }
+	void	AddPreviewImg(HBITMAP img)						{ m_listFrames.Add(img); }
+	const CSimpleArray<HBITMAP>& GetPreviews() const		{ return m_listFrames; }
 	bool	IsPreviewPossible() const						{ return m_bPreviewPossible; }
 	void	SetPreviewPossible(bool in)						{ m_bPreviewPossible = in; }
 
@@ -185,7 +184,7 @@ private:
 	uint16	m_nClientPort;
 	CSimpleArray<SClient> m_aClients;
 	CSimpleArray<SServer> m_aServers;
-	CSimpleArray<CxImage*> m_listImages;
+	CSimpleArray<HBITMAP> m_listFrames;
 	LPTSTR	m_pszDirectory;
 	// spam filter
 	CString	m_strNameWithoutKeywords;

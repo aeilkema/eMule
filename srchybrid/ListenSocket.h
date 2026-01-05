@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -43,7 +43,7 @@ public:
 	void	ResetTimeOutTimer();
 	bool	CheckTimeOut();
 	virtual void Safe_Delete();
-	//virtual void Close()				{ CAsyncSocketEx::Close(); }
+	//virtual void Close()						{ CAsyncSocketEx::Close(); }
 
 	bool	Create();
 	virtual void SendPacket(Packet *packet, bool controlpacket = true, uint32 actualPayloadSize = 0, bool bForceImmediateSend = false);
@@ -67,8 +67,8 @@ protected:
 
 	virtual bool PacketReceived(Packet *packet);
 
-	bool	ProcessPacket(const BYTE *packet, uint32 size, UINT opcode);
-	bool	ProcessExtPacket(const BYTE *packet, uint32 size, UINT opcode, UINT uRawSize);
+	void	ProcessPacket(const BYTE *packet, uint32 size, UINT opcode);
+	void	ProcessExtPacket(const BYTE *packet, uint32 size, UINT opcode, UINT uRawSize);
 	void	PacketToDebugLogLine(LPCTSTR protocol, const uchar *packet, uint32 size, UINT opcode);
 	void	SetConState(SocketState val);
 
@@ -94,12 +94,12 @@ public:
 	void	Process();
 	void	RemoveSocket(CClientReqSocket *todel);
 	void	AddSocket(CClientReqSocket *toadd);
-	UINT	GetOpenSockets()			{ return static_cast<UINT>(socket_list.GetCount()); }
+	UINT	GetOpenSockets() const				{ return static_cast<UINT>(socket_list.GetCount()); }
 	void	KillAllSockets();
-	bool	TooManySockets(bool bIgnoreInterval = false);
-	uint32	GetMaxConnectionReached()	{ return maxconnectionreached; }
+	bool	TooManySockets(bool bIgnoreInterval = false) const;
+	uint32	GetMaxConnectionReached() const		{ return maxconnectionreached; }
 	bool    IsValidSocket(CClientReqSocket *totest);
-	void	AddConnection();
+	void	AddConnection()						{ ++m_OpenSocketsInterval; }
 	void	RecalculateStats();
 	void	ReStartListening();
 	void	Debug_ClientDeleted(CUpDownClient *deleted);
@@ -107,14 +107,14 @@ public:
 	bool	SendPortTestReply(char result, bool disconnect = false);
 
 	void	UpdateConnectionsStatus();
-	float	GetMaxConperFiveModifier();
-	uint32	GetPeakConnections()		{ return peakconnections; }
-	uint32	GetTotalConnectionChecks()	{ return totalconnectionchecks; }
-	float	GetAverageConnections()		{ return averageconnections; }
-	uint32	GetActiveConnections()		{ return activeconnections; }
-	uint16	GetConnectedPort()			{ return m_port; }
-	uint32	GetTotalHalfCon()			{ return m_nHalfOpen; }
-	uint32	GetTotalComp()				{ return m_nComp; }
+	float	GetMaxConperFiveModifier() const;
+	uint32	GetPeakConnections() const			{ return peakconnections; }
+	uint32	GetTotalConnectionChecks() const	{ return totalconnectionchecks; }
+	float	GetAverageConnections() const		{ return averageconnections; }
+	uint32	GetActiveConnections() const		{ return activeconnections; }
+	uint16	GetConnectedPort() const			{ return m_port; }
+	uint32	GetTotalHalfCon() const				{ return m_nHalfOpen; }
+	uint32	GetTotalComp() const				{ return m_nComp; }
 
 private:
 	bool bListening;

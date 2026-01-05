@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -23,7 +23,7 @@
 // NOTE: Do not set specific 'Nr. of sub client versions' per client type, current code contains too much hardcoded
 // references to deal with that.
 #define	MAX_CLIENTS_WITH_SUB_VERSION	4	// eMule, eDHyb, eD, aMule
-#define	MAX_SUB_CLIENT_VERSIONS			8
+#define	MAX_SUB_CLIENT_VERSIONS			8u
 
 
 class CStatisticsDlg : public CResizableDialog
@@ -36,7 +36,7 @@ class CStatisticsDlg : public CResizableDialog
 	};
 
 public:
-	explicit CStatisticsDlg(CWnd *pParent = NULL);   // standard constructor
+	explicit CStatisticsDlg(CWnd *pParent = NULL);	// standard constructor
 	~CStatisticsDlg();
 	void Localize();
 	void SetCurrentRate(float uploadrate, float downloadrate);
@@ -119,7 +119,7 @@ protected:
 
 	virtual BOOL OnInitDialog();
 	virtual void OnSize(UINT nType, int cx, int cy);
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 
 	//MORPH START - Added by SiRoB, Splitting Bar [O²]
 	CSplitterControl m_wndSplitterstat; //bzubzusplitstat

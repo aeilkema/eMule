@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2003-2024 Merkur ( devs@emule-project.net / https://www.emule-project.net )
+//Copyright (C)2003-2026 Merkur ( devs@emule-project.net / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -29,7 +29,7 @@ class PreviewDlg : public CDialog
 	};
 
 public:
-	explicit PreviewDlg(CWnd *pParent = NULL);   // standard constructor
+	explicit PreviewDlg(CWnd *pParent = NULL);	// standard constructor
 	virtual	~PreviewDlg();
 
 	void	SetFile(const CSearchFile *pFile)	{ m_pFile = pFile; Show(); }
@@ -43,7 +43,7 @@ protected:
 	void	ShowImage(int nNumber);
 
 	virtual BOOL OnInitDialog();
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnClose();

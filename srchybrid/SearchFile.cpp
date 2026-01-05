@@ -1,6 +1,6 @@
 // parts of this file are based on work from pan One (http://home-3.tiscali.nl/~meost/pms/)
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -21,7 +21,6 @@
 #include "opcodes.h"
 #include "Packets.h"
 #include "Preferences.h"
-#include "CxImage/xImage.h"
 #include "Kademlia/Kademlia/Entry.h"
 #include "emule.h"
 #include "emuledlg.h"
@@ -263,7 +262,7 @@ CSearchFile::CSearchFile(CFileDataIO &in_data, bool bOptUTF8, uint32 nSearchID, 
 	// but, in no case, we will use the received file type when adding this search result to the download queue, to avoid
 	// that we are using 'wrong' file types in part files. (this has to be handled when creating the part files)
 	const CString &rstrFileType(GetStrTagValue(FT_FILETYPE));
-	SetAFileName(GetStrTagValue(FT_FILENAME), false, rstrFileType.IsEmpty(), true);
+	CAbstractFile::SetAFileName(GetStrTagValue(FT_FILENAME), false, rstrFileType.IsEmpty(), true);
 
 	uint64 ui64FileSize = 0;
 	CTag *pTagFileSize = GetTag(FT_FILESIZE);
@@ -295,8 +294,9 @@ CSearchFile::CSearchFile(CFileDataIO &in_data, bool bOptUTF8, uint32 nSearchID, 
 CSearchFile::~CSearchFile()
 {
 	free(m_pszDirectory);
-	for (int i = m_listImages.GetSize(); --i >= 0;)
-		delete m_listImages[i];
+	for (int i = m_listFrames.GetSize(); --i >= 0;)
+		if (m_listFrames[i])
+			::DeleteObject(m_listFrames[i]);
 }
 
 void CSearchFile::StoreToFile(CFileDataIO &rFile) const
@@ -348,7 +348,7 @@ void CSearchFile::UpdateFileRatingCommentAvail(bool bForceUpdate)
 	// searchfile specific
 	// the file might have had a server rating, don't change the rating if no kad ratings were found
 	if (uRatings)
-		m_uUserRating = (uint32)ROUND(uUserRatings / (float)uRatings);
+		m_uUserRating = (uint32)ROUND((float)uUserRatings / (float)uRatings);
 
 	if (bOldHasComment != m_bHasComment || uOldUserRatings != m_uUserRating || bForceUpdate)
 		theApp.emuledlg->searchwnd->UpdateSearch(this);

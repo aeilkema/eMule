@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -22,7 +22,6 @@
 #include "SafeFile.h"
 #include "StringConversion.h"
 #include "preferences.h"
-#include "ATLComTime.h"
 
 
 #ifdef _DEBUG
@@ -342,6 +341,11 @@ void CED2KFileLink::GetLink(CString &lnk) const
 		, (LPCTSTR)EncodeBase16(m_hash, 16));
 }
 
+EMFileSize CED2KFileLink::GetSize() const
+{
+	return (EMFileSize)(uint64)_tstoi64(m_size);
+}
+
 CED2KLink* CED2KLink::CreateLinkFromUrl(LPCTSTR uri)
 {
 	CString strURI(uri);
@@ -371,7 +375,7 @@ CED2KLink* CED2KLink::CreateLinkFromUrl(LPCTSTR uri)
 							} else {
 								if (bEmuleExt) {
 									if (!strEmuleExt.IsEmpty())
-										strEmuleExt += _T('|');
+										strEmuleExt += _T("|");
 									strEmuleExt += strTok;
 								} else
 									astrEd2kParams.Add(strTok);
@@ -413,29 +417,29 @@ CED2KLink* CED2KLink::CreateLinkFromUrl(LPCTSTR uri)
 				strTok = GetNextString(strURI, _T('&'), iPos);
 				if (iPos < 0)
 					return new CED2KFileLink(strName, strSize, strHash, astrEd2kParams, strEmuleExt);
-				if (strTok[2] != _T('='))
+				if (strTok.GetLength() < 3 || strTok[2] != _T('=')) //ignore unknown parameters
 					continue;
 				const CString &strT(strTok.Left(2));
 				strTok.Delete(0, 3);
-				if (strT == _T("as")) { //acceptable source
+				if (strT == _T("as")) { //Acceptable Source
 					if (strTok.Left(7).CompareNoCase(_T("http://")) == 0)
-						astrEd2kParams.Add(_T("s=") + strTok); //http source
-				} else if (strT == _T("dn")) { //display name
+						astrEd2kParams.Add(_T("s=") + strTok); //http Source
+				} else if (strT == _T("dn")) { //Display Name
 					strName = strTok; //file name
-				} else if (strT == _T("xl")) { //eXact length
+				} else if (strT == _T("xl")) { //eXact Length
 					strSize = strTok; //file size
-				} else if (strT == _T("xs") && strTok.Left(10) == _T("ed2kftp://")) {//eXact source
+				} else if (strT == _T("xs") && strTok.Left(10) == _T("ed2kftp://")) {//eXact Source
 					strTok.Delete(0, 10);
 					int i = strTok.Find(_T('/'));
 					if (i > 0)
 						astrEd2kParams.Add(_T("sources,") + strTok.Left(i)); //source IP:port
-				} else if (strT == _T("xt")) {//eXact topic
+				} else if (strT == _T("xt")) {//eXact Topic
 					if (strTok.Left(9) == _T("urn:ed2k:"))
 						strHash = strTok.Mid(9); //file ID
 					else if (strTok.Left(13) == _T("urn:ed2khash:"))
 						strHash = strTok.Mid(13); //file ID
 					else if (strTok.Left(9) == _T("urn:aich:"))
-						astrEd2kParams.Add(_T("h=") + strTok.Mid(9)); //AICH root hash
+						astrEd2kParams.Add(_T("h=") + strTok.Mid(9)); //AICH root Hash
 				}
 			}
 		}

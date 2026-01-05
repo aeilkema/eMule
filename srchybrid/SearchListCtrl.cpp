@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -42,10 +42,7 @@
 #include "HighColorTab.hpp"
 #include "ListViewWalkerPropertySheet.h"
 #include "UserMsgs.h"
-#include "SearchDlg.h"
 #include "SearchResultsWnd.h"
-#include "ServerConnect.h"
-#include "server.h"
 #include "MediaInfo.h"
 
 #ifdef _DEBUG
@@ -198,7 +195,7 @@ CSearchListCtrl::CSearchListCtrl()
 	, m_crSearchResultDownloading()
 	, m_crSearchResultDownloadStopped()
 	, m_crSearchResultKnown()
-	, m_crSearchResultShareing()
+	, m_crSearchResultSharing()
 	, m_crSearchResultCancelled()
 	, m_crShades()
 	, m_nResultsID()
@@ -316,14 +313,14 @@ CSearchListCtrl::~CSearchListCtrl()
 
 void CSearchListCtrl::Localize()
 {
-	static const UINT uids[15] =
+	static const UINT uids[] =
 	{
-		IDS_DL_FILENAME, IDS_DL_SIZE, 0/*IDS_SEARCHAVAIL*/, IDS_COMPLSOURCES, IDS_TYPE
+		IDS_DL_FILENAME, IDS_DL_SIZE, UINT_MAX/*IDS_SEARCHAVAIL*/, IDS_COMPLSOURCES, IDS_TYPE
 		, IDS_FILEID, IDS_ARTIST, IDS_ALBUM, IDS_TITLE, IDS_LENGTH
 		, IDS_BITRATE, IDS_CODEC, IDS_FOLDER, IDS_KNOWN, IDS_AICHHASH
+		, 0
 	};
-
-	LocaliseHeaderCtrl(uids, _countof(uids));
+	LocaliseHeader(uids);
 
 	HDITEM hdi;
 	hdi.mask = HDI_TEXT;
@@ -349,7 +346,7 @@ void CSearchListCtrl::AddResult(const CSearchFile *toshow)
 	int iItem = InsertItem(LVIF_TEXT | LVIF_PARAM, GetItemCount(), toshow->GetFileName(), 0, 0, 0, (LPARAM)toshow);
 	// Add all sub items as callbacks and restore updating with last sub item.
 	// The callbacks are only needed for 'Find' functionality, not for any drawing.
-	const int iSubItems = 13;
+	static const int iSubItems = 13;
 	for (int i = 1; i <= iSubItems; ++i) {
 		if (i == iSubItems)
 			SetUpdateMode(eCurUpdateMode);
@@ -386,7 +383,7 @@ void CSearchListCtrl::UpdateSources(const CSearchFile *toupdate)
 					if (index >= 0)
 						Update(index);
 					else
-						InsertItem(LVIF_PARAM | LVIF_TEXT, iItem + 1, cur_file->GetFileName(), 0, 0, 0, (LPARAM)cur_file);
+						InsertItem(LVIF_TEXT | LVIF_PARAM, iItem + 1, cur_file->GetFileName(), 0, 0, 0, (LPARAM)cur_file);
 				}
 			}
 		}
@@ -414,7 +411,7 @@ void CSearchListCtrl::UpdateTabHeader(uint32 nResultsID)
 	ti.mask = TCIF_PARAM;
 	for (int iItem = searchselect.GetItemCount(); --iItem >= 0;)
 		if (searchselect.GetItem(iItem, &ti) && ti.lParam != NULL) {
-			const SSearchParams* pSearchParams = reinterpret_cast<SSearchParams*>(ti.lParam);
+			const SSearchParams *pSearchParams = reinterpret_cast<SSearchParams*>(ti.lParam);
 			if (pSearchParams->dwSearchID == nResultsID) {
 				UINT iAvailResults = searchlist->GetFoundFiles(nResultsID);
 				CString strTabLabel(pSearchParams->strSearchTitle);
@@ -448,7 +445,7 @@ CString CSearchListCtrl::GetCompleteSourcesDisplayString(const CSearchFile *pFil
 
 	// If we have no 'Complete' info at all but the file size is <= PARTSIZE,
 	// though we know that the file is complete (otherwise it would not be shared).
-	if (iComplete < 0 && (uint64)pFile->GetFileSize() <= PARTSIZE) {
+	if (iComplete < 0 && pFile->GetFileSize() <= PARTSIZE) {
 		iComplete = 1;
 		// If this search result is from a remote client's shared file list, we know the 'complete' count.
 		if (pFile->GetDirectory() != NULL)
@@ -456,28 +453,23 @@ CString CSearchListCtrl::GetCompleteSourcesDisplayString(const CSearchFile *pFil
 	}
 
 	CString str;
-	if (iComplete < 0) {		// '< 0' ... unknown
-		str += _T('?');
-		if (pbComplete)
-			*pbComplete = true;	// treat 'unknown' as complete
-	} else if (iComplete > 0) {	// '> 0' ... we know it's complete
+	if (iComplete < 0)		// '< 0' ... unknown
+		str += _T("?");
+	else if (iComplete > 0)	// '> 0' ... we know it is complete
 		if (uSources && uCompleteSources) {
-			str.Format(_T("%u%%"), (uCompleteSources * 100) / uSources);
+			str.Format(_T("%u%%"), 100 * uCompleteSources / uSources);
 			if (thePrefs.IsExtControlsEnabled())
 				str.AppendFormat(_T(" (%u)"), uCompleteSources);
 		} else {
 			// we know it's complete, but we don't know the degree. (for files <= PARTSIZE in Kad searches)
 			str = GetResString(IDS_YES);
 		}
-		if (pbComplete)
-			*pbComplete = true;
-	} else {					// '= 0' ... we know it's not complete
-		str = _T("0%");
-		if (thePrefs.IsExtControlsEnabled())
-			str.AppendFormat(_T(" (0)"));
-		if (pbComplete)
-			*pbComplete = false;
-	}
+	else					// '== 0' ... we know it is incomplete
+		str = thePrefs.IsExtControlsEnabled() ? _T("0% (0)") : _T("0%");
+
+	// treat 'unknown' as complete
+	if (pbComplete)
+		*pbComplete = (iComplete != 0);
 	return str;
 }
 
@@ -638,7 +630,7 @@ int CSearchListCtrl::Compare(const CSearchFile *item1, const CSearchFile *item2,
 	case 3: // complete sources asc
 		if (item1->GetSourceCount() == 0 || item2->GetSourceCount() == 0 || item1->IsKademlia() || item2->IsKademlia())
 			return 0; // should never happen, just a sanity check
-		return CompareUnsigned((item1->GetCompleteSourceCount() * 100) / item1->GetSourceCount(), (item2->GetCompleteSourceCount() * 100) / item2->GetSourceCount());
+		return CompareUnsigned(100 * item1->GetCompleteSourceCount() / item1->GetSourceCount(), 100 * item2->GetCompleteSourceCount() / item2->GetSourceCount());
 	case 4: //type asc
 		{
 			int iResult = item1->GetFileTypeDisplayStr().Compare(item2->GetFileTypeDisplayStr());
@@ -716,7 +708,7 @@ void CSearchListCtrl::OnContextMenu(CWnd*, CPoint point)
 		uInsertedMenuItem2 = MP_MARKASSPAM;
 		m_SearchFileMenu.EnableMenuItem(MP_MARKASSPAM, iSelected > 0 ? MF_ENABLED : MF_GRAYED);
 	}
-	CTitleMenu WebMenu;
+	CTitledMenu WebMenu;
 	WebMenu.CreateMenu();
 	WebMenu.AddMenuTitle(NULL, true);
 	int iWebMenuEntries = theWebServices.GetFileMenuEntries(&WebMenu);
@@ -770,7 +762,7 @@ BOOL CSearchListCtrl::OnCommand(WPARAM wParam, LPARAM)
 						clpbrd += file->GetED2kLink();
 					}
 				}
-				theApp.CopyTextToClipboard(clpbrd);
+				theApp.emuledlg->CopyTextToClipboard(clpbrd);
 			}
 			return TRUE;
 		case MP_GETHTMLED2KLINK:
@@ -785,7 +777,7 @@ BOOL CSearchListCtrl::OnCommand(WPARAM wParam, LPARAM)
 						clpbrd += file->GetED2kLink(false, true);
 					}
 				}
-				theApp.CopyTextToClipboard(clpbrd);
+				theApp.emuledlg->CopyTextToClipboard(clpbrd);
 			}
 			return TRUE;
 		case MP_RESUME:
@@ -831,10 +823,8 @@ BOOL CSearchListCtrl::OnCommand(WPARAM wParam, LPARAM)
 					CUpDownClient *newclient = new CUpDownClient(NULL, file->GetClientPort(), file->GetClientID(), file->GetClientServerIP(), file->GetClientServerPort(), true);
 					if (!theApp.clientlist->AttachToAlreadyKnown(&newclient, NULL))
 						theApp.clientlist->AddClient(newclient);
-
 					newclient->SendPreviewRequest(*file);
-					// add to res - later
-					AddLogLine(true, _T("Preview Requested - Please wait"));
+					AddLogLine(true, GetResString(IDS_PREVIEWREQUESTED));
 				}
 			}
 			return TRUE;
@@ -893,7 +883,7 @@ BOOL CSearchListCtrl::OnCommand(WPARAM wParam, LPARAM)
 void CSearchListCtrl::OnLvnDeleteAllItems(LPNMHDR, LRESULT *pResult)
 {
 	// To suppress subsequent LVN_DELETEITEM notification messages, return TRUE.
-	*pResult = TRUE;
+	*pResult = 1;
 }
 
 void CSearchListCtrl::CreateMenus()
@@ -965,9 +955,9 @@ void CSearchListCtrl::OnLvnGetInfoTip(LPNMHDR pNMHDR, LRESULT *pResult)
 				CString strHead(file->GetFileName());
 				strHead.AppendFormat(_T("\n") _T("%s %s\n") _T("%s %s\n<br_head>\n")
 					, (LPCTSTR)GetResString(IDS_FD_HASH), (LPCTSTR)md4str(file->GetFileHash())
-					, (LPCTSTR)GetResString(IDS_FD_SIZE), (LPCTSTR)CastItoXBytes((uint64)file->GetFileSize()));
+					, (LPCTSTR)GetResString(IDS_FD_SIZE), (LPCTSTR)CastItoXBytes(file->GetFileSize()));
 
-				const CArray<CTag*, CTag*> &tags = file->GetTags();
+				const CArray<CTag*> &tags = file->GetTags();
 				for (INT_PTR i = 0; i < tags.GetCount(); ++i) {
 					const CTag *tag = tags[i];
 					if (tag) {
@@ -1018,7 +1008,7 @@ void CSearchListCtrl::OnLvnGetInfoTip(LPNMHDR pNMHDR, LRESULT *pResult)
 									bSkipTag = true;
 								else if (tag->HasName()) {
 									strTag.Format(_T("%hs: "), tag->GetName());
-									strTag.SetAt(0, _totupper(strTag[0]));
+									strTag.SetAt(0, (TCHAR)_totupper(strTag[0]));
 								} else {
 									extern CString GetName(const CTag *pTag);
 									const CString &strTagName(GetName(tag));
@@ -1051,7 +1041,7 @@ void CSearchListCtrl::OnLvnGetInfoTip(LPNMHDR pNMHDR, LRESULT *pResult)
 						}
 						if (!strTag.IsEmpty()) {
 							if (!strInfo.IsEmpty())
-								strInfo += _T('\n');
+								strInfo += _T("\n");
 							strInfo += strTag;
 							if (strInfo.GetLength() >= pGetInfoTip->cchTextMax)
 								break;
@@ -1070,11 +1060,11 @@ void CSearchListCtrl::OnLvnGetInfoTip(LPNMHDR pNMHDR, LRESULT *pResult)
 							bFirst = false;
 							strSource = _T("Sources");
 						}
-						strSource.AppendFormat(_T(": %u.%u.%u.%u:%u  Server: %u.%u.%u.%u:%u"),
-							(uint8)uClientIP, (uint8)(uClientIP >> 8), (uint8)(uClientIP >> 16), (uint8)(uClientIP >> 24), file->GetClientPort(),
-							(uint8)uServerIP, (uint8)(uServerIP >> 8), (uint8)(uServerIP >> 16), (uint8)(uServerIP >> 24), file->GetClientServerPort());
+						strSource.AppendFormat(_T(": %u.%u.%u.%u:%u  Server: %u.%u.%u.%u:%u")
+							, (uint8)uClientIP, (uint8)(uClientIP >> 8), (uint8)(uClientIP >> 16), (uint8)(uClientIP >> 24), file->GetClientPort()
+							, (uint8)uServerIP, (uint8)(uServerIP >> 8), (uint8)(uServerIP >> 16), (uint8)(uServerIP >> 24), file->GetClientServerPort());
 						if (!strInfo.IsEmpty())
-							strInfo += _T('\n');
+							strInfo += _T("\n");
 						strInfo += strSource;
 					}
 
@@ -1087,11 +1077,11 @@ void CSearchListCtrl::OnLvnGetInfoTip(LPNMHDR pNMHDR, LRESULT *pResult)
 							bFirst = false;
 							strSource = _T("Sources");
 						}
-						strSource.AppendFormat(_T(": %u.%u.%u.%u:%u  Server: %u.%u.%u.%u:%u"),
-							(uint8)uClientIP, (uint8)(uClientIP >> 8), (uint8)(uClientIP >> 16), (uint8)(uClientIP >> 24), aClients[i].m_nPort,
-							(uint8)uServerIP, (uint8)(uServerIP >> 8), (uint8)(uServerIP >> 16), (uint8)(uServerIP >> 24), aClients[i].m_nServerPort);
+						strSource.AppendFormat(_T(": %u.%u.%u.%u:%u  Server: %u.%u.%u.%u:%u")
+							, (uint8)uClientIP, (uint8)(uClientIP >> 8), (uint8)(uClientIP >> 16), (uint8)(uClientIP >> 24), aClients[i].m_nPort
+							, (uint8)uServerIP, (uint8)(uServerIP >> 8), (uint8)(uServerIP >> 16), (uint8)(uServerIP >> 24), aClients[i].m_nServerPort);
 						if (!strInfo.IsEmpty())
-							strInfo += _T('\n');
+							strInfo += _T("\n");
 						strInfo += strSource;
 						if (strInfo.GetLength() >= pGetInfoTip->cchTextMax)
 							break;
@@ -1102,13 +1092,13 @@ void CSearchListCtrl::OnLvnGetInfoTip(LPNMHDR pNMHDR, LRESULT *pResult)
 					const CSimpleArray<CSearchFile::SServer> &aServers = file->GetServers();
 					for (INT_PTR i = 0; i < aServers.GetSize(); ++i) {
 						uint32 uServerIP = aServers[i].m_nIP;
-						CString strServer;
-						if (i == 0)
-							strServer = _T("Servers");
-						strServer.AppendFormat(_T(": %u.%u.%u.%u:%u  Avail: %u"),
-							(uint8)uServerIP, (uint8)(uServerIP >> 8), (uint8)(uServerIP >> 16), (uint8)(uServerIP >> 24), aServers[i].m_nPort, aServers[i].m_uAvail);
+						CString strServer(i ? _T("") : _T("Servers"));
+						strServer.AppendFormat(_T(": %u.%u.%u.%u:%u  Avail: %u")
+							, (uint8)uServerIP, (uint8)(uServerIP >> 8), (uint8)(uServerIP >> 16), (uint8)(uServerIP >> 24)
+							, aServers[i].m_nPort
+							, aServers[i].m_uAvail);
 						if (!strInfo.IsEmpty())
-							strInfo += _T('\n');
+							strInfo += _T("\n");
 						strInfo += strServer;
 						if (strInfo.GetLength() >= pGetInfoTip->cchTextMax)
 							break;
@@ -1180,7 +1170,7 @@ void CSearchListCtrl::ExpandCollapseItem(int iItem, int iAction)
 				const CSearchFile *cur_file = list->GetNext(pos);
 				if (cur_file->GetListParent() == searchfile) {
 					searchfile->SetListExpanded(true);
-					InsertItem(LVIF_PARAM | LVIF_TEXT, iItem + 1, cur_file->GetFileName(), 0, 0, 0, (LPARAM)cur_file);
+					InsertItem(LVIF_TEXT | LVIF_PARAM, iItem + 1, cur_file->GetFileName(), 0, 0, 0, (LPARAM)cur_file);
 				}
 			}
 			SetRedraw(true);
@@ -1254,7 +1244,7 @@ void CSearchListCtrl::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	GetClientRect(&rcClient);
 	CSearchFile *content = reinterpret_cast<CSearchFile*>(lpDrawItemStruct->itemData);
 	if (!g_bLowColorDesktop || (lpDrawItemStruct->itemState & ODS_SELECTED) == 0)
-		dc.SetTextColor(GetSearchItemColor(content));
+		dc.SetTextColor(DefineSearchItemColor(content));
 
 	bool isChild = (content->GetListParent() != NULL);
 	bool notLast = (lpDrawItemStruct->itemID + 1 != (UINT)GetItemCount());
@@ -1379,7 +1369,7 @@ void CSearchListCtrl::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	}
 }
 
-COLORREF CSearchListCtrl::GetSearchItemColor(/*const*/ CSearchFile *src)
+COLORREF CSearchListCtrl::DefineSearchItemColor(CSearchFile *src) const
 {
 	const CKnownFile *pFile = theApp.downloadqueue->GetFileByID(src->GetFileHash());
 
@@ -1391,11 +1381,11 @@ COLORREF CSearchListCtrl::GetSearchItemColor(/*const*/ CSearchFile *src)
 			return m_crSearchResultDownloading;
 		}
 		src->SetKnownType(CSearchFile::Shared);
-		return m_crSearchResultShareing;
+		return m_crSearchResultSharing;
 	}
 	if (theApp.sharedfiles->GetFileByID(src->GetFileHash())) {
 		src->SetKnownType(CSearchFile::Shared);
-		return m_crSearchResultShareing;
+		return m_crSearchResultSharing;
 	}
 	if (theApp.knownfiles->FindKnownFileByID(src->GetFileHash())) {
 		src->SetKnownType(CSearchFile::Downloaded);
@@ -1416,7 +1406,7 @@ COLORREF CSearchListCtrl::GetSearchItemColor(/*const*/ CSearchFile *src)
 	return m_crShades[min(srccnt, AVBLYSHADECOUNT - 1)];
 }
 
-void CSearchListCtrl::DrawSourceChild(CDC *dc, int nColumn, LPRECT lpRect, UINT uDrawTextAlignment, const CSearchFile *src)
+void CSearchListCtrl::DrawSourceChild(CDC &dc, int nColumn, LPRECT lpRect, UINT uDrawTextAlignment, const CSearchFile *src)
 {
 	const CString &sItem(GetItemDisplayText(src, nColumn));
 	switch (nColumn) {
@@ -1428,14 +1418,14 @@ void CSearchListCtrl::DrawSourceChild(CDC *dc, int nColumn, LPRECT lpRect, UINT 
 			lpRect->left += 16;
 		}
 	default:
-		dc->DrawText(sItem, -1, lpRect, MLC_DT_TEXT | uDrawTextAlignment);
+		dc.DrawText(sItem, lpRect, MLC_DT_TEXT | uDrawTextAlignment);
 	case 4: // file type
 	case 5: // file hash
 		break;
 	}
 }
 
-void CSearchListCtrl::DrawSourceParent(CDC *dc, int nColumn, LPRECT lpRect, UINT uDrawTextAlignment, const CSearchFile *src)
+void CSearchListCtrl::DrawSourceParent(CDC &dc, int nColumn, LPRECT lpRect, UINT uDrawTextAlignment, const CSearchFile *src)
 {
 	const CString &sItem(GetItemDisplayText(src, nColumn));
 	switch (nColumn) {
@@ -1447,15 +1437,15 @@ void CSearchListCtrl::DrawSourceParent(CDC *dc, int nColumn, LPRECT lpRect, UINT
 			lpRect->left += 16;
 		}
 	default:
-		dc->DrawText(sItem, -1, lpRect, MLC_DT_TEXT | uDrawTextAlignment);
+		dc.DrawText(sItem, lpRect, MLC_DT_TEXT | uDrawTextAlignment);
 		break;
 	case 3: // complete sources
 		{
 			bool bComplete = IsComplete(src, src->GetSourceCount());
-			COLORREF crOldTextColor = (bComplete ? 0 : dc->SetTextColor(RGB(255, 0, 0)));
-			dc->DrawText(sItem, -1, lpRect, MLC_DT_TEXT | uDrawTextAlignment);
+			COLORREF crOldTextColor = (bComplete ? 0 : dc.SetTextColor(RGB(255, 0, 0)));
+			dc.DrawText(sItem, lpRect, MLC_DT_TEXT | uDrawTextAlignment);
 			if (!bComplete)
-				dc->SetTextColor(crOldTextColor);
+				dc.SetTextColor(crOldTextColor);
 		}
 	}
 }
@@ -1481,27 +1471,27 @@ void CSearchListCtrl::SetHighlightColors()
 	COLORREF crSearchResultAvblyBase = RGB(0, 0, 255);
 	m_crSearchResultDownloading = RGB(255, 0, 0);
 	m_crSearchResultDownloadStopped = RGB(255, 0, 0);
-	m_crSearchResultShareing = RGB(255, 0, 0);
+	m_crSearchResultSharing = RGB(255, 0, 0);
 	m_crSearchResultKnown = RGB(0, 128, 0);
 	m_crSearchResultCancelled = RGB(0, 128, 0);
 
 	theApp.LoadSkinColor(GetSkinKey() + _T("Fg_Downloading"), m_crSearchResultDownloading);
 	if (!theApp.LoadSkinColor(_T("Fg_DownloadStopped"), m_crSearchResultDownloadStopped))
 		m_crSearchResultDownloadStopped = m_crSearchResultDownloading;
-	theApp.LoadSkinColor(GetSkinKey() + _T("Fg_Sharing"), m_crSearchResultShareing);
+	theApp.LoadSkinColor(GetSkinKey() + _T("Fg_Sharing"), m_crSearchResultSharing);
 	theApp.LoadSkinColor(GetSkinKey() + _T("Fg_Known"), m_crSearchResultKnown);
 	theApp.LoadSkinColor(GetSkinKey() + _T("Fg_AvblyBase"), crSearchResultAvblyBase);
 
 	// precalculate sources shades
 	COLORREF normFGC = GetTextColor();
-	float rdelta = (GetRValue(crSearchResultAvblyBase) - GetRValue(normFGC)) / (float)AVBLYSHADECOUNT;
-	float gdelta = (GetGValue(crSearchResultAvblyBase) - GetGValue(normFGC)) / (float)AVBLYSHADECOUNT;
-	float bdelta = (GetBValue(crSearchResultAvblyBase) - GetBValue(normFGC)) / (float)AVBLYSHADECOUNT;
+	float rdelta = (float)(GetRValue(crSearchResultAvblyBase) - GetRValue(normFGC)) / (float)AVBLYSHADECOUNT;
+	float gdelta = (float)(GetGValue(crSearchResultAvblyBase) - GetGValue(normFGC)) / (float)AVBLYSHADECOUNT;
+	float bdelta = (float)(GetBValue(crSearchResultAvblyBase) - GetBValue(normFGC)) / (float)AVBLYSHADECOUNT;
 
 	for (int shades = 0; shades < AVBLYSHADECOUNT; ++shades)
-		m_crShades[shades] = RGB(GetRValue(normFGC) + (rdelta * shades),
-			GetGValue(normFGC) + (gdelta * shades),
-			GetBValue(normFGC) + (bdelta * shades));
+		m_crShades[shades] = RGB((float)GetRValue(normFGC) + (rdelta * (float)shades)
+							   , (float)GetGValue(normFGC) + (gdelta * (float)shades)
+							   , (float)GetBValue(normFGC) + (bdelta * (float)shades));
 }
 
 void CSearchListCtrl::OnSysColorChange()
@@ -1572,7 +1562,7 @@ CString CSearchListCtrl::GetItemDisplayText(const CSearchFile *src, int iSubItem
 				sText.AppendFormat(_T(" | Names:%u, Pubs:%u, Trust:%0.2f")
 					, (src->GetKadPublishInfo() >> 24) & 0xffu
 					, (src->GetKadPublishInfo() >> 16) & 0xffu
-					, (src->GetKadPublishInfo() & 0xffffu) / 100.0f);
+					, (float)(src->GetKadPublishInfo() & 0xffffu) / 100);
 #endif
 		} else
 			sText.Format(_T("%u"), src->GetListChildCount());
@@ -1669,7 +1659,7 @@ void CSearchListCtrl::OnLvnGetDispInfo(LPNMHDR pNMHDR, LRESULT *pResult)
 		//
 		// Vista: That callback is used to get the strings for the label tips for the sub(!)-items.
 		//
-		const LVITEMW &rItem = reinterpret_cast<NMLVDISPINFO*>(pNMHDR)->item;
+		const LVITEM &rItem = reinterpret_cast<NMLVDISPINFO*>(pNMHDR)->item;
 		if (rItem.mask & LVIF_TEXT) {
 			const CSearchFile *pSearchFile = reinterpret_cast<CSearchFile*>(rItem.lParam);
 			if (pSearchFile != NULL)
@@ -1687,9 +1677,9 @@ CString CSearchListCtrl::FormatFileSize(ULONGLONG ullFileSize) const
 
 	if (m_eFileSizeFormat == fsizeMByte) {
 		//return GetFormatedUInt64((ullFileSize + 1024 * 1024 - 1) / (1024 * 1024)) + _T(' ') + GetResString(IDS_MBYTES);
-		double fFileSize = ullFileSize / (1024.0 * 1024.0);
-		if (fFileSize < 0.01)
-			fFileSize = 0.01;
+		float fFileSize = (float)ullFileSize / (1024 * 1024);
+		if (fFileSize < 0.01f)
+			fFileSize = 0.01f;
 
 		static NUMBERFMT nf;
 		if (nf.Grouping == 0) {
@@ -1703,9 +1693,11 @@ CString CSearchListCtrl::FormatFileSize(ULONGLONG ullFileSize) const
 		}
 		CString sVal, strVal;
 		sVal.Format(_T("%.2f"), fFileSize);
-		int iResult = GetNumberFormat(LOCALE_SYSTEM_DEFAULT, 0, sVal, &nf, strVal.GetBuffer(80), 80);
+		int iResult = ::GetNumberFormat(LOCALE_SYSTEM_DEFAULT, 0, sVal, &nf, strVal.GetBuffer(80), 80);
 		strVal.ReleaseBuffer();
-		return (iResult ? strVal : sVal) + _T(' ') + GetResString(IDS_MBYTES);
+		CString &s(iResult ? strVal : sVal);
+		s += _T(" ");
+		return s + GetResString(IDS_MBYTES);
 	}
 
 	return CastItoXBytes(ullFileSize);

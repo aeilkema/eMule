@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -34,9 +34,11 @@ struct SBuddyData
 	HWND m_hwndButton;
 };
 
+#pragma warning(push)
+#pragma warning(disable: 5039)
 static LRESULT CALLBACK BuddyButtonSubClassedProc(HWND hWnd, UINT uMessage, WPARAM wParam, LPARAM lParam)
 {
-	WNDPROC	pfnOldWndProc = (WNDPROC)::GetProp(hWnd, s_szPropOldWndProc);
+	WNDPROC pfnOldWndProc = (WNDPROC)::GetProp(hWnd, s_szPropOldWndProc);
 	ASSERT(pfnOldWndProc != NULL);
 
 	SBuddyData *pBuddyData = static_cast<SBuddyData*>(::GetProp(hWnd, s_szPropBuddyData));
@@ -51,12 +53,12 @@ static LRESULT CALLBACK BuddyButtonSubClassedProc(HWND hWnd, UINT uMessage, WPAR
 		break;
 	case WM_NCHITTEST:
 		{
-			LRESULT lResult = CallWindowProc(pfnOldWndProc, hWnd, uMessage, wParam, lParam);
+			LRESULT lResult = ::CallWindowProc(pfnOldWndProc, hWnd, uMessage, wParam, lParam);
 			return (lResult == HTNOWHERE) ? HTTRANSPARENT : lResult;
 		}
 	case WM_NCCALCSIZE:
 		{
-			LRESULT lResult = CallWindowProc(pfnOldWndProc, hWnd, uMessage, wParam, lParam);
+			LRESULT lResult = ::CallWindowProc(pfnOldWndProc, hWnd, uMessage, wParam, lParam);
 			LPNCCALCSIZE_PARAMS lpNCCS = (LPNCCALCSIZE_PARAMS)lParam;
 			lpNCCS->rgrc[0].right -= pBuddyData->m_uButtonWidth;
 			return lResult;
@@ -71,7 +73,7 @@ static LRESULT CALLBACK BuddyButtonSubClassedProc(HWND hWnd, UINT uMessage, WPAR
 			::SetWindowPos(pBuddyData->m_hwndButton, NULL, rc.left, rc.top, rc.Width(), rc.Height(), SWP_NOZORDER);
 		}
 	}
-	return CallWindowProc(pfnOldWndProc, hWnd, uMessage, wParam, lParam);
+	return ::CallWindowProc(pfnOldWndProc, hWnd, uMessage, wParam, lParam);
 }
 
 void AddBuddyButton(HWND hwndEdit, HWND hwndButton)
@@ -80,7 +82,7 @@ void AddBuddyButton(HWND hwndEdit, HWND hwndButton)
 	ASSERT(lpfnOldWndProc != NULL);
 	VERIFY(::SetProp(hwndEdit, s_szPropOldWndProc, (HANDLE)lpfnOldWndProc));
 
-	// Remove the 'flat' style which my have been set by 'InitWindowStyles'
+	// Remove the 'flat' style which may have been set by 'InitWindowStyles'
 	LONG_PTR dwButtonStyle = ::GetWindowLongPtr(hwndButton, GWL_STYLE);
 	if (dwButtonStyle & BS_FLAT)
 		::SetWindowLongPtr(hwndButton, GWL_STYLE, dwButtonStyle & ~BS_FLAT);
@@ -95,6 +97,7 @@ void AddBuddyButton(HWND hwndEdit, HWND hwndButton)
 
 	::SetWindowPos(hwndEdit, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 }
+#pragma warning(pop)
 
 void DestroyIconsArr(HICON *pIcon, size_t cnt)
 {

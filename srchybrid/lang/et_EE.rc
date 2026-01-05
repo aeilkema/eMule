@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "et_EE.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ETI)
 #ifdef _WIN32
 LANGUAGE LANG_ESTONIAN, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -1538,9 +1538,8 @@ BEGIN
     IDS_SOURCESWAPBLOCKED   "Vahetus blokitud"
     IDS_A4AF_CHECK_THIS_NOW "Kontrolli seda allikad kohe (silu)"
     IDS_LOG_ULDL_EVENTS     "Üles/allalaadimiste sündmuste logi"
-//    IDS_PEERCACHE_ENABLED   "Sinu ISP toed PeerCache tehnoloogia, võimalda vahemälu allalaadimised!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Luba kasutajal sind lisada sõprade nimekirja."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Allalaetud osad vajalikud emase eelvaatluseks"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Allalaetud osad vajalikud emase eelvaatluseks"
 END
 
 STRINGTABLE
@@ -1580,9 +1579,6 @@ BEGIN
                             "Lubades selle(?) eMule käivitub kui sa käivitad windowsi."
     IDS_KAD_WAITCBK         "Oota tagasihelistamist Kad"
     IDS_KAD_TOOMANDYKADLKPS "Liig palju Kad otsinguid"
-//    IDS_PCDS_CLIENTWAIT     "Klient ootab"
-//    IDS_PCDS_CACHEWAIT      "Vahemälu ootab"
-//    IDS_CACHE               "Vahemälu"
     IDS_INDEXED             "Indekseeritud"
     IDS_KADINFO_SRC         "\tAllikas: %u\r\n"
     IDS_KADINFO_KEYW        "\tMärksõna: %u\r\n"
@@ -1678,8 +1674,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Windows Common juhtimis kogu (COMCTL32.DLL) on vana!\n\neMule avstatas versiooni ""Windows Common juhtimise kogu (COMCTL32.DLL)"" on vana et korralikult kasutada eMule. Tagada täis ja veatu funktsioneerimine eMule-s me soovitame uuentada ""Windows Common juhtimis kogumit (COMCTL32.DLL)"" uuemat kui version 5.8.\n\nlae ja installi uuendus ""Windows Common juhtimis kogu (COMCTL32.DLL)"" at Microsoft (R) Download Center. Kas soovid külastada kirjavahetuse URL?"
     IDS_ASREGEXPR           "Korrapärane avaldis"
     IDS_STATIC_REGEXP       "Korrapärane avaldis filtri vaatluseks:"
     IDS_CARE4ALL            "Väärtusta kõik Failid"
@@ -1917,10 +1911,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Märgista et ei ole Späm"
     IDS_SEARCHSPAMFILTER    "Luba spammi filter otsingu tulemustes"
     IDS_SHOWSMILEYS         "Näita emotikoone"
-    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a captcha before you can send him a message. Please enter the letters you see on this image as response:"
-    IDS_CAPTCHAFAILED       "Teie vastus captcha oli vale ja sinu sõnumit on eiratud. Võite taotleda uue captcha saates uue sõnumi."
-    IDS_CAPTCHASOLVED       "Olete läbinud captcha kontrolli ja kasutajale on saadetud sinu sõnum."
-    IDS_USECAPTCHAS         "Nõutud captcha autentimine"
+    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a CAPTCHA before you can send him a message. Please enter the letters you see on this image as response:"
+    IDS_CAPTCHAFAILED       "Teie vastus CAPTCHA oli vale ja sinu sõnumit on eiratud. Võite taotleda uue CAPTCHA saates uue sõnumi."
+    IDS_CAPTCHASOLVED       "Olete läbinud CAPTCHA kontrolli ja kasutajale on saadetud sinu sõnum."
+    IDS_USECAPTCHAS         "Nõutud CAPTCHA autentimine"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat URL-ist:"
     IDS_DOWNLOADING_NODESDAT_FROM "Laen alla nodes.dat-i %s-st"
     IDS_DOWNLOADING_NODESDAT "Laen alla nodes.dat..."

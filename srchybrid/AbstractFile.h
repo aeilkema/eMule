@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -43,7 +43,7 @@ class CTag;
 
 typedef CTypedPtrList<CPtrList, Kademlia::CEntry*> CKadEntryPtrList;
 
-class CAbstractFile: public CObject
+class CAbstractFile : public CObject
 {
 	DECLARE_DYNAMIC(CAbstractFile)
 
@@ -58,7 +58,7 @@ public:
 
 	// returns the ED2K file type (an ASCII string)
 	const CString& GetFileType() const					{ return m_strFileType; }
-	virtual void SetFileType(LPCTSTR pszFileType);
+	virtual void SetFileType(LPCTSTR pszFileType)		{ m_strFileType = pszFileType; }
 
 	// returns the file type which is used to be shown in the GUI
 	CString GetFileTypeDisplayStr() const;
@@ -73,7 +73,7 @@ public:
 
 	EMFileSize GetFileSize() const						{ return m_nFileSize; }
 	virtual void SetFileSize(EMFileSize nFileSize)		{ m_nFileSize = nFileSize; }
-	bool	IsLargeFile() const							{ return (uint64)m_nFileSize > OLD_MAX_EMULE_FILE_SIZE; }
+	bool	IsLargeFile() const							{ return m_nFileSize > OLD_MAX_EMULE_FILE_SIZE; }
 
 	uint32	GetIntTagValue(uint8 tagname) const;
 	uint32	GetIntTagValue(LPCSTR tagname) const;
@@ -90,19 +90,19 @@ public:
 	CTag*	GetTag(LPCSTR tagname, uint8 tagtype) const;
 	CTag*	GetTag(uint8 tagname) const;
 	CTag*	GetTag(LPCSTR tagname) const;
-	const CArray<CTag*, CTag*>& GetTags() const			{ return m_taglist; }
+	const CArray<CTag*>& GetTags() const				{ return m_taglist; }
 	void	AddTagUnique(CTag *pTag);
 	void	DeleteTag(uint8 tagname);
 	void	DeleteTag(CTag *pTag);
 	void	ClearTags();
-	void	CopyTags(const CArray<CTag*, CTag*> &tags);
+	void	CopyTags(const CArray<CTag*> &tags);
 	virtual bool IsPartFile() const						{ return false; }
 
 	bool	HasComment() const							{ return m_bHasComment; }
 	void	SetHasComment(bool in)						{ m_bHasComment = in; }
 	UINT	UserRating(bool bKadSearchIndicator = false) const { return (bKadSearchIndicator && m_bKadCommentSearchRunning) ? 6 : m_uUserRating; }
-	bool	HasRating()	const							{ return m_uUserRating > 0; }
-	bool	HasBadRating()	const						{ return HasRating() && m_uUserRating < 2; }
+	bool	HasRating() const							{ return m_uUserRating > 0; }
+	bool	HasBadRating() const						{ return HasRating() && m_uUserRating < 2; }
 	void	SetUserRating(UINT in)						{ m_uUserRating = in; }
 	const CString &GetFileComment();
 	UINT	GetFileRating();
@@ -123,7 +123,7 @@ public:
 #endif
 
 protected:
-	CArray<CTag*, CTag*> m_taglist;
+	CArray<CTag*> m_taglist;
 	CKadEntryPtrList m_kadNotes;
 	EMFileSize m_nFileSize; //must be before m_FileIdentifier due to initialisation list order
 	CFileIdentifier m_FileIdentifier;

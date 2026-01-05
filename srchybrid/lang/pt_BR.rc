@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "pt_BR.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_PTB)
 #ifdef _WIN32
 LANGUAGE LANG_PORTUGUESE, SUBLANG_PORTUGUESE_BRAZILIAN
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -760,7 +760,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "Mensagem privada"
     IDS_WEB_REMOTE_LINK_ADDED "Link adicionado: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED "Link não adicionado. Senha errada."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS
                             "Baixar primeiro as partes necessárias para pré-visualizar"
     IDS_IRC_KICK            "Chutar"
     IDS_IRC_SLAP            "Bater"
@@ -1545,7 +1545,6 @@ BEGIN
     IDS_NEWMSG              "Nova mensagem de '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "Somente na mesma categoria"
     IDS_LOG_ULDL_EVENTS     "Registrar eventos de upload/download"
-//    IDS_PEERCACHE_ENABLED   "O seu provedor suporta a tecnologia PeerCache, habilitando downloads em cache!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND
                             "Permitir que o usuário adicione você como amigo"
     IDS_SOURCESWAPBLOCKED   "Troca Bloqueada"
@@ -1588,10 +1587,6 @@ BEGIN
                             "Ativando esta opção o eMule iniciará quando você iniciar o Windows."
     IDS_KAD_WAITCBK         "Aguardar retorno - Kad"
     IDS_KAD_TOOMANDYKADLKPS "Muitas pesquisas - Kad"
-//    IDS_PCDS_CLIENTWAIT     "Espera do Cliente"
-//    IDS_PCDS_CACHEWAIT      "Espera de Cache"
-//    IDS_CACHE               "Cache"//!
-    IDS_INDEXED             "Indexado"
     IDS_KADINFO_SRC         "\tFonte: %u\r\n"
     IDS_KADINFO_KEYW        "\tPalavra-Chave: %u\r\n"
     IDS_STARTWITHWINDOWS    "Iniciar com o Windows"
@@ -1673,8 +1668,6 @@ BEGIN
     IDS_EXTRACT_META_DATA   "Extrair metadados"
     IDS_META_DATA_MEDIADET  "DirectShow (Para todos os outros arquivos de áudio/vídeo)"
     IDS_META_DATA_ID3LIB    "Biblioteca ID3 (apenas para arquivos de áudio MPEG)"
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "A biblioteca Windows Common Controls (COMCTL32.DLL) é muito antiga!\r\n\r\nO eMule detectou uma versão da ""biblioteca Windows Common Controls"" (COMCTL32.DLL) que é muito antiga para ser utilizada pelo eMule. Para assegurar o funcionamento total e sem falhas do eMule, recomendamos que você atualize a ""biblioteca Windows Common Controls"" (COMCTL32.DLL) para a versão 5.8 ou superior.\r\n\r\nBaixe e instale a atualização no centro de downloads da Microsoft(R). Deseja acessar a URL correspondente?"
     IDS_ASREGEXPR           "Usar como expressão regular"
     IDS_STATIC_REGEXP       "Expressão regular para o filtro de visualização:"
     IDS_CARE4ALL            "Avaliar todos os arquivos"
@@ -1902,10 +1895,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Marcar como não Spam"
     IDS_SEARCHSPAMFILTER    "Habilitar filtro de spam para resultados de pesquisa"
     IDS_SHOWSMILEYS         "Exibir emojis"
-    IDS_CAPTCHAREQUEST      "Para evitar mensagens de spam, este usuário exige que você resolva um captcha antes de enviar a mensagem. Por favor digite as letras que você vê nessa imagem como resposta:"
+    IDS_CAPTCHAREQUEST      "Para evitar mensagens de spam, este usuário exige que você resolva um CAPTCHA antes de enviar a mensagem. Por favor digite as letras que você vê nessa imagem como resposta:"
     IDS_CAPTCHAFAILED       "Sua resposta está errada e sua mensagem foi ignorada. Você pode tentar novamente enviando uma nova mensagem."
     IDS_CAPTCHASOLVED       "Você passou na verificação e o usuário recebeu sua mensagem."
-    IDS_USECAPTCHAS         "Exigir autenticação com captcha"
+    IDS_USECAPTCHAS         "Exigir autenticação com CAPTCHA"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat da URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "Recebendo nodes.dat de %s"
     IDS_DOWNLOADING_NODESDAT "Recebendo nodes.dat..."
@@ -1967,7 +1960,7 @@ BEGIN
     IDS_SHOWWIN7TASKBARGOODIES
                             "Habilitar efeitos da barra de tarefas do Windows 7"
     IDS_WEB_HTTPS           "Usar HTTPS"
-    IDS_CERTIFICATE         "Certificado"
+    IDS_WEB_CERT            "Certificado"
     IDS_CERT_NOT_FOUND      "Certificado não encontrado"
     IDS_KEY_NOT_FOUND       "Chave não encontrada"
     IDS_IRC_IGNOREPINGPONGMESSAGE "Ignorar mensagens Ping? Pong!"

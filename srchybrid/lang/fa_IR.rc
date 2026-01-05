@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "fa_IR.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FAR)
 #ifdef _WIN32
 LANGUAGE LANG_FARSI, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -854,7 +854,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "پيغام خصوصي"
     IDS_WEB_REMOTE_LINK_ADDED "لينك اضافه شد: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED "لينك اضافه نشد.رمز عبور اشتباه است."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "در ابتدا قسمتهايي از فايل را كه براي پيش نمايش لازم است دانلود كن"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "در ابتدا قسمتهايي از فايل را كه براي پيش نمايش لازم است دانلود كن"
     IDS_IRC_KICK            "بيرون انداختن"
     IDS_IRC_SLAP            "چَك ميخواي!؟"
     IDS_IRC_JOIN            "پيوستن"
@@ -908,7 +908,6 @@ BEGIN
     IDS_NEWMSG              "پيغام جديد از '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "فقط در قفسه دسته بندي شده يكسان"
     IDS_LOG_ULDL_EVENTS     "گزارش  آپلود/دانلود تغييرات"
-//    IDS_PEERCACHE_ENABLED   "آي اس پي شما فضاي نگهداري موقت در سرويس دهنده ها را پشتيباني ميكند, در حال فعال كردن فضاي موقتي سرويس دهنده ها!َ"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "به كاربران ديگر اجازه بده كه تو را به عنوان دوست به ليست خود اضافه كنند."
     IDS_SOURCESWAPBLOCKED   "از مبادله جلوگيري شد"
     IDS_TRICKLING           "آماده باش"
@@ -1619,9 +1618,6 @@ BEGIN
                             "فعال کردن اين گزينه موجب مي شود که با آغاز ويندوز ايمول اجرا شود"
     IDS_KAD_WAITCBK         "باشيد Kad منتظر تماس مجدد"
     IDS_KAD_TOOMANDYKADLKPS "ها Kad مراجعات بيش از اندازه "
-//    IDS_PCDS_CLIENTWAIT     "مشتري(کلاينت) در حال انتظار"
-//    IDS_PCDS_CACHEWAIT      "انتظار براي ايجاد کش"
-//    IDS_CACHE               "فضاي موقت"
     IDS_INDEXED             "فهرست شده"
     IDS_KADINFO_SRC         "\tمنبع: %u\r\n"
     IDS_KADINFO_KEYW        "\tکلمات کليدي: %u\r\n"
@@ -1704,8 +1700,6 @@ BEGIN
     IDS_EXTRACT_META_DATA   "خارج کردن اطلاعات جانبي"
     IDS_META_DATA_MEDIADET  "نمايش مستقيم (براي تمام موارد ديگر audio/video files)"
     IDS_META_DATA_ID3LIB    "ID3 Library ( MPEG audio files فقط براي)"
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "بيش از حد قديمي است!(COMCTL32.DLL)کتابخانه معمولي ويندوز \r\n\r\nرا پيدا کرده که آنقدر قديمي است که ايمول نمي تواند به درستي از آن استفاده کند""Windows Common Controls library (COMCTL32.DLL)""ايمول نسخه اي از. را حداقل به نسخه5.8 آپدين کنيد ""Windows Common Controls library (COMCTL32.DLL)""براي اطمينان يافتن از عملکرد کامل و بي نقص ايمول اکيدا توصيه ميکنيم که \r\n\r\nدانلود و نصب کنيد آيا ميخواهيد آدرس وب مربوطه را ببينيد؟  Microsoft (R) Download Center را از سايت ""Windows Common Controls library (COMCTL32.DLL)"" آپديت"
     IDS_ASREGEXPR           "به عنوان توضيحات متداول"
     IDS_STATIC_REGEXP       "توضيحات متداول براي مشاهده فيلتر"
     IDS_CARE4ALL            "ارزيابي کردن همه فايل ها"

@@ -14,7 +14,7 @@ class CIPFilterDlg : public CResizableDialog
 	};
 
 public:
-	explicit CIPFilterDlg(CWnd *pParent = NULL);   // standard constructor
+	explicit CIPFilterDlg(CWnd *pParent = NULL);	// standard constructor
 	virtual	~CIPFilterDlg();
 
 protected:
@@ -31,7 +31,7 @@ protected:
 	static bool FindItem(const CListCtrlX &lv, int iItem, DWORD_PTR lParam);
 
 	virtual BOOL OnInitDialog();
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnDestroy();

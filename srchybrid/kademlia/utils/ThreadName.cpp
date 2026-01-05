@@ -45,7 +45,7 @@ namespace Kademlia
 		if (dwThreadID == NULL)
 			return;
 #pragma warning(push)
-#pragma warning(disable: 6320 6322)
+#pragma warning(disable:6320 6322)
 		__try {
 			va_list args;
 			va_start(args, szThreadName);
@@ -83,14 +83,14 @@ namespace Kademlia
 	{
 #ifdef DEBUG
 #pragma warning(push)
-#pragma warning(disable: 6320 6322)
+#pragma warning(disable:6320 6322)
 		__try {
 			va_list args;
 			va_start(args, szThreadName);
 			int iLenBuf = 0;
 			char *pcharBuffer = NULL;
 			int iLenResult;
-			do {
+			do { // the VS debugger truncates the string to 31 characters anyway!
 				iLenBuf += 128;
 				delete[] pcharBuffer;
 				pcharBuffer = new char[iLenBuf];

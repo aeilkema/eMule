@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "jp_JP.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
 #ifdef _WIN32
 LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -806,7 +806,7 @@ BEGIN
     IDS_WEB_REMOTE_LINK_ADDED "リンク追加: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED
                             "リンクを追加できません。パスワードが間違っています"
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS
                             "プレビューに必要な部品を最初にダウンロード"
     IDS_IRC_KICK            "キック"
     IDS_IRC_SLAP            "スラップ"
@@ -824,7 +824,6 @@ BEGIN
     IDS_NEWMSG              "'%s' (IP:%s)からの新しいメッセージ"
     IDS_PREF_STARTNEXTFILECATONLY "同じカテゴリ内のみ"
     IDS_LOG_ULDL_EVENTS     "アップロード/ダウンロードイベントのログを採る"
-//    IDS_PEERCACHE_ENABLED   "あなたのISPはキャッシュダウンロードを有効にすることで、PeerCache技術をサポートしています!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND
                             "ユーザーが友達としてあなたを加えることを許可"
     IDS_SOURCESWAPBLOCKED   "スワップがブロックされました"
@@ -1606,9 +1605,6 @@ BEGIN
                             "Windowsのスタートアップ時にeMuleを起動します。"
     IDS_KAD_WAITCBK         "Kadのコールバックを待機"
     IDS_KAD_TOOMANDYKADLKPS "Kad検索が過多"
-//    IDS_PCDS_CLIENTWAIT     "ClientWait"
-//    IDS_PCDS_CACHEWAIT      "CacheWait"
-//    IDS_CACHE               "キャッシュ"
     IDS_INDEXED             "インデックス済"
     IDS_KADINFO_SRC         "\tソース: %u\r\n"
     IDS_KADINFO_KEYW        "\tキーワードd: %u\r\n"
@@ -1695,8 +1691,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Windows Common Controls library (COMCTL32.DLL)のバージョンが古すぎます!\r\n\r\neMuleは適切な使用に耐えない程古いバージョンの""Windows Common Controls library (COMCTL32.DLL)""を検出しました。eMuleの機能を完全に利用する為には、""Windows Common Controls library (COMCTL32.DLL)""のバージョンを5.8以降のものにアップデートすることをお勧めします。\r\n\r\nMicrosoft (R)ダウンロードセンターで""Windows Common Controls library (COMCTL32.DLL)""のアップデータを入手/インストールして下さい。ダウンロードセンターを訪問しますか?"
     IDS_ASREGEXPR           "正規表現として使用"
     IDS_STATIC_REGEXP       "表示フィルタ用正規表現:"
     IDS_CARE4ALL            "全ファイルを評価"
@@ -1927,10 +1921,10 @@ BEGIN
     IDS_MARKNOTSPAM         "スパム印を解除する"
     IDS_SEARCHSPAMFILTER    "検索結果用のスパムフィルタを有効にする"
     IDS_SHOWSMILEYS         "スマイルマークを表示する"
-    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a captcha before you can send him a message. Please enter the letters you see on this image as response:"
-    IDS_CAPTCHAFAILED       "Your response to the captcha was wrong and your message has been ignored. You can request a new captcha by sending a new message."
-    IDS_CAPTCHASOLVED       "You have passed the captcha check and the user has received your message."
-    IDS_USECAPTCHAS         "Require captcha authentication"
+    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a CAPTCHA before you can send him a message. Please enter the letters you see on this image as response:"
+    IDS_CAPTCHAFAILED       "Your response to the CAPTCHA was wrong and your message has been ignored. You can request a new CAPTCHA by sending a new message."
+    IDS_CAPTCHASOLVED       "You have passed the CAPTCHA check and the user has received your message."
+    IDS_USECAPTCHAS         "Require CAPTCHA authentication"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat from URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "Downloading nodes.dat from %s"
     IDS_DOWNLOADING_NODESDAT "Downloading nodes.dat..."

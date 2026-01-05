@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( devs@emule-project.net / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( devs@emule-project.net / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -20,7 +20,6 @@
 #include "SharedFilesWnd.h"
 #include "OtherFunctions.h"
 #include "SharedFileList.h"
-#include "KnownFileList.h"
 #include "KnownFile.h"
 #include "UserMsgs.h"
 #include "HelpIDs.h"
@@ -64,6 +63,17 @@ CSharedFilesWnd::CSharedFilesWnd(CWnd *pParent /*=NULL*/)
 	, m_nFilterColumn()
 	, m_bDetailsVisible(true)
 {
+	switch (PRIMARYLANGID(::GetUserDefaultUILanguage())) {
+	case 0x4: //Chinese
+		vShift = 50;
+		break;
+	case 0x11: //Japanese
+	case 0x12: //Korean
+		vShift = 25;
+		break;
+	default:
+		vShift = 0;
+	}
 }
 
 CSharedFilesWnd::~CSharedFilesWnd()
@@ -92,7 +102,7 @@ BOOL CSharedFilesWnd::OnInitDialog()
 		m_ctlSharedDirTree.SendMessage(WM_SETFONT, NULL, FALSE);
 
 	m_ctlSharedListHeader.Attach(sharedfilesctrl.GetHeaderCtrl()->Detach());
-	CArray<int, int> aIgnore; // ignored no-text columns for filter edit
+	CArray<int> aIgnore; // ignored no-text columns for filter edit
 	aIgnore.Add(8); // shared parts
 	aIgnore.Add(11); // shared ed2k/kad
 	m_ctlFilter.OnInit(&m_ctlSharedListHeader, &aIgnore);
@@ -105,8 +115,7 @@ BOOL CSharedFilesWnd::OnInitDialog()
 	sharedfilesctrl.GetWindowRect(rcFiles);
 	ScreenToClient(rcFiles);
 	VERIFY(m_dlgDetails.Create(this, DS_CONTROL | DS_SETFONT | WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS, WS_EX_CONTROLPARENT));
-	m_dlgDetails.SetWindowPos(NULL, rcFiles.left, rcFiles.bottom + 4, rcFiles.Width() + 2, rcSpl.bottom - (rcFiles.bottom + 3), 0);
-	AddAnchor(m_dlgDetails, BOTTOM_LEFT, BOTTOM_RIGHT);
+	m_dlgDetails.SetWindowPos(NULL, rcFiles.left, rcFiles.bottom + 4 - vShift, rcFiles.Width() + 2, rcSpl.bottom - (rcFiles.bottom + 3) + vShift, 0);
 
 	rcSpl.left = rcSpl.right + SPLITTER_MARGIN;
 	rcSpl.right = rcSpl.left + SPLITTER_WIDTH;
@@ -114,6 +123,7 @@ BOOL CSharedFilesWnd::OnInitDialog()
 
 	AddAnchor(m_ctlSharedDirTree, TOP_LEFT, BOTTOM_LEFT);
 	AddAnchor(IDC_RELOADSHAREDFILES, TOP_RIGHT);
+	AddAnchor(m_dlgDetails, BOTTOM_LEFT, BOTTOM_RIGHT);
 	AddAllOtherAnchors();
 
 	int iPosStatInit = rcSpl.left;
@@ -174,9 +184,9 @@ void CSharedFilesWnd::DoResize(int iDelta)
 	AddAnchor(m_ctlSharedDirTree, TOP_LEFT, BOTTOM_LEFT);
 	AddAnchor(m_wndSplitter, TOP_LEFT, BOTTOM_LEFT);
 	AddAnchor(sharedfilesctrl, TOP_LEFT, BOTTOM_RIGHT);
-	AddAnchor(m_dlgDetails, BOTTOM_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_SF_FICON, BOTTOM_LEFT);
 	AddAnchor(IDC_SF_FNAME, BOTTOM_LEFT, BOTTOM_RIGHT);
+	AddAnchor(m_dlgDetails, BOTTOM_LEFT, BOTTOM_RIGHT);
 
 	RECT rcWnd;
 	GetWindowRect(&rcWnd);
@@ -255,7 +265,7 @@ BOOL CSharedFilesWnd::PreTranslateMessage(MSG *pMsg)
 
 			sharedfilesctrl.SetItemState(-1, 0, LVIS_SELECTED);
 			sharedfilesctrl.SetItemState(it, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-			sharedfilesctrl.SetSelectionMark(it);   // display selection mark correctly!
+			sharedfilesctrl.SetSelectionMark(it);	// display selection mark correctly!
 			sharedfilesctrl.ShowComments(reinterpret_cast<CShareableFile*>(sharedfilesctrl.GetItemData(it)));
 			return TRUE;
 		}
@@ -446,18 +456,18 @@ void CSharedFilesWnd::ShowDetailsPanel(bool bShow)
 		GetDlgItem(IDC_SF_FICON)->ShowWindow(SW_HIDE);
 		GetDlgItem(IDC_SF_FNAME)->ShowWindow(SW_HIDE);
 		button.SetWindowPos(NULL, rcFiles.right - rcButton.Width() + 1, rcSpl.bottom - rcDetailDlg.Height() + 2, 0, 0, SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE);
-		button.SetWindowText(_T("6"));
+		button.SetWindowText(_T("6")); //down
 	} else {
 		m_dlgDetails.ShowWindow(SW_HIDE);
 		sharedfilesctrl.SetWindowPos(NULL, 0, 0, rcFiles.Width(), rcSpl.bottom - rcFiles.top - rcButton.Height() + 1, SWP_NOMOVE | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE);
 		GetDlgItem(IDC_SF_FICON)->ShowWindow(SW_SHOW);
 		GetDlgItem(IDC_SF_FNAME)->ShowWindow(SW_SHOW);
 		button.SetWindowPos(NULL, rcFiles.right - rcButton.Width() + 1, rcSpl.bottom - rcButton.Height() + 1, 0, 0, SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE);
-		button.SetWindowText(_T("5"));
+		button.SetWindowText(_T("5")); //up
 	}
-
-	AddAnchor(sharedfilesctrl, TOP_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_SF_HIDESHOWDETAILS, BOTTOM_RIGHT);
+	AddAnchor(sharedfilesctrl, TOP_LEFT, BOTTOM_RIGHT);
+
 	sharedfilesctrl.SetFocus();
 	ShowSelectedFilesDetails();
 }

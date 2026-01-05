@@ -1,7 +1,6 @@
 #pragma once
 
 #include "WebSocket.h"
-#include "PartFile.h"
 #include "zlib/zlib.h"
 
 #define WEB_GRAPH_HEIGHT		120
@@ -12,28 +11,28 @@
 #define SHORT_LENGTH			40	// Max size for strings
 #define SHORT_LENGTH_MIN		30	// Max size for strings minimum
 
-typedef struct
+struct UpDown
 {
 	double download;
 	double upload;
 	long connections;
-} UpDown;
+};
 
-typedef struct
+struct Session
 {
 	CTime	startTime;
 	long	lSession;
 	int		lastcat;
 	bool	admin;
-} Session;
+};
 
 struct BadLogin
 {
-	uint32	datalen;
+	uint32	ip;
 	DWORD	timestamp;
 };
 
-typedef struct
+struct DownloadFiles
 {
 	CString	sCategory;
 	CString	sED2kLink;
@@ -58,9 +57,9 @@ typedef struct
 	bool	bIsComplete;
 	bool	bIsGetFLC;
 	bool	bIsPreview;
-} DownloadFiles;
+};
 
-typedef struct
+struct SharedFiles
 {
 	CString sFileCompletes;
 	CString sFileHash;
@@ -80,9 +79,9 @@ typedef struct
 	byte	nFilePriority;
 	bool	bIsPartFile;
 	bool	bFileAutoPriority;
-} SharedFiles;
+};
 
-typedef struct
+struct UploadUsers
 {
 	CString	sClientState;
 	CString	sUserHash;
@@ -96,9 +95,9 @@ typedef struct
 	uint64	nTransferredUp;
 	int		nDataRate;
 	TCHAR	sClientSoft[2];
-} UploadUsers;
+};
 
-typedef struct
+struct QueueUsers
 {
 	CString	sClientExtra;
 	CString	sClientNameVersion;
@@ -112,7 +111,7 @@ typedef struct
 	CString	sUserName;
 	uint32	nScore;
 	TCHAR	sClientSoft[2];
-} QueueUsers;
+};
 
 struct SortParams
 {
@@ -170,7 +169,7 @@ typedef enum
 	SHARED_SORT_PRIORITY
 } SharedSort;
 
-typedef struct
+struct ServerEntry
 {
 	CString	sServerDescription;
 	CString	sServerFullIP; //for sorting
@@ -189,7 +188,7 @@ typedef struct
 	int		nServerPort;
 	byte	nServerPriority;
 	bool	bServerStatic;
-} ServerEntry;
+};
 
 typedef enum
 {
@@ -206,11 +205,11 @@ typedef enum
 	SERVER_SORT_VERSION
 } ServerSort;
 
-typedef struct
+struct GlobalParams
 {
 	CArray<UpDown>	PointsForWeb;
 	CArray<Session>	Sessions;
-	CArray<BadLogin> badlogins;	//TransferredData= IP : time
+	CArray<BadLogin> badlogins;	//the data is {IP, time}
 
 	CString			sETag;
 	CString			sLastModified;
@@ -235,17 +234,17 @@ typedef struct
 	bool			bShowUploadQueueBanned;
 	bool			bShowUploadQueueFriend;
 	bool			bUploadSortReverse;
-} GlobalParams;
+};
 
-typedef struct
+struct ThreadData
 {
 	CString			sURL;
 	void			*pThis;
 	CWebSocket		*pSocket;
 	in_addr			inadr;
-} ThreadData;
+};
 
-typedef struct
+struct WebTemplates
 {
 	CString	sAddServerBox;
 	CString	sBootstrapLine;
@@ -295,7 +294,7 @@ typedef struct
 	CString	sUpArrow;
 	CString	sUpDoubleArrow;
 	uint16	iProgressbarWidth;
-} WebTemplates;
+};
 
 class CWebServer
 {
@@ -312,7 +311,7 @@ public:
 	void RestartSockets();
 	void AddStatsLine(const UpDown &line);
 	bool ReloadTemplates();
-	INT_PTR GetSessionCount()					{ return m_Params.Sessions.GetCount(); }
+	INT_PTR GetSessionCount() const				{ return m_Params.Sessions.GetCount(); }
 	bool IsRunning() const						{ return m_bServerWorking; }
 protected:
 	//all static method names have an underscore prefix
@@ -349,6 +348,7 @@ private:
 	static bool		_IsLoggedIn(const ThreadData &Data, long lSession);
 	static void		_RemoveTimeOuts(const ThreadData &Data);
 	static bool		_RemoveSession(const ThreadData &Data, long lSession);
+	static void		_LockSession(const ThreadData &Data, long lSession);
 	static CString	_SpecialChars(const CString &cstr, bool noquote = true);
 	static CString	_GetPlainResString(UINT nID, bool noquote = true);
 	static void		_GetPlainResString(CString &rstrOut, UINT nID, bool noquote = true);
@@ -377,10 +377,10 @@ private:
 	bool			_GetIsTempDisabled() const	{ return m_bIsTempDisabled; } //never used
 
 	//comparators for quick sort
-	static int AFX_CDECL _DownloadCmp(void *prm, void const *pv1, void const *pv2);
-	static int AFX_CDECL _ServerCmp(void *prm, void const *pv1, void const *pv2);
-	static int AFX_CDECL _SharedCmp(void *prm, void const *pv1, void const *pv2);
-	static int AFX_CDECL _UploadCmp(void *prm, void const *pv1, void const *pv2);
+	static int AFX_CDECL _DownloadCmp(void *prm, void const *pv1, void const *pv2) noexcept;
+	static int AFX_CDECL _ServerCmp(void *prm, void const *pv1, void const *pv2) noexcept;
+	static int AFX_CDECL _SharedCmp(void *prm, void const *pv1, void const *pv2) noexcept;
+	static int AFX_CDECL _UploadCmp(void *prm, void const *pv1, void const *pv2) noexcept;
 
 	// Common data
 	GlobalParams	m_Params;

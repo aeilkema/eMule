@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,17 +15,17 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
+#include <list>
+#include "CustomAutoComplete.h"
 #include "emule.h"
 #include "emuledlg.h"
+#include "HelpIDs.h"
+#include "Opcodes.h"
+#include "OtherFunctions.h"
 #include "SearchDlg.h"
 #include "SearchParamsWnd.h"
 #include "SearchResultsWnd.h"
-#include "OtherFunctions.h"
-#include "CustomAutoComplete.h"
-#include "HelpIDs.h"
-#include "Opcodes.h"
 #include "StringConversion.h"
-#include <list>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -95,8 +95,8 @@ LRESULT CSearchParamsWnd::OnInitDialog(WPARAM, LPARAM)
 	GetWindowRect(sizeDefault);
 	CRect rcBorders(4, 4, 4, 4);
 	SetBorders(rcBorders);
-	m_szFloat.cx = sizeDefault.Width() + rcBorders.left + rcBorders.right + ::GetSystemMetrics(SM_CXEDGE) * 2;
-	m_szFloat.cy = sizeDefault.Height() + rcBorders.top + rcBorders.bottom + ::GetSystemMetrics(SM_CYEDGE) * 2;
+	m_szFloat.SetSize(sizeDefault.Width() + rcBorders.left + rcBorders.right + ::GetSystemMetrics(SM_CXEDGE) * 2
+		, sizeDefault.Height() + rcBorders.top + rcBorders.bottom + ::GetSystemMetrics(SM_CYEDGE) * 2);
 	m_szMRU = m_szFloat;
 
 	UpdateData(FALSE);
@@ -165,8 +165,8 @@ LRESULT CSearchParamsWnd::OnInitDialog(WPARAM, LPARAM)
 
 	m_ctlOpts.ModifyStyle(0, WS_CLIPCHILDREN); // Does not help, control keeps flickering like mad
 	m_ctlOpts.SetExtendedStyle(LVS_EX_GRIDLINES | LVS_EX_LABELTIP);
-	m_ctlOpts.InsertColumn(0, GetResString(IDS_PARAMETER));
-	m_ctlOpts.InsertColumn(1, GetResString(IDS_VALUE));
+	m_ctlOpts.InsertColumn(0, _T(""));	//IDS_PARAMETER
+	m_ctlOpts.InsertColumn(1, _T(""));	//IDS_VALUE
 
 	m_ctlOpts.InsertItem(orMinSize, GetResString(IDS_SEARCHMINSIZE));
 	m_ctlOpts.InsertItem(orMaxSize, GetResString(IDS_SEARCHMAXSIZE));
@@ -212,16 +212,13 @@ CSize CSearchParamsWnd::CalcDynamicLayout(int nLength, DWORD dwMode)
 
 	if (dwMode & (LM_HORZDOCK | LM_VERTDOCK)) {
 		if (dwMode & LM_VERTDOCK) {
-			CSize szFloat;
-			szFloat.cx = MIN_VERT_WIDTH;
-			szFloat.cy = rcFrmClnt.Height() + ::GetSystemMetrics(SM_CYEDGE) * 2;
+			CSize szFloat(MIN_VERT_WIDTH, rcFrmClnt.Height() + ::GetSystemMetrics(SM_CYEDGE) * 2);
 			m_szFloat = szFloat;
 			return szFloat;
 		}
 		if (dwMode & LM_HORZDOCK) {
-			CSize szFloat;
-			szFloat.cx = rcFrmClnt.Width() + ::GetSystemMetrics(SM_CXEDGE) * 2;
-			szFloat.cy = m_sizeDefault.cy + rcBorders.top + rcBorders.bottom;
+			CSize szFloat(rcFrmClnt.Width() + ::GetSystemMetrics(SM_CXEDGE) * 2
+				, m_sizeDefault.cy + rcBorders.top + rcBorders.bottom);
 			m_szFloat = szFloat;
 			return szFloat;
 		}
@@ -239,16 +236,15 @@ CSize CSearchParamsWnd::CalcDynamicLayout(int nLength, DWORD dwMode)
 	CSize szFloat;
 	if ((dwMode & LM_LENGTHY) == 0) {
 		szFloat.cx = nLength;
-		if (nLength < m_sizeDefault.cx + rcBorders.left + rcBorders.right) {
-			szFloat.cx = MIN_VERT_WIDTH;
-			szFloat.cy = MIN_HORZ_WIDTH;
-		} else
+		if (nLength < m_sizeDefault.cx + rcBorders.left + rcBorders.right)
+			szFloat.SetSize(MIN_VERT_WIDTH, MIN_HORZ_WIDTH);
+		else
 			szFloat.cy = m_sizeDefault.cy + rcBorders.top + rcBorders.bottom;
 	} else {
 		szFloat.cy = nLength;
 		if (nLength < MIN_HORZ_WIDTH) {
-			szFloat.cx = m_sizeDefault.cx + rcBorders.left + rcBorders.right;
-			szFloat.cy = m_sizeDefault.cy + rcBorders.top + rcBorders.bottom;
+			szFloat.SetSize(m_sizeDefault.cx + rcBorders.left + rcBorders.right
+				, m_sizeDefault.cy + rcBorders.top + rcBorders.bottom);
 		} else
 			szFloat.cx = MIN_VERT_WIDTH;
 	}
@@ -282,13 +278,13 @@ void CSearchParamsWnd::OnSize(UINT nType, int cx, int cy)
 
 	if (m_ctlName.m_hWnd == NULL)
 		return;
+	CRect rcClient;
+	GetClientRect(&rcClient);
 	if (cx >= MIN_HORZ_WIDTH) {
-		CRect rcClient;
-		GetClientRect(&rcClient);
 		CalcInsideRect(rcClient, TRUE);
 
-		// resizing the name field instead the filter fields makes sense, because the filter input mostly
-		// stays small while a bigger name filed allows longer search queries without scrolling.
+		// resizing the name field instead of the filter fields makes sense, because the filter input mostly
+		// stays small while a bigger name field allows longer search queries without scrolling.
 		// however it doesn't look nice because of the asymmetry which is created by not resizing
 		// the method selectors but resizing them wouldn't make any sense at all, so we need to find a better
 		// build up at some point. For now stay with the old method which is not perfect but looks fair enough
@@ -351,9 +347,7 @@ void CSearchParamsWnd::OnSize(UINT nType, int cx, int cy)
 		int iCol2Width = rcOptsClnt.Width() - m_ctlOpts.GetColumnWidth(0) - 2/*(**1)*/;
 		if (m_ctlOpts.GetColumnWidth(1) != iCol2Width)
 			m_ctlOpts.SetColumnWidth(1, iCol2Width);
-	} else if (cx < MIN_HORZ_WIDTH) {
-		CRect rcClient;
-		GetClientRect(&rcClient);
+	} else { //cx < MIN_HORZ_WIDTH
 		CalcInsideRect(rcClient, FALSE);
 
 		int y = rcClient.top;
@@ -429,7 +423,7 @@ void CSearchParamsWnd::OnSize(UINT nType, int cx, int cy)
 
 void CSearchParamsWnd::OnUpdateCmdUI(CFrameWnd* /*pTarget*/, BOOL /*bDisableIfNoHndler*/)
 {
-	// Disable MFC's command routing by not passing the process flow to base class
+	// Disable MFC's command routing by not passing the process flow to the base class
 }
 
 void CSearchParamsWnd::UpdateControls()
@@ -528,7 +522,7 @@ public:
 
 	bool operator<(const SFileTypeCbEntry &e) const
 	{
-		return (m_strLabel.Compare(e.m_strLabel) < 0);
+		return m_strLabel.Compare(e.m_strLabel) < 0;
 	}
 
 	CString m_strLabel;
@@ -549,22 +543,26 @@ void CSearchParamsWnd::InitFileTypesCtrl()
 
 	m_ctlFileType.ResetContent();
 
-	// create temp. list of new entries (language dependent)
+	static const UINT aId[9] =
+	{
+		IDS_SEARCH_ANY, IDS_SEARCH_ARC, IDS_SEARCH_AUDIO, IDS_SEARCH_CDIMG, IDS_SEARCH_PICS
+		, IDS_SEARCH_PRG, IDS_SEARCH_VIDEO, IDS_SEARCH_DOC, IDS_SEARCH_EMULECOLLECTION
+	};
+	static LPCTSTR const aStr[9] =
+	{
+		_T(ED2KFTSTR_ANY), _T(ED2KFTSTR_ARCHIVE), _T(ED2KFTSTR_AUDIO), _T(ED2KFTSTR_CDIMAGE), _T(ED2KFTSTR_IMAGE)
+		, _T(ED2KFTSTR_PROGRAM), _T(ED2KFTSTR_VIDEO), _T(ED2KFTSTR_DOCUMENT), _T(ED2KFTSTR_EMULECOLLECTION)
+	};
+	ASSERT(_countof(aId) == _countof(aStr));
+	// create list of new entries (language dependent) for combo box
 	std::list<SFileTypeCbEntry> lstFileTypeCbEntries;
-	lstFileTypeCbEntries.emplace_back(GetResString(IDS_SEARCH_ANY), _T(ED2KFTSTR_ANY), 0);
-	lstFileTypeCbEntries.emplace_back(GetResString(IDS_SEARCH_ARC), _T(ED2KFTSTR_ARCHIVE), 1);
-	lstFileTypeCbEntries.emplace_back(GetResString(IDS_SEARCH_AUDIO), _T(ED2KFTSTR_AUDIO), 2);
-	lstFileTypeCbEntries.emplace_back(GetResString(IDS_SEARCH_CDIMG), _T(ED2KFTSTR_CDIMAGE), 3);
-	lstFileTypeCbEntries.emplace_back(GetResString(IDS_SEARCH_PICS), _T(ED2KFTSTR_IMAGE), 4);
-	lstFileTypeCbEntries.emplace_back(GetResString(IDS_SEARCH_PRG), _T(ED2KFTSTR_PROGRAM), 5);
-	lstFileTypeCbEntries.emplace_back(GetResString(IDS_SEARCH_VIDEO), _T(ED2KFTSTR_VIDEO), 6);
-	lstFileTypeCbEntries.emplace_back(GetResString(IDS_SEARCH_DOC), _T(ED2KFTSTR_DOCUMENT), 7);
-	lstFileTypeCbEntries.emplace_back(GetResString(IDS_SEARCH_EMULECOLLECTION), _T(ED2KFTSTR_EMULECOLLECTION), 8);
+	for (int i = 0; i < (int)_countof(aId); ++i)
+		lstFileTypeCbEntries.emplace_back(GetResString(aId[i]), aStr[i], i);
 
-	// sort list with the current language locale
+	// sort the list with the current language locale
 	lstFileTypeCbEntries.sort();
 
-	// fill combo box control with the already sorted list
+	// fill combo box control with the sorted list
 	for (std::list<SFileTypeCbEntry>::const_iterator it = lstFileTypeCbEntries.begin(); it != lstFileTypeCbEntries.end(); ++it) {
 		iItem = m_ctlFileType.AddItem((*it).m_strLabel, (*it).m_iImage);
 		if (iItem != CB_ERR)
@@ -581,7 +579,13 @@ void CSearchParamsWnd::InitFileTypesCtrl()
 
 void CSearchParamsWnd::Localize()
 {
+	static const UINT uids[] =
+	{
+		IDS_PARAMETER, IDS_VALUE, 0
+	};
+
 	SetWindowText(GetResString(IDS_SEARCHPARAMS));
+	LocaliseHeaderCtrl(m_ctlOpts.GetHeaderCtrl(), uids);
 
 	SetDlgItemText(IDC_MSTATIC3, GetResString(IDS_SW_NAME));
 	SetDlgItemText(IDC_MSTATIC7, GetResString(IDS_TYPE));
@@ -608,18 +612,6 @@ void CSearchParamsWnd::Localize()
 	m_ctlOpts.SetItemText(orTitle, 0, GetResString(IDS_TITLE));
 	m_ctlOpts.SetItemText(orAlbum, 0, GetResString(IDS_ALBUM));
 	m_ctlOpts.SetItemText(orArtist, 0, GetResString(IDS_ARTIST));
-
-	CHeaderCtrl *pHeaderCtrl = m_ctlOpts.GetHeaderCtrl();
-	HDITEM hdi;
-	hdi.mask = HDI_TEXT;
-
-	const CString &sHdr(GetResString(IDS_PARAMETER));
-	hdi.pszText = const_cast<LPTSTR>((LPCTSTR)sHdr);
-	pHeaderCtrl->SetItem(0, &hdi);
-
-	const CString &sHdr1(GetResString(IDS_VALUE));
-	hdi.pszText = const_cast<LPTSTR>((LPCTSTR)sHdr1);
-	pHeaderCtrl->SetItem(1, &hdi);
 }
 
 BOOL CSearchParamsWnd::PreTranslateMessage(MSG *pMsg)
@@ -724,11 +716,6 @@ void CSearchParamsWnd::OnDDClicked()
 BOOL CSearchParamsWnd::SaveSearchStrings()
 {
 	return m_pacSearchString && m_pacSearchString->SaveList(thePrefs.GetMuleDirectory(EMULE_CONFIGDIR) + SEARCH_STRINGS_PROFILE);
-}
-
-void CSearchParamsWnd::SaveSettings()
-{
-	SaveSearchStrings();
 }
 
 void CSearchParamsWnd::OnEnChangeName()

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -16,7 +16,6 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
 #include "emule.h"
-#include "HTRichEditCtrl.h"
 #include "emuledlg.h"
 #include "UpDownClient.h"
 #include "HelpIDs.h"
@@ -139,13 +138,13 @@ void CChatWnd::ShowFriendMsgDetails(CFriend *pFriend)
 				SetDlgItemText(IDC_FRIENDS_IDENTIFICACION_EDIT, GetResString(IDS_IDENTNOSUPPORT));
 
 			// Download
-			SetDlgItemText(IDC_FRIENDS_DESCARGADO_EDIT, CastItoXBytes(linkedc->Credits()->GetDownloadedTotal()));
+			SetDlgItemText(IDC_FRIENDS_DOWNLOADED_EDIT, CastItoXBytes(linkedc->Credits()->GetDownloadedTotal()));
 			// Upload
-			SetDlgItemText(IDC_FRIENDS_SUBIDO_EDIT, CastItoXBytes(linkedc->Credits()->GetUploadedTotal()));
+			SetDlgItemText(IDC_FRIENDS_UPLOADED_EDIT, CastItoXBytes(linkedc->Credits()->GetUploadedTotal()));
 		} else {
 			SetDlgItemText(IDC_FRIENDS_IDENTIFICACION_EDIT, _T("?"));
-			SetDlgItemText(IDC_FRIENDS_DESCARGADO_EDIT, _T("?"));
-			SetDlgItemText(IDC_FRIENDS_SUBIDO_EDIT, _T("?"));
+			SetDlgItemText(IDC_FRIENDS_DOWNLOADED_EDIT, _T("?"));
+			SetDlgItemText(IDC_FRIENDS_UPLOADED_EDIT, _T("?"));
 		}
 
 	} else {
@@ -153,8 +152,8 @@ void CChatWnd::ShowFriendMsgDetails(CFriend *pFriend)
 		SetDlgItemText(IDC_FRIENDS_USERHASH_EDIT, _T("-"));
 		SetDlgItemText(IDC_FRIENDS_CLIENTE_EDIT, _T("-"));
 		SetDlgItemText(IDC_FRIENDS_IDENTIFICACION_EDIT, _T("-"));
-		SetDlgItemText(IDC_FRIENDS_DESCARGADO_EDIT, _T("-"));
-		SetDlgItemText(IDC_FRIENDS_SUBIDO_EDIT, _T("-"));
+		SetDlgItemText(IDC_FRIENDS_DOWNLOADED_EDIT, _T("-"));
+		SetDlgItemText(IDC_FRIENDS_UPLOADED_EDIT, _T("-"));
 	}
 }
 
@@ -206,17 +205,17 @@ BOOL CChatWnd::OnInitDialog()
 
 	AddAnchor(IDC_FRIENDSICON, TOP_LEFT);
 	AddAnchor(IDC_FRIENDS_LBL, TOP_LEFT);
-	AddAnchor(IDC_FRIENDS_NAME, BOTTOM_LEFT);
-	AddAnchor(IDC_FRIENDS_USERHASH, BOTTOM_LEFT);
-	AddAnchor(IDC_FRIENDS_CLIENT, BOTTOM_LEFT);
-	AddAnchor(IDC_FRIENDS_IDENT, BOTTOM_LEFT);
-	AddAnchor(IDC_FRIENDS_UPLOADED, BOTTOM_LEFT);
 	AddAnchor(IDC_FRIENDS_DOWNLOADED, BOTTOM_LEFT);
+	AddAnchor(IDC_FRIENDS_UPLOADED, BOTTOM_LEFT);
+	AddAnchor(IDC_FRIENDS_IDENT, BOTTOM_LEFT);
+	AddAnchor(IDC_FRIENDS_CLIENT, BOTTOM_LEFT);
+	AddAnchor(IDC_FRIENDS_USERHASH, BOTTOM_LEFT);
+	AddAnchor(IDC_FRIENDS_NAME, BOTTOM_LEFT);
 	AddAnchor(m_wndSplitterHorz, TOP_LEFT, BOTTOM_LEFT);
 	AddAnchor(m_wndFormat, BOTTOM_LEFT);
-	AddAnchor(m_wndMessage, BOTTOM_LEFT, BOTTOM_RIGHT);
-	AddAnchor(m_wndSend, BOTTOM_RIGHT);
 	AddAnchor(m_wndClose, BOTTOM_RIGHT);
+	AddAnchor(m_wndSend, BOTTOM_RIGHT);
+	AddAnchor(m_wndMessage, BOTTOM_LEFT, BOTTOM_RIGHT);
 
 	int iPosStatInit = rcSpl.left;
 	int iPosStatNew = thePrefs.GetSplitterbarPositionFriend();
@@ -248,8 +247,8 @@ void CChatWnd::DoResize(int iDelta)
 	CSplitterControl::ChangeWidth(GetDlgItem(IDC_FRIENDS_USERHASH_EDIT), iDelta);
 	CSplitterControl::ChangeWidth(GetDlgItem(IDC_FRIENDS_CLIENTE_EDIT), iDelta);
 	CSplitterControl::ChangeWidth(GetDlgItem(IDC_FRIENDS_IDENTIFICACION_EDIT), iDelta);
-	CSplitterControl::ChangeWidth(GetDlgItem(IDC_FRIENDS_SUBIDO_EDIT), iDelta);
-	CSplitterControl::ChangeWidth(GetDlgItem(IDC_FRIENDS_DESCARGADO_EDIT), iDelta);
+	CSplitterControl::ChangeWidth(GetDlgItem(IDC_FRIENDS_UPLOADED_EDIT), iDelta);
+	CSplitterControl::ChangeWidth(GetDlgItem(IDC_FRIENDS_DOWNLOADED_EDIT), iDelta);
 	CSplitterControl::ChangeWidth(&chatselector, -iDelta, CW_RIGHTALIGN);
 	CSplitterControl::ChangePos(GetDlgItem(IDC_MESSAGES_LBL), -iDelta, 0);
 	CSplitterControl::ChangePos(GetDlgItem(IDC_MESSAGEICON), -iDelta, 0);
@@ -265,33 +264,33 @@ void CChatWnd::DoResize(int iDelta)
 	RemoveAnchor(m_FriendListCtrl);
 	AddAnchor(m_FriendListCtrl, TOP_LEFT, BOTTOM_LEFT);
 	RemoveAnchor(m_cUserInfo);
-	AddAnchor(m_cUserInfo, BOTTOM_LEFT, BOTTOM_LEFT);
-	RemoveAnchor(chatselector);
-	AddAnchor(chatselector, TOP_LEFT, BOTTOM_RIGHT);
-	RemoveAnchor(IDC_MESSAGES_LBL);
-	RemoveAnchor(IDC_MESSAGEICON);
-	RemoveAnchor(IDC_FRIENDS_NAME_EDIT);
-	AddAnchor(IDC_FRIENDS_NAME_EDIT, BOTTOM_LEFT);
-	RemoveAnchor(IDC_FRIENDS_USERHASH_EDIT);
-	AddAnchor(IDC_FRIENDS_USERHASH_EDIT, BOTTOM_LEFT);
-	RemoveAnchor(IDC_FRIENDS_CLIENTE_EDIT);
-	AddAnchor(IDC_FRIENDS_CLIENTE_EDIT, BOTTOM_LEFT);
-	RemoveAnchor(IDC_FRIENDS_IDENTIFICACION_EDIT);
-	AddAnchor(IDC_FRIENDS_IDENTIFICACION_EDIT, BOTTOM_LEFT);
-	RemoveAnchor(IDC_FRIENDS_SUBIDO_EDIT);
-	AddAnchor(IDC_FRIENDS_SUBIDO_EDIT, BOTTOM_LEFT);
-	RemoveAnchor(IDC_FRIENDS_DESCARGADO_EDIT);
-	AddAnchor(IDC_FRIENDS_DESCARGADO_EDIT, BOTTOM_LEFT);
+	AddAnchor(m_cUserInfo, BOTTOM_LEFT);
 	RemoveAnchor(m_wndSplitterHorz);
 	AddAnchor(m_wndSplitterHorz, TOP_LEFT, BOTTOM_LEFT);
+	RemoveAnchor(IDC_MESSAGES_LBL);
+	RemoveAnchor(IDC_MESSAGEICON);
+	RemoveAnchor(IDC_FRIENDS_DOWNLOADED_EDIT);
+	AddAnchor(IDC_FRIENDS_DOWNLOADED_EDIT, BOTTOM_LEFT);
+	RemoveAnchor(IDC_FRIENDS_UPLOADED_EDIT);
+	AddAnchor(IDC_FRIENDS_UPLOADED_EDIT, BOTTOM_LEFT);
+	RemoveAnchor(IDC_FRIENDS_IDENTIFICACION_EDIT);
+	AddAnchor(IDC_FRIENDS_IDENTIFICACION_EDIT, BOTTOM_LEFT);
+	RemoveAnchor(IDC_FRIENDS_CLIENTE_EDIT);
+	AddAnchor(IDC_FRIENDS_CLIENTE_EDIT, BOTTOM_LEFT);
+	RemoveAnchor(IDC_FRIENDS_USERHASH_EDIT);
+	AddAnchor(IDC_FRIENDS_USERHASH_EDIT, BOTTOM_LEFT);
+	RemoveAnchor(IDC_FRIENDS_NAME_EDIT);
+	AddAnchor(IDC_FRIENDS_NAME_EDIT, BOTTOM_LEFT);
+	RemoveAnchor(m_wndClose);
+	AddAnchor(m_wndClose, BOTTOM_RIGHT);
+	RemoveAnchor(m_wndSend);
+	AddAnchor(m_wndSend, BOTTOM_RIGHT);
 	RemoveAnchor(m_wndFormat);
 	AddAnchor(m_wndFormat, BOTTOM_LEFT);
 	RemoveAnchor(m_wndMessage);
 	AddAnchor(m_wndMessage, BOTTOM_LEFT, BOTTOM_RIGHT);
-	RemoveAnchor(m_wndSend);
-	AddAnchor(m_wndSend, BOTTOM_RIGHT);
-	RemoveAnchor(m_wndClose);
-	AddAnchor(m_wndClose, BOTTOM_RIGHT);
+	RemoveAnchor(chatselector);
+	AddAnchor(chatselector, TOP_LEFT, BOTTOM_RIGHT);
 
 	AddAllOtherAnchors();
 
@@ -457,16 +456,9 @@ void CChatWnd::ScrollHistory(bool down)
 	else
 		--ci->history_pos;
 
-	LPCTSTR pTxt;
-	DWORD len;
-	if (ci->history_pos >= last) {
-		pTxt = (LPCTSTR)ci->history[last];
-		len = ci->history[last].GetLength();
-	} else {
-		pTxt = _T("");
-		len = 0;
-	}
-	m_wndMessage.SetWindowText(pTxt);
+	const CString &sTxt((ci->history_pos < last) ? ci->history[ci->history_pos] : _T(""));
+	m_wndMessage.SetWindowText(sTxt);
+	int len = sTxt.GetLength();
 	m_wndMessage.SetSel(len, len);
 }
 
@@ -476,10 +468,10 @@ void CChatWnd::OnSysColorChange()
 	SetAllIcons();
 }
 
-void CChatWnd::UpdateFriendlistCount(INT_PTR count)
+void CChatWnd::UpdateFriendlistCount()
 {
 	CString sCount;
-	sCount.Format(_T("%s (%u)"), (LPCTSTR)GetResString(IDS_CW_FRIENDS), (unsigned)count);
+	sCount.Format(_T("%s (%u)"), (LPCTSTR)GetResString(IDS_CW_FRIENDS), (unsigned)theApp.friendlist->GetCount());
 	SetDlgItemText(IDC_FRIENDS_LBL, sCount);
 }
 

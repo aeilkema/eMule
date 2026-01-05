@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "hu_HU.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_HUN)
 #ifdef _WIN32
 LANGUAGE LANG_HUNGARIAN, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -1549,9 +1549,8 @@ BEGIN
     IDS_NEWMSG              "'%s' új üzenetet küldött (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "csak azonos kategóriában"
     IDS_LOG_ULDL_EVENTS     "Fel/letöltések naplózása"
-//    IDS_PEERCACHE_ENABLED   "Az internetszolgáltatód támogatja a PeerCache-t, engedélyezem a gyorsítótáras letöltést!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Megengedem a felhasználónak hogy barátnak felvegyen."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Az előnézethez szükséges részeket töltse le hamarébb"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Az előnézethez szükséges részeket töltse le hamarébb"
 END
 
 STRINGTABLE
@@ -1591,9 +1590,6 @@ BEGIN
                             "Ezt kapcsold be, ha a Windows indításkor induljon az eMule."
     IDS_KAD_WAITCBK         "Kad visszahívásra várás"
     IDS_KAD_TOOMANDYKADLKPS "Túl sok KAD keresés"
-//    IDS_PCDS_CLIENTWAIT     "Kliensre várok"
-//    IDS_PCDS_CACHEWAIT      "Gyorsítótárra várok"
-//    IDS_CACHE               "Gyorsítótár"
     IDS_INDEXED             "Indexelve"
     IDS_KADINFO_SRC         "\tForrás: %u\r\n"
     IDS_KADINFO_KEYW        "\tKulcsszó: %u\r\n"
@@ -1689,8 +1685,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "A Windows Common Controls library (COMCTL32.DLL) túl régi!\r\n\r\nÉszrevettem, hogy a ""Windows Common Controls library (COMCTL32.DLL)"" olyan régi, hogy nem tudom megfelelően használni. A teljes és zökkenőmentes működés érdekében nagyon ajánlott, hogy frissítsd a ""Windows Common Controls library (COMCTL32.DLL)"" fájlt legalább 5.8-as verzióra.\r\n\r\nA ""Windows Common Controls library (COMCTL32.DLL)"" a Microsoft (R) Letöltőközpontban elérhető. Meglátogatod az oldalt?"
     IDS_ASREGEXPR           "mint reguláris kifejezés"
     IDS_STATIC_REGEXP       "Reguláris kifejezés a nézetszűrőben:"
     IDS_CARE4ALL            "Minden fájl kiértékelése"
@@ -1927,10 +1921,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Mark as not Spam"
     IDS_SEARCHSPAMFILTER    "Enable Spam Filter for search results"
     IDS_SHOWSMILEYS         "Show Smileys"
-    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a captcha before you can send him a message. Please enter the letters you see on this image as response:"
-    IDS_CAPTCHAFAILED       "Your response to the captcha was wrong and your message has been ignored. You can request a new captcha by sending a new message."
-    IDS_CAPTCHASOLVED       "You have passed the captcha check and the user has received your message."
-    IDS_USECAPTCHAS         "Require captcha authentication"
+    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a CAPTCHA before you can send him a message. Please enter the letters you see on this image as response:"
+    IDS_CAPTCHAFAILED       "Your response to the CAPTCHA was wrong and your message has been ignored. You can request a new CAPTCHA by sending a new message."
+    IDS_CAPTCHASOLVED       "You have passed the CAPTCHA check and the user has received your message."
+    IDS_USECAPTCHAS         "Require CAPTCHA authentication"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat from URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "Downloading nodes.dat from %s"
     IDS_DOWNLOADING_NODESDAT "Downloading nodes.dat..."

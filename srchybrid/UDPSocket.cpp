@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -133,7 +133,7 @@ bool CUDPSocket::Create()
 		VERIFY(m_udpwnd.CreateEx(0, AfxRegisterWndClass(0), _T("eMule Async DNS Resolver Socket #1"), 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, 0));
 		m_hWndResolveMessage = m_udpwnd.m_hWnd;
 		m_udpwnd.m_pOwner = this;
-		if (CAsyncSocket::Create(thePrefs.GetServerUDPPort() == _UI16_MAX ? 0 : thePrefs.GetServerUDPPort(), SOCK_DGRAM, FD_READ | FD_WRITE, thePrefs.GetBindAddrW()))
+		if (CAsyncSocket::Create(thePrefs.GetServerUDPPort() == _UI16_MAX ? 0 : thePrefs.GetServerUDPPort(), SOCK_DGRAM, FD_READ | FD_WRITE, thePrefs.GetBindAddr()))
 			return true;
 		LogError(LOG_STATUSBAR, _T("Error: Server UDP socket: Failed to create server UDP socket - %s"), (LPCTSTR)GetErrorMessage(CAsyncSocket::GetLastError()));
 	}
@@ -495,10 +495,8 @@ bool CUDPSocket::ProcessPacket(const BYTE *packet, UINT size, UINT opcode, uint3
 						; // ignore this packet
 					}
 				} else {
-					const CString &strName(srvinfo.ReadString(true/*pServer->GetUnicodeSupport()*/));
-					const CString &strDesc(srvinfo.ReadString(true/*pServer->GetUnicodeSupport()*/));
-					pServer->SetDescription(strDesc);
-					pServer->SetListName(strName);
+					pServer->SetDescription((CString)srvinfo.ReadString(true));
+					pServer->SetListName((CString)srvinfo.ReadString(true));
 				}
 
 				if (thePrefs.GetDebugServerUDPLevel() > 0) {
@@ -526,7 +524,7 @@ bool CUDPSocket::ProcessPacket(const BYTE *packet, UINT size, UINT opcode, uint3
 		if (opcode == OP_GLOBSEARCHRES || opcode == OP_GLOBFOUNDSOURCES)
 			return true;
 	} catch (CMemoryException *ex) {
-		ProcessPacketError(size, opcode, nIP, nUDPPort, (LPCTSTR)CExceptionStr(*ex));
+		ProcessPacketError(size, opcode, nIP, nUDPPort, CExceptionStr(*ex));
 		ex->Delete();
 		//ASSERT(0);
 		if (opcode == OP_GLOBSEARCHRES || opcode == OP_GLOBFOUNDSOURCES)
@@ -655,10 +653,10 @@ void CUDPSocket::OnSend(int nErrorCode)
 
 // ZZ:UploadBandWithThrottler (UDP) -->
 	sendLocker.Lock();
-	if (!controlpacket_queue.IsEmpty())
-		theApp.uploadBandwidthThrottler->QueueForSendingControlPacket(this);
-
+	bool bQueue = !controlpacket_queue.IsEmpty();
 	sendLocker.Unlock();
+	if (bQueue)
+		theApp.uploadBandwidthThrottler->QueueForSendingControlPacket(this);
 // <-- ZZ:UploadBandWithThrottler (UDP)
 }
 
@@ -685,12 +683,11 @@ SocketSentBytes CUDPSocket::SendControlData(uint32 maxNumberOfBytesToSend, uint3
 	}
 
 // ZZ:UploadBandWithThrottler (UDP) -->
-	if (!IsBusy() && !controlpacket_queue.IsEmpty())
-		theApp.uploadBandwidthThrottler->QueueForSendingControlPacket(this);
-
+	bool bQueue = !IsBusy() && !controlpacket_queue.IsEmpty();
 	sendLocker.Unlock();
-
-	return SocketSentBytes{ 0, sentBytes, true };
+	if (bQueue)
+		theApp.uploadBandwidthThrottler->QueueForSendingControlPacket(this);
+	return SocketSentBytes{0, sentBytes, true};
 // <-- ZZ:UploadBandWithThrottler (UDP)
 }
 

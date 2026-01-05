@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "fr_FR.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FRA)
 #ifdef _WIN32
 LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -468,7 +468,7 @@ BEGIN
     IDS_PW_INCOMING         "Fichiers terminés"
     IDS_PW_TEMP             "Fichiers temporaires"
     IDS_PW_BROWSE           "Parcourir"
-    IDS_PW_SHARED           "Dossiers partagés (Ctrl-clic pour inclure les sous-dossiers)"
+    IDS_PW_SHARED           "Dossiers partagés (Ctrl+clic pour inclure les sous-dossiers)"
     IDS_CONNECTION          "Connexion"
     IDS_PW_DOWNL            "Limite R"
     IDS_PW_UPL              "Limite E"
@@ -1543,9 +1543,8 @@ BEGIN
     IDS_NEWMSG              "Nouveau message de '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "Uniquement dans la même catégorie"
     IDS_LOG_ULDL_EVENTS     "Consigner les évènements d'émission/réception"
-//    IDS_PEERCACHE_ENABLED   "Votre FAI supporte la technologie PeerCache, cache activé !"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Autoriser l'utilisateur à vous ajouter à sa liste d'amis."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Priorité aux parties nécessaires à l'aperçu"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Priorité aux parties nécessaires à l'aperçu"
 END
 
 STRINGTABLE
@@ -1585,9 +1584,6 @@ BEGIN
                             "Lancer eMule au démarrage de Windows (désactivé par défaut)"
     IDS_KAD_WAITCBK         "Attente de PCV Kad"
     IDS_KAD_TOOMANDYKADLKPS "Trop de consultations Kad"
-//    IDS_PCDS_CLIENTWAIT     "Attente client"
-//    IDS_PCDS_CACHEWAIT      "Attente cache"
-//    IDS_CACHE               "Cache" //!
     IDS_INDEXED             "Indexé"
     IDS_KADINFO_SRC         "\tSource: %u\r\n" //!
     IDS_KADINFO_KEYW        "\tMot-clé: %u\r\n"
@@ -1683,8 +1679,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                           "Votre bibliothèque Windows COMCTL32.DLL est obsolète!\r\n\r\neMule a détecté une version obsolète. Pour assurer le bon fonctionnement d'eMule, nous vous recommandons vivement de mettre à jour votre version actuelle vers au minimum la version 5.8.\r\n\r\nInstallez une mise à jour de la bibliothèque COMCTL32.DLL après l'avoir téléchargée sur le Centre de Téléchargement de Microsoft ®. Voulez-vous visiter le site correspondant ?"
     IDS_ASREGEXPR          "En tant qu'expression régulière"
     IDS_STATIC_REGEXP      "Expression régulière pour filtre de visualisation :"
     IDS_CARE4ALL           "Tester tous les fichiers"

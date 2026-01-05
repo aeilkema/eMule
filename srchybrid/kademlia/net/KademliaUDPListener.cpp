@@ -1,6 +1,6 @@
 /*
 Copyright (C)2003 Barry Dunne (https://www.emule-project.net)
-Copyright (C)2007-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+Copyright (C)2007-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 
 
 This program is free software; you can redistribute it and/or
@@ -37,7 +37,6 @@ their client on the eMule forum.
 #include "emuledlg.h"
 #include "ipfilter.h"
 #include "KadContactListCtrl.h"
-#include "kademliawnd.h"
 #include "listensocket.h"
 #include "Log.h"
 #include "opcodes.h"
@@ -62,9 +61,6 @@ their client on the eMule forum.
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
-
-extern LPCSTR g_aszInvKadKeywordCharsA;
-extern LPCWSTR g_awszInvKadKeywordChars;
 
 using namespace Kademlia;
 
@@ -108,7 +104,7 @@ void CKademliaUDPListener::SendMyDetails(byte byOpcode, uint32 uIP, uint16 uUDPP
 {
 	if (byKadVersion > 1) {
 		byte byPacket[1024];
-		CByteIO byteIOResponse(byPacket, sizeof(byPacket));
+		CByteIO byteIOResponse(byPacket, sizeof byPacket);
 		byteIOResponse.WriteByte(OP_KADEMLIAHEADER);
 		byteIOResponse.WriteByte(byOpcode);
 		byteIOResponse.WriteUInt128(CKademlia::GetPrefs()->GetKadID());
@@ -436,12 +432,12 @@ bool CKademliaUDPListener::AddContact_KADEMLIA2(const byte *pbyData, uint32 uLen
 	for (unsigned uTags = byteIO.ReadByte(); uTags > 0; --uTags) {
 		const CKadTag *pTag = byteIO.ReadTag();
 
-		if (!pTag->m_name.Compare(TAG_SOURCEUPORT)) {
+		if (pTag->m_name == TAG_SOURCEUPORT) {
 			if (pTag->IsInt() && (uint16)pTag->GetInt() > 0)
 				uUDPPort = (uint16)pTag->GetInt();
 			else
 				ASSERT(0);
-		} else if (!pTag->m_name.Compare(TAG_KADMISCOPTIONS)) {
+		} else if (pTag->m_name == TAG_KADMISCOPTIONS){
 			if (pTag->IsInt() && (uint16)pTag->GetInt() > 0) {
 				bUDPFirewalled = (pTag->GetInt() & 0x01) > 0;
 				bTCPFirewalled = (pTag->GetInt() & 0x02) > 0;
@@ -462,9 +458,7 @@ bool CKademliaUDPListener::AddContact_KADEMLIA2(const byte *pbyData, uint32 uLen
 		POSITION pos2 = pos;
 		const FetchNodeID_Struct &fnode = listFetchNodeIDRequests.GetNext(pos);
 		if (fnode.dwIP == uIP && fnode.dwTCPPort == uTCPPort) {
-			CString strID;
-			uID.ToHexString(strID);
-			DebugLog(_T("Result Addcontact: %s"), (LPCTSTR)strID);
+			DebugLog(_T("Result Addcontact: %s"), (LPCTSTR)uID.ToHexString());
 			uchar uchID[16];
 			uID.ToByteArray(uchID);
 			fnode.pRequester->KadSearchNodeIDByIPResult(KCSR_SUCCEEDED, uchID);
@@ -474,7 +468,7 @@ bool CKademliaUDPListener::AddContact_KADEMLIA2(const byte *pbyData, uint32 uLen
 	}
 
 	if (bFromHelloReq && uVersion >= KADEMLIA_VERSION8_49b) {
-		// This is just for statistic calculations. We try to determine the ratio of (UDP) firewalled users,
+		// This is only for statistic calculations. We try to determine the ratio of (UDP) firewalled users,
 		// by counting how many of all nodes, which have us in their routing table (our own routing table is supposed
 		// to have no UDP firewalled nodes at all) and support the firewalled tag, are firewalled themselves.
 		// Obviously this only works if we are not firewalled ourselves
@@ -539,8 +533,8 @@ void CKademliaUDPListener::Process_KADEMLIA2_BOOTSTRAP_RES(const byte *pbyPacket
 	fileIO.ReadUInt128(uContactID);
 	uint16 uTCPPort = fileIO.ReadUInt16();
 	uint8 uVersion = fileIO.ReadUInt8();
-	// If we don't know any Contacts yet and try to Bootstrap, we assume that all contacts are verified,
-	// in order to speed up the connecting process. The attack vectors to exploit this are very small
+	// If we don't know any Contacts yet and try to Bootstrap, we assume that all contacts are verified
+	// in order to speed up connection process. The attack vectors to exploit this are very small
 	// with no major effects, so that's a good trade-off
 	bool bAssumeVerified = CKademlia::GetRoutingZone()->GetNumContacts() == 0;
 
@@ -572,7 +566,7 @@ void CKademliaUDPListener::Process_KADEMLIA2_HELLO_REQ(const byte *pbyPacketData
 		DebugSend("KADEMLIA2_HELLO_RES", uIP, uUDPPort);
 	// if this contact was added or updated (in other words, not filtered or invalid) to our routing table and did not already sent a valid
 	// receiver key or is already verified in the routing table, we request an additional ACK package to complete a three-way-handshake and
-	// verify the remotes IP
+	// verify the remote's IP
 	SendMyDetails(KADEMLIA2_HELLO_RES, uIP, uUDPPort, byContactVersion, senderUDPKey, &uContactID, bAddedOrUpdated && !bValidReceiverKey);
 
 	if (bAddedOrUpdated && !bValidReceiverKey && byContactVersion == KADEMLIA_VERSION7_49a && !HasActiveLegacyChallenge(uIP)) {
@@ -700,7 +694,7 @@ void CKademliaUDPListener::Process_KADEMLIA2_REQ(const byte *pbyPacketData, uint
 	CUInt128 uCheck;
 	fileIO.ReadUInt128(uCheck);
 	if (CKademlia::GetPrefs()->GetKadID() == uCheck) {
-		// Get required number closest to target
+		// Get required number of closest to the target
 		ContactMap results;
 		CKademlia::GetRoutingZone()->GetClosestTo(2, uTarget, uDistance, (uint32)byType, results);
 		uint8 uCount = static_cast<uint8>(results.size());
@@ -741,7 +735,7 @@ void CKademliaUDPListener::Process_KADEMLIA2_RES(const byte *pbyPacketData, uint
 	//Used Pointers
 	CRoutingZone *pRoutingZone = CKademlia::GetRoutingZone();
 
-	// don't do firewall checks on this opcode any more, since we need the contacts kad version - hello opcodes are good enough
+	// don't do firewall checks on this opcode any more, since we need the contact's kad version - hello opcodes are good enough
 	/*if(CKademlia::GetPrefs()->GetRecheckIP())
 	{
 		FirewalledCheck(uIP, uUDPPort, senderUDPKey);
@@ -760,15 +754,15 @@ void CKademliaUDPListener::Process_KADEMLIA2_RES(const byte *pbyPacketData, uint
 	CUInt128 uContactID;
 	if (IsLegacyChallenge(uTarget, uIP, KADEMLIA2_REQ, uContactID)) {
 		// yup it is, set the contact as verified
-		if (!CKademlia::GetRoutingZone()->VerifyContact(uContactID, uIP))
-			DebugLogWarning(_T("Kad: KADEMLIA2_RES: Unable to find valid sender in routing table (sender: %s)"), (LPCTSTR)ipstr(htonl(uIP)));
-		else
+		if (CKademlia::GetRoutingZone()->VerifyContact(uContactID, uIP))
 			DEBUG_ONLY(AddDebugLogLine(DLP_VERYLOW, false, _T("Verified contact with legacy challenge (KADEMLIA2_REQ) - %s"), (LPCTSTR)ipstr(htonl(uIP))));
+		else
+			DebugLogWarning(_T("Kad: KADEMLIA2_RES: Unable to find valid sender in routing table (sender: %s)"), (LPCTSTR)ipstr(htonl(uIP)));
 		return; // we do not actually care for its other content
 	}
 
-	// Verify packet is expected size
-	if (uLenPacket != (uint32)(16 + 1 + (16 + 4 + 2 + 2 + 1)*uNumContacts)) {
+	// Verify packet has the expected size
+	if (uLenPacket != (uint32)(16 + 1 + (16 + 4 + 2 + 2 + 1) * uNumContacts)) {
 		CString strError;
 		strError.Format(_T("***NOTE: Received wrong size (%u) packet in %hs"), uLenPacket, __FUNCTION__);
 		throw strError;
@@ -808,8 +802,8 @@ void CKademliaUDPListener::Process_KADEMLIA2_RES(const byte *pbyPacketData, uint
 							// UDP FirewallCheck searches are special. The point is we need an IP which we didn't send a UDP message yet
 							// (or in the near future), so we do not try to add those contacts to our routing zone, and we also don't
 							// deliver them back to the search manager (because it would UDP-ask them for further results), but only report
-							// them to FirewallCheck - this will of course cripple the search but that's not the point, since we only
-							// care for IPs and not the randomly set target
+							// them to FirewallCheck - this will of course cripple the search but that's unimportant, since we only
+							// care for IPs, not for a randomly set target
 							CUDPFirewallTester::AddPossibleTestContact(uIDResult, uIPResult, uUDPPortResult, uTCPPortResult, uTarget, uVersion, CKadUDPKey(), false);
 						} else {
 							bool bVerified = false;
@@ -851,32 +845,32 @@ void CKademliaUDPListener::Free(SSearchTerm *pSearchTerms)
 	}
 }
 
-static void TokenizeOptQuotedSearchTerm(LPCTSTR pszString, CStringWArray *lst)
+static void TokenizeOptQuotedSearchTerm(LPCWSTR pszString, CStringWArray *lst)
 {
-	for (LPCTSTR pch = pszString; *pch != _T('\0');) {
-		if (*pch == _T('"')) {
+	for (LPCWSTR pch = pszString; *pch != L'\0';) {
+		if (*pch == L'"') {
 			// Start of quoted string found. If there is no terminating quote character found,
 			// the start quote character is just skipped. If the quoted string is empty, no
 			// new entry is added to 'list'.
 			//
 			++pch;
-			LPCTSTR pchNextQuote = _tcschr(pch, _T('"'));
+			LPCWSTR pchNextQuote = wcschr(pch, L'"');
 			if (pchNextQuote) {
 				size_t nLenQuoted = pchNextQuote - pch;
 				if (nLenQuoted)
-					lst->Add(CString(pch, (int)nLenQuoted));
+					lst->Add(CStringW(pch, (int)nLenQuoted));
 				pch = pchNextQuote + 1;
 			}
 		} else {
 			// Search for next delimiter or quote character
 			//
-			size_t nNextDelimiter = _tcscspn(pch, _T(INV_KAD_KEYWORD_CHARS));
+			size_t nNextDelimiter = wcscspn(pch, g_szInvKadKeywordCharsW);
 			if (nNextDelimiter) {
-				lst->Add(CString(pch, (int)nNextDelimiter));
+				lst->Add(CStringW(pch, (int)nNextDelimiter));
 				pch += nNextDelimiter;
-				if (*pch == _T('\0'))
+				if (*pch == L'\0')
 					break;
-				if (*pch == _T('"'))
+				if (*pch == L'"')
 					continue;
 			}
 			++pch;
@@ -969,7 +963,7 @@ SSearchTerm* CKademliaUDPListener::CreateSearchExpressionTree(CSafeMemFile &file
 
 			KadTagStrMakeLower(str); // make lower case, the search code expects lower case strings!
 			if (s_pstrDbgSearchExpr)
-				s_pstrDbgSearchExpr->AppendFormat(_T(" \"%ls\""), (LPCTSTR)str);
+				s_pstrDbgSearchExpr->AppendFormat(_T(" \"%ls\""), (LPCWSTR)str);
 
 			SSearchTerm *pSearchTerm = new SSearchTerm;
 			pSearchTerm->m_type = SSearchTerm::String;
@@ -996,12 +990,12 @@ SSearchTerm* CKademliaUDPListener::CreateSearchExpressionTree(CSafeMemFile &file
 			SSearchTerm *pSearchTerm = new SSearchTerm;
 			pSearchTerm->m_type = SSearchTerm::MetaTag;
 			pSearchTerm->m_pTag = new Kademlia::CKadTagStr(strTagName, strValue);
-			if (s_pstrDbgSearchExpr) {
+			if (s_pstrDbgSearchExpr)
 				if (lenTagName == 1)
-					s_pstrDbgSearchExpr->AppendFormat(_T(" Tag%02X=\"%ls\""), (BYTE)strTagName[0], (LPCTSTR)strValue);
+					s_pstrDbgSearchExpr->AppendFormat(_T(" Tag%02X=\"%ls\""), (byte)strTagName[0], (LPCWSTR)strValue);
 				else
-					s_pstrDbgSearchExpr->AppendFormat(_T(" \"%hs\"=\"%ls\""), (LPCSTR)strTagName, (LPCTSTR)strValue);
-			}
+					s_pstrDbgSearchExpr->AppendFormat(_T(" \"%hs\"=\"%ls\""), (LPCSTR)strTagName, (LPCWSTR)strValue);
+
 			return pSearchTerm;
 		}
 	case 0x03: // Numeric Relation 32-bit
@@ -1041,10 +1035,9 @@ SSearchTerm* CKademliaUDPListener::CreateSearchExpressionTree(CSafeMemFile &file
 			SSearchTerm *pSearchTerm = new SSearchTerm;
 			pSearchTerm->m_type = _aOps[mmop].eSearchTermOp;
 			pSearchTerm->m_pTag = new Kademlia::CKadTagUInt64(strTagName, ullValue);
-
 			if (s_pstrDbgSearchExpr)
 				if (uLenTagName == 1)
-					s_pstrDbgSearchExpr->AppendFormat(_T(" Tag%02X%s%I64u"), (BYTE)strTagName[0], _aOps[mmop].pszOp, ullValue);
+					s_pstrDbgSearchExpr->AppendFormat(_T(" Tag%02X%s%I64u"), (byte)strTagName[0], _aOps[mmop].pszOp, ullValue);
 				else
 					s_pstrDbgSearchExpr->AppendFormat(_T(" \"%hs\"%s%I64u"), (LPCSTR)strTagName, _aOps[mmop].pszOp, ullValue);
 
@@ -1214,13 +1207,13 @@ void CKademliaUDPListener::Process_KADEMLIA2_PUBLISH_KEY_REQ(const byte *pbyPack
 			for (unsigned uTags = byteIO.ReadByte(); uTags > 0; --uTags) {
 				pTag = byteIO.ReadTag();
 				if (pTag) {
-					if (!pTag->m_name.Compare(TAG_FILENAME)) {
+					if (pTag->m_name == TAG_FILENAME) {
 						if (pEntry->GetCommonFileName().IsEmpty()) {
 							pEntry->SetFileName(pTag->GetStr());
 							if (bDbgInfo)
-								sInfo.AppendFormat(_T("  Name=\"%ls\""), (LPCTSTR)pEntry->GetCommonFileName());
+								sInfo.AppendFormat(_T("  Name=\"%ls\""), (LPCWSTR)pEntry->GetCommonFileName());
 						}
-					} else if (!pTag->m_name.Compare(TAG_FILESIZE)) {
+					} else if (pTag->m_name == TAG_FILESIZE) {
 						if (pEntry->m_uSize == 0) {
 							if (pTag->IsBsob() && pTag->GetBsobSize() == 8)
 								pEntry->m_uSize = *((uint64*)pTag->GetBsob());
@@ -1229,7 +1222,7 @@ void CKademliaUDPListener::Process_KADEMLIA2_PUBLISH_KEY_REQ(const byte *pbyPack
 							if (bDbgInfo)
 								sInfo.AppendFormat(_T("  Size=%I64u"), pEntry->m_uSize);
 						}
-					} else if (!pTag->m_name.Compare(TAG_KADAICHHASHPUB)) {
+					} else if (pTag->m_name == TAG_KADAICHHASHPUB) {
 						if (pTag->IsBsob() && pTag->GetBsobSize() == CAICHHash::GetHashSize()) {
 							if (pEntry->GetAICHHashCount() == 0) {
 								pEntry->AddRemoveAICHHash(CAICHHash((uchar*)pTag->GetBsob()), true);
@@ -1311,70 +1304,70 @@ void CKademliaUDPListener::Process_KADEMLIA2_PUBLISH_SOURCE_REQ(const byte *pbyP
 		bool bAddUDPPortTag = true;
 		for (unsigned uTags = byteIO.ReadByte(); uTags > 0; --uTags) {
 			pTag = byteIO.ReadTag();
-			if (pTag) {
-				if (!pTag->m_name.Compare(TAG_SOURCETYPE)) {
-					if (!pEntry->m_bSource) {
-						pEntry->AddTag(new CKadTagUInt(TAG_SOURCEIP, pEntry->m_uIP));
-						pEntry->m_bSource = true;
-						pEntry->AddTag(pTag);
-						pTag = NULL;
-					}
-				} else if (!pTag->m_name.Compare(TAG_FILESIZE)) {
-					if (pEntry->m_uSize == 0) {
-						if (pTag->IsBsob() && pTag->GetBsobSize() == 8)
-							pEntry->m_uSize = *((uint64*)pTag->GetBsob());
-						else
-							pEntry->m_uSize = pTag->GetInt();
-						if (bDbgInfo)
-							sInfo.AppendFormat(_T("  Size=%I64u"), pEntry->m_uSize);
-					}
-				} else if (!pTag->m_name.Compare(TAG_SOURCEPORT)) {
-					if (pEntry->m_uTCPPort == 0) {
-						pEntry->m_uTCPPort = (uint16)pTag->GetInt();
-						pEntry->AddTag(pTag);
-						pTag = NULL;
-					}
-				} else if (!pTag->m_name.Compare(TAG_SOURCEUPORT)) {
-					if (bAddUDPPortTag && pTag->IsInt() && (uint16)pTag->GetInt() > 0) {
-						pEntry->m_uUDPPort = (uint16)pTag->GetInt();
-						bAddUDPPortTag = false;
-						pEntry->AddTag(pTag);
-						pTag = NULL;
-					}
-				} else if (!pTag->m_name.Compare(TAG_SERVERIP)) {
-					//drop lowID sources with unreachable buddy (Enig123)
-					if (pTag->IsInt()) {
-						LPCTSTR p = NULL;
-						uint32 buddyip = (uint32)pTag->GetInt();
-						//if (!IsGoodIP(buddyip)) {
-						//	if (thePrefs.GetLogFilteredIPs())
-						//		p = _T("bad");
-						//} else
-						if (theApp.ipfilter->IsFiltered(buddyip)) {
-							if (thePrefs.GetLogFilteredIPs())
-								p = _T("IP-filtered");
-						} else if (theApp.clientlist->IsBannedClient(buddyip)) {
-							if (thePrefs.GetLogBannedClients())
-								p = _T("banned");
-						} else {
-							pEntry->AddTag(pTag);
-							pTag = NULL;
-						}
-
-						if (pTag) {
-							pEntry->m_bSource = false;
-							if (p)
-								AddDebugLogLine(false, _T("Publish request from source %s with %s buddy IP=%s"), (LPCTSTR)ipstr(htonl(uIP)), p, (LPCTSTR)ipstr(buddyip));
-						}
-					}
-				} else {
-					//TODO: Filter tags
+			if (!pTag)
+				continue;
+			if (pTag->m_name == TAG_SOURCETYPE) {
+				if (!pEntry->m_bSource) {
+					pEntry->AddTag(new CKadTagUInt(TAG_SOURCEIP, pEntry->m_uIP));
+					pEntry->m_bSource = true;
 					pEntry->AddTag(pTag);
-					pTag = NULL; //do not delete
+					pTag = NULL;
 				}
-				delete pTag;
-				pTag = NULL;
+			} else if (pTag->m_name == TAG_FILESIZE) {
+				if (pEntry->m_uSize == 0) {
+					if (pTag->IsBsob() && pTag->GetBsobSize() == 8)
+						pEntry->m_uSize = *((uint64*)pTag->GetBsob());
+					else
+						pEntry->m_uSize = pTag->GetInt();
+					if (bDbgInfo)
+						sInfo.AppendFormat(_T("  Size=%I64u"), pEntry->m_uSize);
+				}
+			} else if (pTag->m_name == TAG_SOURCEPORT) {
+				if (pEntry->m_uTCPPort == 0) {
+					pEntry->m_uTCPPort = (uint16)pTag->GetInt();
+					pEntry->AddTag(pTag);
+					pTag = NULL;
+				}
+			} else if (pTag->m_name == TAG_SOURCEUPORT) {
+				if (bAddUDPPortTag && pTag->IsInt() && (uint16)pTag->GetInt() > 0) {
+					pEntry->m_uUDPPort = (uint16)pTag->GetInt();
+					bAddUDPPortTag = false;
+					pEntry->AddTag(pTag);
+					pTag = NULL;
+				}
+			} else if (pTag->m_name == TAG_SERVERIP) {
+				//drop lowID sources with unreachable buddy (Enig123)
+				if (pTag->IsInt()) {
+					LPCTSTR p = NULL;
+					uint32 buddyip = (uint32)pTag->GetInt();
+					//if (!IsGoodIP(buddyip)) {
+					//	if (thePrefs.GetLogFilteredIPs())
+					//		p = _T("bad");
+					//} else
+					if (theApp.ipfilter->IsFiltered(buddyip)) {
+						if (thePrefs.GetLogFilteredIPs())
+							p = _T("IP-filtered");
+					} else if (theApp.clientlist->IsBannedClient(buddyip)) {
+						if (thePrefs.GetLogBannedClients())
+							p = _T("banned");
+					} else {
+						pEntry->AddTag(pTag);
+						pTag = NULL;
+					}
+
+					if (pTag) {
+						pEntry->m_bSource = false;
+						if (p)
+							AddDebugLogLine(false, _T("Publish request from source %s with %s buddy IP=%s"), (LPCTSTR)ipstr(htonl(uIP)), p, (LPCTSTR)ipstr(buddyip));
+					}
+				}
+			} else {
+				//TODO: Filter tags
+				pEntry->AddTag(pTag);
+				pTag = NULL; //do not delete
 			}
+			delete pTag;
+			pTag = NULL;
 		}
 		if (bAddUDPPortTag)
 			pEntry->AddTag(new CKadTagUInt(TAG_SOURCEUPORT, pEntry->m_uUDPPort));
@@ -1540,10 +1533,10 @@ void CKademliaUDPListener::Process_KADEMLIA2_PUBLISH_NOTES_REQ(const byte *pbyPa
 		for (unsigned uTags = byteIO.ReadByte(); uTags > 0; --uTags) {
 			pTag = byteIO.ReadTag();
 			if (pTag) {
-				if (!pTag->m_name.Compare(TAG_FILENAME)) {
+				if (pTag->m_name == TAG_FILENAME) {
 					if (pEntry->GetCommonFileName().IsEmpty())
 						pEntry->SetFileName(pTag->GetStr());
-				} else if (!pTag->m_name.Compare(TAG_FILESIZE)) {
+				} else if (pTag->m_name == TAG_FILESIZE) {
 					if (pEntry->m_uSize == 0)
 						pEntry->m_uSize = pTag->GetInt();
 				} else {
@@ -1706,7 +1699,7 @@ void CKademliaUDPListener::Process_KADEMLIA_FINDBUDDY_REQ(const byte *pbyPacketD
 	contact.SetTCPPort(uTCPPort);
 	contact.SetUDPPort(uUDPPort);
 	contact.SetClientID(userID);
-	if (!theApp.clientlist->IncomingBuddy(&contact, &BuddyID))
+	if (!theApp.clientlist->IncomingBuddy(&contact, BuddyID))
 		return; // cancelled for some reason, don't send a response
 
 	CSafeMemFile fileIO2(34);
@@ -1823,10 +1816,10 @@ void CKademliaUDPListener::Process_KADEMLIA2_PONG(const byte *pbyPacketData, uin
 	CUInt128 uContactID;
 	if (IsLegacyChallenge(CUInt128(0ul), uIP, KADEMLIA2_PING, uContactID)) {
 		// yup it is, set the contact as verified
-		if (!CKademlia::GetRoutingZone()->VerifyContact(uContactID, uIP))
-			DebugLogWarning(_T("Kad: KADEMLIA2_PONG: Unable to find valid sender in routing table (sender: %s)"), (LPCTSTR)ipstr(htonl(uIP)));
-		else
+		if (CKademlia::GetRoutingZone()->VerifyContact(uContactID, uIP))
 			DEBUG_ONLY(AddDebugLogLine(DLP_LOW, false, _T("Verified contact with legacy challenge (KADEMLIA2_PING) - %s"), (LPCTSTR)ipstr(htonl(uIP))));
+		else
+			DebugLogWarning(_T("Kad: KADEMLIA2_PONG: Unable to find valid sender in routing table (sender: %s)"), (LPCTSTR)ipstr(htonl(uIP)));
 		// we might care for its other content
 	}
 

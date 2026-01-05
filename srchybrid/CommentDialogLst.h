@@ -32,7 +32,7 @@ protected:
 
 	void RefreshData(bool deleteOld = true);
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnSetActive();
 
 	DECLARE_MESSAGE_MAP()

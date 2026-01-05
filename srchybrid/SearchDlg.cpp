@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -54,7 +54,7 @@ BOOL CSearchDlg::CreateWnd(CWnd *pParent)
 	// *) The dialog resource template's window size (the search results window) must not
 	//	  exceed the minimum client area of the frame window.
 	// Otherwise we may get scrollbars in the search results window
-	return CFrameWnd::Create(NULL, _T("Search"), WS_CHILD | WS_CLIPCHILDREN, CRect(0, 0, 50, 50), pParent, NULL, 0, NULL);
+	return CFrameWnd::Create(NULL, _T("Search"), WS_CHILD | WS_CLIPCHILDREN, RECT{0, 0, 50, 50}, pParent, NULL, 0, NULL);
 }
 
 int CSearchDlg::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -85,7 +85,7 @@ int CSearchDlg::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndParams.EnableDocking(CBRS_ALIGN_ANY);
 
 	EnableDocking(CBRS_ALIGN_ANY);
-	DockControlBar(&m_wndParams, AFX_IDW_DOCKBAR_TOP, (LPRECT)NULL);
+	DockControlBar(&m_wndParams, AFX_IDW_DOCKBAR_TOP, NULL);
 
 	m_pwndResults->m_pwndParams = &m_wndParams;
 	m_pwndResults->SendMessage(WM_INITIALUPDATE);
@@ -114,7 +114,7 @@ void CSearchDlg::OnShowWindow(BOOL bShow, UINT nStatus)
 	CFrameWnd::OnShowWindow(bShow, nStatus);
 	if (m_wndParams.IsFloating()) {
 		//ShowControlBar(m_pwndParams, bShow, TRUE);
-		DockParametersWnd(); // Too much bug reports about vanished search parameters window. Force to dock.
+		DockParametersWnd(); // Too many bug reports about vanished search parameters window. Force to dock.
 	}
 }
 
@@ -135,17 +135,17 @@ void CSearchDlg::DockParametersWnd()
 	}
 }
 
-int CSearchDlg::GetSelectedCat()
+int CSearchDlg::GetSelectedCat() const
 {
 	return m_pwndResults->GetSelectedCat();
 }
 
-void CSearchDlg::UpdateCatTabs()
+void CSearchDlg::UpdateCatTabs() const
 {
 	m_pwndResults->UpdateCatTabs();
 }
 
-void CSearchDlg::SetToolTipsDelay(UINT uDelay)
+void CSearchDlg::SetToolTipsDelay(UINT uDelay) const
 {
 	CToolTipCtrl *tooltip = m_pwndResults->searchlistctrl.GetToolTips();
 	if (tooltip)
@@ -157,12 +157,12 @@ void CSearchDlg::RemoveResult(const CSearchFile *pFile)
 	m_pwndResults->searchlistctrl.RemoveResult(pFile);
 }
 
-bool CSearchDlg::CreateNewTab(SSearchParams *pParams, bool bActiveIcon)
+bool CSearchDlg::CreateOrFindTab(SSearchParams *pParams, bool bActiveIcon)
 {
-	return m_pwndResults->CreateNewTab(pParams, bActiveIcon);
+	return m_pwndResults->CreateOrFindTab(pParams, bActiveIcon);
 }
 
-SSearchParams* CSearchDlg::GetSearchParamsBySearchID(uint32 nSearchID)
+SSearchParams* CSearchDlg::GetSearchParamsBySearchID(uint32 nSearchID) const
 {
 	return m_pwndResults->GetSearchResultsParams(nSearchID);
 }
@@ -275,8 +275,8 @@ BOOL CSearchDlg::PreTranslateMessage(MSG *pMsg)
 	if (pMsg->message == WM_KEYDOWN && GetKeyState(VK_CONTROL) < 0) {
 		// Don't handle Ctrl+Tab in this window. It will be handled by main window.
 		if (pMsg->wParam == VK_TAB) {
-			// UGLY: Because this window is a 'CFrameWnd' (rather than a 'CDialog' like
-			// the other eMule main windows) we can not use MFC's message routing.
+			// UGLY: Because this window is a 'CFrameWnd' (rather than a 'CDialog'
+			// like the other eMule main windows) we can not use MFC's message routing.
 			// Need to explicitly send that message to the main window.
 			theApp.emuledlg->PostMessage(pMsg->message, pMsg->wParam, pMsg->lParam);
 			return TRUE;

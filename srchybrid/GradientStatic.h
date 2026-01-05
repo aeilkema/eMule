@@ -19,9 +19,9 @@ public:
 	void SetFont(CFont *pFont);
 	virtual	~CGradientStatic();
 
-	void SetInit(bool bInit)				{ m_bInit = bInit;		 }
+	void SetInit(bool bInit)				{ m_bInit = bInit; }
 	void SetHorizontal(bool bHorz = true)	{ m_bHorizontal = bHorz; }
-	void SetInvert(bool bInvert = false)	{ m_bInvert = bInvert;	 }
+	void SetInvert(bool bInvert = false)	{ m_bInvert = bInvert; }
 	void SetColors(COLORREF crText, COLORREF crLB, COLORREF crRT)
 	{
 		m_crTextColor = crText;

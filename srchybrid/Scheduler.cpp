@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -21,7 +21,6 @@
 #include "ini2.h"
 #include "Preferences.h"
 #include "DownloadQueue.h"
-#include "emuledlg.h"
 #include "MenuCmds.h"
 
 #ifdef _DEBUG
@@ -46,12 +45,10 @@ CScheduler::~CScheduler()
 
 int CScheduler::LoadFromFile()
 {
+	CIni ini(thePrefs.GetConfigFile(), _T("Scheduler"));
+	UINT max = ini.GetInt(_T("Count"));
 
-	CString strName(thePrefs.GetMuleDirectory(EMULE_CONFIGDIR));
-	strName += _T("preferences.ini");
-	CIni ini(strName, _T("Scheduler"));
-
-	UINT max = ini.GetInt(_T("Count"), 0);
+	CString strName;
 	UINT count;
 	for (count = 0; count < max; ++count) {
 		strName.Format(_T("Schedule#%u"), count);

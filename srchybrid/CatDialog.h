@@ -17,7 +17,6 @@
 #pragma once
 #include "ColorButton.h"
 
-struct Category_Struct;
 class CCustomAutoComplete;
 
 class CCatDialog : public CDialog
@@ -30,7 +29,7 @@ class CCatDialog : public CDialog
 	};
 	void ErrorBalloon(int iEdit, UINT uid);
 public:
-	explicit CCatDialog(int index);   // standard constructor
+	explicit CCatDialog(int index);	// standard constructor
 	virtual	~CCatDialog();
 
 protected:
@@ -44,7 +43,7 @@ protected:
 	void UpdateData();
 
 	virtual BOOL OnInitDialog();
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 	afx_msg LRESULT OnSelChange(WPARAM wParam, LPARAM);

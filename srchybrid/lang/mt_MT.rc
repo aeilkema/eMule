@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "mt_MT.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_MT)
 #ifdef _WIN32
 LANGUAGE 0x3a, 0x1
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -520,7 +520,7 @@ BEGIN
     IDS_PW_INCOMING         "Files neżlin"
     IDS_PW_TEMP             "Files temporanji"
     IDS_PW_BROWSE           "Ibbrowsja..."
-    IDS_PW_SHARED           "Directories ixxerjati (Ctrl-Click tinkludi is-subdirectories)"
+    IDS_PW_SHARED           "Directories ixxerjati (Ctrl+Click tinkludi is-subdirectories)"
     IDS_CONNECTION          "Konnessjoni"
     IDS_PW_DOWNL            "Il-limitu tad-download"
     IDS_PW_UPL              "Il-limitu tal-Upload"
@@ -802,7 +802,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "Messaġġ Privat"
     IDS_WEB_REMOTE_LINK_ADDED "Link miżjuda: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED "Il-link ma ġietx miżjuda. Password ħazina."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Hemm bżonn il-partijiet tal-'preview' l-ewwel"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Hemm bżonn il-partijiet tal-'preview' l-ewwel"
     IDS_IRC_KICK            "Ixxutja"
     IDS_IRC_SLAP            "Fajjarlu daqqa"
     IDS_IRC_JOIN            "Issieħeb"
@@ -819,7 +819,6 @@ BEGIN
     IDS_NEWMSG              "Messaġġ ġdid mingħand '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "Fl-istess kategorija biss"
     IDS_LOG_ULDL_EVENTS     "Żomm Log tal-attivita tal-uploads/downloads"
-//    IDS_PEERCACHE_ENABLED   "L-ISP tiegħek jippermetti it-teknoloġija 'PeerCache', il-'cache downloads' ġew attivati!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Ippermetti li user iżidek bħala ħabib."
     IDS_SOURCESWAPBLOCKED   "Tpartit mhux permess"
     IDS_TRICKLING           "Stenna"
@@ -1626,9 +1625,6 @@ BEGIN
                             "Ixgħal din biex l-eMule jitla meta tixgħal il-Windows."
     IDS_KAD_WAITCBK         "Stenna il-Callback tal-Kad"
     IDS_KAD_TOOMANDYKADLKPS "Hawn ħafna Lookups tal-Kad"
-//    IDS_PCDS_CLIENTWAIT     "ClientWait"
-//    IDS_PCDS_CACHEWAIT      "CacheWait"
-//    IDS_CACHE               "Cache"
     IDS_INDEXED             "Indexjat"
     IDS_KADINFO_SRC         "\tSors: %u\r\n"
     IDS_KADINFO_KEYW        "\tFrażi: %u\r\n"
@@ -1715,8 +1711,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Il-Windows Common Controls library (COMCTL32.DLL) hija antika wisq!\r\n\r\nL-eMule sab verżjoni tal-""Windows Common Controls library (COMCTL32.DLL)"" li hija antika wisq biex tintuża kif suppost mal-eMule. Biex ikollok funzjonalita' sħiħa u mingħajr problemi nissuġġerixxu li tapdetja ""Windows Common Controls library (COMCTL32.DLL)"" minn tal-inqas għall-verżjoni 5.8.\r\n\r\nNiżżel u nstalla update tal-""Windows Common Controls library (COMCTL32.DLL)"" fil-Microsoft (R) Download Center. Tixtieq tidħol f'din il-paġna?"
     IDS_ASREGEXPR           "Bħala 'Regular Expression'"
     IDS_STATIC_REGEXP       "'Regular expression' għall-filter:"
     IDS_CARE4ALL            "Evalwa il-files kollha"
@@ -1914,10 +1908,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Mark as not Spam"
     IDS_SEARCHSPAMFILTER    "Enable Spam Filter for search results"
     IDS_SHOWSMILEYS         "Show Smileys"
-    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a captcha before you can send him a message. Please enter the letters you see on this image as response:"
-    IDS_CAPTCHAFAILED       "Your response to the captcha was wrong and your message has been ignored. You can request a new captcha by sending a new message."
-    IDS_CAPTCHASOLVED       "You have passed the captcha check and the user has received your message."
-    IDS_USECAPTCHAS         "Require captcha authentication"
+    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a CAPTCHA before you can send him a message. Please enter the letters you see on this image as response:"
+    IDS_CAPTCHAFAILED       "Your response to the CAPTCHA was wrong and your message has been ignored. You can request a new CAPTCHA by sending a new message."
+    IDS_CAPTCHASOLVED       "You have passed the CAPTCHA check and the user has received your message."
+    IDS_USECAPTCHAS         "Require CAPTCHA authentication"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat from URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "Downloading nodes.dat from %s"
     IDS_DOWNLOADING_NODESDAT "Downloading nodes.dat..."

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -33,7 +33,7 @@ CString CShareableFile::GetInfoSummary(bool bNoFormatCommands) const
 
 	CString strType(GetFileTypeDisplayStr());
 	if (strType.IsEmpty())
-		strType += _T('-');
+		strType += _T("-");
 
 	CString info(GetFileName());
 	info.AppendFormat(_T("\n")
@@ -41,7 +41,7 @@ CString CShareableFile::GetInfoSummary(bool bNoFormatCommands) const
 		_T("%s\n")
 		_T("%s: %s\n")
 		_T("%s: %s")
-		, (LPCTSTR)GetResString(IDS_FD_SIZE), (LPCTSTR)CastItoXBytes((uint64)GetFileSize())
+		, (LPCTSTR)GetResString(IDS_FD_SIZE), (LPCTSTR)CastItoXBytes(GetFileSize())
 		, bNoFormatCommands ? _T("") : _T("<br_head>")
 		, (LPCTSTR)GetResString(IDS_TYPE), (LPCTSTR)strType
 		, (LPCTSTR)GetResString(IDS_FOLDER), (LPCTSTR)strFolder

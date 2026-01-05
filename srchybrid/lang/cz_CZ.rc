@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "cz_CZ.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CSY)
 #ifdef _WIN32
 LANGUAGE LANG_CZECH, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -510,7 +510,7 @@ BEGIN
     IDS_PW_INCOMING         "Příchozí soubory"
     IDS_PW_TEMP             "Dočasné soubory"
     IDS_PW_BROWSE           "Procházet"
-    IDS_PW_SHARED           "Sdílené adresáře (Ctrl-klik pro zahrnutí podadresáře)"
+    IDS_PW_SHARED           "Sdílené adresáře (Ctrl+klik pro zahrnutí podadresáře)"
     IDS_CONNECTION          "Připojení"
     IDS_PW_DOWNL            "Limit downloadu"
     IDS_PW_UPL              "Limit uploadu"
@@ -772,7 +772,7 @@ BEGIN
     IDS_IRC_PRIVATECHANSTART "* Začal soukromý chat"
     IDS_IRC_SLAPMSG         "* %s praštil %s velkou babylonskou rybkou!"
     IDS_IRC_PRIVMESSAGE     "Soukromá zpráva"
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Stáhnout nejprve části potřebné k ukázce"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Stáhnout nejprve části potřebné k ukázce"
     IDS_IRC_KICK            "Kopnout"
     IDS_IRC_SLAP            "Praštit"
     IDS_IRC_JOIN            "Připojit"
@@ -1542,7 +1542,6 @@ BEGIN
     IDS_NEWMSG              "Zpráva od '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "pouze ve stejné kategorii"
     IDS_LOG_ULDL_EVENTS     "Logovat události uploadu/downloadu"
-//    IDS_PEERCACHE_ENABLED   "Váš ISP podporuje technologii PeerCache, která umožňuje cashovat downloady!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Povolit uživateli, aby si Vás přidal mezi přítele."
     IDS_SOURCESWAPBLOCKED   "Výměna zdrojů zablokována"
     IDS_A4AF_CHECK_THIS_NOW "Zkontrolujte tento zdroj (debug)"
@@ -1583,9 +1582,6 @@ BEGIN
                             "Zaškrtněte, pokud požadujete, aby se eMule spouštěl se startem Windows. (implicitně vypnuto)"
     IDS_KAD_WAITCBK         "Čekat na zpětné volání z Kad"
     IDS_KAD_TOOMANDYKADLKPS "Příliš mnoho Kad vyhledávání"
-//    IDS_PCDS_CLIENTWAIT     "Klient Čeká"
-//    IDS_PCDS_CACHEWAIT      "Cache Čeká"
-//    IDS_CACHE               "Cache" //!
     IDS_INDEXED             "Indexován"
     IDS_KADINFO_SRC         "\tZdroj: %u\r\n"
     IDS_KADINFO_KEYW        "\tKlíčové slovo: %u\r\n"
@@ -1685,8 +1681,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Knihovna společných ovládacích prvků Windows (COMCTL32.DLL) je příliš stará!\r\n\r\neMule detekovalo novou verzi ""Windows Common Controls library (COMCTL32.DLL)"", jenž je již příliš stará pro použití v eMule. K zajištění plné a bezchybné funkčnosti eMule důrazně doporučujeme updatovat ""Windows Common Controls library (COMCTL32.DLL)"" alespoň na verzi 5.8.\r\n\r\nDownloadujte a nainstalujte update ""Windows Common Controls library (COMCTL32.DLL)"" z Microsoft (R) Download Centra. Máte zájem navštívit příslušnou URL?"
     IDS_ASREGEXPR           "Jako pravidelný výraz"
     IDS_STATIC_REGEXP       "Pravidelný výraz pro prohlížecí filtr:"
     IDS_CARE4ALL            "Ohodnotit všechny soubory"

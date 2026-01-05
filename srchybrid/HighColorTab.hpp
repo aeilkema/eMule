@@ -57,19 +57,17 @@ namespace HighColorTab
 
 	  \author Yves Tkaczyk (yves@tkaczyk.net)
 	  \date 02/2004 */
-	template<typename TSheet,
-		typename TListCreator>
-		bool UpdateImageListFull(TSheet &rSheet)
+	template<typename TSheet, typename TListCreator> bool UpdateImageListFull(TSheet &rSheet)
 	{
 		// Get the tab control...
 		CTabCtrl *pTab = rSheet.GetTabControl();
 		if (!::IsWindow(pTab->GetSafeHwnd())) {
-		// ASSERT: Tab control could not be retrieved or it is not a valid window.
+			// Tab control could not be retrieved or it is not a valid window.
 			ASSERT(0);
 			return false;
 		}
 
-	  // Create the replacement image list via policy.
+		// Create the replacement image list via policy.
 		std::auto_ptr<CImageList> apILNew(TListCreator::CreateImageList());
 
 		// Reload the icons from the property pages.

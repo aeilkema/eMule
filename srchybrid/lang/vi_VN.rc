@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "vi_VN.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_VIT)
 #ifdef _WIN32
 LANGUAGE LANG_VIETNAMESE, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -521,7 +521,7 @@ BEGIN
     IDS_PW_INCOMING         "Thư mục Tải xuống"
     IDS_PW_TEMP             "Thư mục tạm"
     IDS_PW_BROWSE           "Chọn..."
-    IDS_PW_SHARED           "Thư mục chia sẻ (Ctrl-Click bao gồm thư mục con)"
+    IDS_PW_SHARED           "Thư mục chia sẻ (Ctrl+Click bao gồm thư mục con)"
     IDS_CONNECTION          "Kết Nối"
     IDS_PW_DOWNL            "GHạn Tải xuống"
     IDS_PW_UPL              "GHạn Tải lên"
@@ -803,7 +803,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "Thông điệp riêng"
     IDS_WEB_REMOTE_LINK_ADDED "Liên kết đã thêm vào: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED "Liên kết không thêm vào. Sai mật mã."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Tải về những phần cần để xem thử trước"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Tải về những phần cần để xem thử trước"
     IDS_IRC_KICK            "Đá ra"
     IDS_IRC_SLAP            "Vỗ tay"
     IDS_IRC_JOIN            "Gia nhập"
@@ -820,7 +820,6 @@ BEGIN
     IDS_NEWMSG              "Tin nhắn mới từ '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "Chỉ các Tập tin cùng Danh mục"
     IDS_LOG_ULDL_EVENTS     "Ghi lại sự kiện tải lên/xuống"
-//    IDS_PEERCACHE_ENABLED   "Nhà cung cấp Mạng của bạn hỗ trợ công nghệ PeerCache, kích hoạt tải về từ bộ nhớ truy xuất nhanh - cache!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Cho phép người dùng thêm bạn là Bạn bè."
     IDS_SOURCESWAPBLOCKED   "Trao đổi bị khóa"
     IDS_TRICKLING           "Đang đợi"
@@ -1627,9 +1626,6 @@ BEGIN
                             "eMule sẽ tự chạy khi khởi động windows."
     IDS_KAD_WAITCBK         "Đợi yêu cầu thông qua Kad" //Wait Callback Kad
     IDS_KAD_TOOMANDYKADLKPS "Quá nhiều Tìm kiếm Kad"
-//    IDS_PCDS_CLIENTWAIT     "Máykhách-Đợi"
-//    IDS_PCDS_CACHEWAIT      "Cache-Đợi"
-//    IDS_CACHE               "Cache" //!
     IDS_INDEXED             "Số chỉ mục"
     IDS_KADINFO_SRC         "\tNguồn: %u\r\n"
     IDS_KADINFO_KEYW        "\từKhóa: %u\r\n"
@@ -1716,8 +1712,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Thư viện (COMCTL32.DLL) quá cũ!\r\n\r\neMule phát hiện phiên bản ""Thư viện Các điều khiển chung của Windows (COMCTL32.DLL)"" quá cũ và không thể dùng được. Để chắc chắn eMule hoạt động đầy đủ chức năng và không có lỗ hổng, bạn nên cập nhật ""Thư viện Các điều khiển chung của Windows (COMCTL32.DLL)"" lên phiên bản tối thiểu là 5.8.\r\n\r\nTải xuống và cài đặt cập nhật ""Thư viện Các điều khiển chung của Windows (COMCTL32.DLL)"" tại Trung âm Tải xuống Microsoft (R). Bạn có muốn truy cập trang mạng này không?"
     IDS_ASREGEXPR           "Là biểu thức hợp lệ - Regular Expression"
     IDS_STATIC_REGEXP       "Biểu thức hợp lệ - Regular Expression cho bộ lọc khung nhìn:"
     IDS_CARE4ALL            "Đánh giá Tất cả Tập tin"
@@ -1921,7 +1915,7 @@ BEGIN
     IDS_CAPTCHAREQUEST      "Để tránh tin nhắn Rác, người dùng này đòi hỏi bạn phải điền vào mã bảo vệ trước khi bạn gởi tin nhắn. Vui lòng điền các ký tự bạn thấy trên hình để trả lời:"
     IDS_CAPTCHAFAILED       "Mã bảo vệ bạn nhập vào đã sai nên bạn không thể gởi tin nhắn. Bạn có thể thử lại bằng cách gởi tin nhắn khác."
     IDS_CAPTCHASOLVED       "Bạn đã vượt qua được mã bảo vệ và người dùng đã nhận được tin nhắn của bạn."
-    IDS_USECAPTCHAS         "Đòi hỏi xác minh mã bảo vệ - captcha"
+    IDS_USECAPTCHAS         "Đòi hỏi xác minh mã bảo vệ - CAPTCHA"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat từ URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "Đang tải nodes.dat xuống từ %s"
     IDS_DOWNLOADING_NODESDAT "Đang tải nodes.dat..."

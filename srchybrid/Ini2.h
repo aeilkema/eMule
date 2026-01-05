@@ -32,8 +32,26 @@ void CMyClass::UpdateFromIni(bool bFromIni)
 
 class CIni
 {
+	CArray<CStringA> m_lines;
+	bool m_bWrite = false;
+	//true: Filenames without path take the Modulepath
+	//false: Filenames without path take the CurrentDirectory
+	bool	m_bModulePath; //should be before string members for correct order of initialisation
+	CString m_ininame;
+	CString m_strFileName;
+	CString m_strSection;
+
 public:
-	// In order to avoid storing in the windows directory if the IniFilename contains no path,
+	void SetIniName(LPCTSTR fname)						{ m_ininame = fname; }
+	void SetWrite()										{ m_bWrite = true; };
+	bool Load();
+	bool Store();
+	INT_PTR FindSection(LPCTSTR section);
+	CStringA GetEmuleProfileA(LPCTSTR section, LPCTSTR key, LPCTSTR def);
+	CString GetEmuleProfile(LPCTSTR section, LPCTSTR key, LPCTSTR def);
+	bool PutEmuleProfile(LPCTSTR section, LPCTSTR key, LPCSTR value);
+
+	// In order to avoid storing in the Windows directory if the IniFilename contains no path,
 	// the module's directory will be added to the FileName,
 	// bModulePath=true: ModuleDir, bModulePath=false: CurrentDir
 	static void AddModulePath(CString &rstrFileName, bool bModulPath = true);
@@ -41,19 +59,16 @@ public:
 	static CString GetDefaultIniFile(bool bModulPath = true);
 
 	CIni();
-	explicit CIni(const CIni &Ini);
 	explicit CIni(LPCTSTR const pstrFileName);
 	CIni(LPCTSTR const pstrFileName, LPCTSTR const pstrSection);
-	CIni& operator=(const CIni &Ini);
-	virtual	~CIni() = default;
+	virtual	~CIni()										{ Store(); }
 
 	void SetFileName(const CString &rstrFileName)		{ m_strFileName = rstrFileName; }
 	void SetSection(const CString &rstrSection)			{ m_strSection = rstrSection; }
 	const CString& GetFileName() const					{ return m_strFileName; }
-	const CString& GetSection() const					{ return m_strSection;}
+	const CString& GetSection() const					{ return m_strSection; }
 
-	CString	GetStringUTF8(LPCTSTR lpszEntry,LPCTSTR		lpszDefault = NULL,		LPCTSTR lpszSection = NULL);
-	CString	GetStringLong(LPCTSTR lpszEntry,LPCTSTR		lpszDefault = NULL,		LPCTSTR lpszSection = NULL);
+	CStringW GetStringUTF8(LPCTSTR lpszEntry,LPCTSTR		lpszDefault = NULL,		LPCTSTR lpszSection = NULL);
 	double	GetDouble(LPCTSTR lpszEntry,	double		fDefault = 0.0,			LPCTSTR lpszSection = NULL);
 	CString	GetString(LPCTSTR lpszEntry,	LPCTSTR		lpszDefault = NULL,		LPCTSTR lpszSection = NULL);
 	float	GetFloat(LPCTSTR lpszEntry,		float		fDefault = 0.0f,		LPCTSTR lpszSection = NULL);
@@ -114,14 +129,6 @@ public:
 	static int Parse(const CString &strIn, int nOffset, CString &strOut);
 
 private:
-	static CString	Read(LPCTSTR lpszFileName, LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszDefault);
-	static void		Write(LPCTSTR lpszFileName, LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszValue);
-
-	//true: Filenames without path take the Modulepath
-	//false: Filenames without path take the CurrentDirectory
-	bool	m_bModulePath; //should be before string members for correct order of initialisation
-
-	CString m_strFileName;
-	CString m_strSection;
-
+	void	Write(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszValue);
+	void	WriteUTF8(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszValue);
 };

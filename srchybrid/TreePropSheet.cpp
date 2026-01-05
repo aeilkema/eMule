@@ -160,6 +160,8 @@ BOOL CTreePropSheet::SetTreeDefaultImages(UINT unBitmapID, int cx, COLORREF crMa
 
 BOOL CTreePropSheet::SetPageIcon(CPropertyPage *pPage, HICON hIcon)
 {
+	if (!hIcon)
+		return FALSE;
 	pPage->m_psp.dwFlags |= PSP_USEHICON;
 	pPage->m_psp.hIcon = hIcon;
 	return TRUE;
@@ -174,14 +176,12 @@ BOOL CTreePropSheet::SetPageIcon(CPropertyPage *pPage, LPCTSTR pszIconId)
 
 BOOL CTreePropSheet::SetPageIcon(CPropertyPage *pPage, UINT unIconId)
 {
-	const HICON hIcon = AfxGetApp()->LoadIcon(unIconId);
-	return hIcon && SetPageIcon(pPage, hIcon);
+	return SetPageIcon(pPage, AfxGetApp()->LoadIcon(unIconId));
 }
 
 BOOL CTreePropSheet::SetPageIcon(CPropertyPage *pPage, CImageList &Images, int nImage)
 {
-	const HICON hIcon = Images.ExtractIcon(nImage);
-	return hIcon && SetPageIcon(pPage, hIcon);
+	return SetPageIcon(pPage, Images.ExtractIcon(nImage));
 }
 
 BOOL CTreePropSheet::DestroyPageIcon(CPropertyPage *pPage)
@@ -414,7 +414,7 @@ HTREEITEM CTreePropSheet::GetPageTreeItem(int nPage, HTREEITEM hRoot /* = TVI_RO
 	HTREEITEM hItem = hRoot;
 	for (; hItem; hItem = m_pwndPageTree->GetNextItem(hItem, TVGN_NEXT)) {
 		if (m_pwndPageTree->GetItemData(hItem) == (DWORD_PTR)nPage)
-			 break;
+			break;
 		if (m_pwndPageTree->ItemHasChildren(hItem)) {
 			HTREEITEM hResult = GetPageTreeItem(nPage, m_pwndPageTree->GetNextItem(hItem, TVGN_CHILD));
 			if (hResult)
@@ -706,16 +706,16 @@ BOOL CTreePropSheet::OnInitDialog()
 	// for the tree view control when running under WinXP. Look at CTreeCtrl::CreateEx and CWnd::CreateEx to
 	// see the (minor) difference. However, this could create problems in future MFC versions.
 	m_pwndPageTree->CWnd::CreateEx(
-		WS_EX_CLIENTEDGE | WS_EX_NOPARENTNOTIFY,
-		WC_TREEVIEW, _T("PageTree"),
-		WS_TABSTOP | WS_CHILD | WS_VISIBLE | dwTreeStyle,
-		rectTree, this, s_unPageTreeId);
+			WS_EX_CLIENTEDGE | WS_EX_NOPARENTNOTIFY
+			, WC_TREEVIEW, _T("PageTree")
+			, WS_TABSTOP | WS_CHILD | WS_VISIBLE | dwTreeStyle
+			, rectTree, this, s_unPageTreeId);
 #else
 	m_pwndPageTree->CreateEx(
-		WS_EX_CLIENTEDGE | WS_EX_NOPARENTNOTIFY,
-		_T("SysTreeView32"), _T("PageTree"),
-		WS_TABSTOP | WS_CHILD | WS_VISIBLE | dwTreeStyle,
-		rectTree, this, s_unPageTreeId);
+			WS_EX_CLIENTEDGE | WS_EX_NOPARENTNOTIFY
+			, _T("SysTreeView32"), _T("PageTree")
+			, WS_TABSTOP | WS_CHILD | WS_VISIBLE | dwTreeStyle
+			, rectTree, this, s_unPageTreeId);
 
 #endif
 

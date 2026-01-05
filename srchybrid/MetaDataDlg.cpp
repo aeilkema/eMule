@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -16,9 +16,9 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
 #include "emule.h"
+#include "emuledlg.h"
 #include "kademlia/kademlia/tag.h"
 #include "MetaDataDlg.h"
-#include "Preferences.h"
 #include "MenuCmds.h"
 #include "Packets.h"
 #include "KnownFile.h"
@@ -45,8 +45,8 @@ enum EMetaDataCols
 static LCX_COLUMN_INIT s_aColumns[] =
 {
 	{ META_DATA_COL_NAME,	_T("Name"),	 IDS_SW_NAME, LVCFMT_LEFT, -1, 0, ASCENDING,  NONE, _T("Temporary file MMMMM") },
-	{ META_DATA_COL_TYPE,	_T("Type"),	 IDS_TYPE,	 LVCFMT_LEFT, -1, 1, ASCENDING,  NONE, _T("Integer") },
-	{ META_DATA_COL_VALUE,	_T("Value"), IDS_VALUE,	 LVCFMT_LEFT, -1, 2, ASCENDING,  NONE, _T("long long long long long long long long file name.avi") }
+	{ META_DATA_COL_TYPE,	_T("Type"),	 IDS_TYPE,	  LVCFMT_LEFT, -1, 1, ASCENDING,  NONE, _T("Integer") },
+	{ META_DATA_COL_VALUE,	_T("Value"), IDS_VALUE,	  LVCFMT_LEFT, -1, 2, ASCENDING,  NONE, _T("long long long long long long long long file name.avi") }
 };
 
 #define	PREF_INI_SECTION	_T("MetaDataDlg")
@@ -83,11 +83,6 @@ CMetaDataDlg::CMetaDataDlg()
 CMetaDataDlg::~CMetaDataDlg()
 {
 	delete m_pMenuTags;
-}
-
-void CMetaDataDlg::SetTagList(Kademlia::TagList *taglist)
-{
-	m_taglist = taglist;
 }
 
 void CMetaDataDlg::Localize()
@@ -314,9 +309,9 @@ CString GetName(const Kademlia::CKadTag *pTag)
 {
 	CString strName;
 	if (pTag->m_name.GetLength() == 1)
-		strName = GetTagNameByID((BYTE)pTag->m_name[0]);
+		strName = GetTagNameByID((byte)pTag->m_name[0]);
 	else
-		strName = pTag->m_name;
+		strName = (LPCSTR)pTag->m_name;
 	StripTrailingColon(strName);
 	return strName;
 }
@@ -348,22 +343,22 @@ CString GetValue(const CTag *pTag)
 	return strValue;
 }
 
-CString GetValue(const Kademlia::CKadTag *pTag) // FIXME LARGE FILES
+CString GetValue(const Kademlia::CKadTag *pTag)
 {
 	CString strValue;
 	if (pTag->IsStr()) {
 		strValue = pTag->GetStr();
-		if (pTag->m_name.Compare(TAG_MEDIA_CODEC) == 0)
+		if (pTag->m_name == TAG_MEDIA_CODEC)
 			strValue = GetCodecDisplayName(strValue);
 	} else if (pTag->IsInt()) {
-		if (pTag->m_name.Compare(TAG_MEDIA_LENGTH) == 0)
+		if (pTag->m_name == TAG_MEDIA_LENGTH)
 			strValue = SecToTimeLength((UINT)pTag->GetInt());
-		else if (pTag->m_name.Compare(TAG_FILERATING) == 0)
+		else if (pTag->m_name == TAG_FILERATING)
 			strValue = GetRateString((UINT)pTag->GetInt());
-		else if ((BYTE)pTag->m_name[0] == 0x10 || (BYTE)pTag->m_name[0] >= 0xFA)
+		else if (pTag->m_name == TAG_IP_ADDRESS || (pTag->m_name.GetLength() == 1 && (byte)pTag->m_name[0] >= FT_SERVERPORT))
 			strValue.Format(_T("%I64u"), pTag->GetInt());
 		else
-			strValue = GetFormatedUInt((UINT)pTag->GetInt());
+			strValue = GetFormatedUInt64(pTag->GetInt());
 	} else if (pTag->m_type == TAGTYPE_FLOAT32)
 		strValue.Format(_T("%f"), pTag->GetFloat());
 	else if (pTag->m_type == TAGTYPE_BOOL)
@@ -451,7 +446,7 @@ void CMetaDataDlg::RefreshData()
 			}
 		}
 
-		const CArray<CTag*, CTag*> &aTags = m_pFile->GetTags();
+		const CArray<CTag*> &aTags = m_pFile->GetTags();
 		INT_PTR iTags = aTags.GetCount();
 		for (int i = 0; i < iTags; ++i) {
 			const CTag *pTag = aTags[i];
@@ -532,7 +527,7 @@ void CMetaDataDlg::OnCopyTags()
 	if (!strData.IsEmpty()) {
 		if (iSelected > 1)
 			strData += _T("\r\n");
-		theApp.CopyTextToClipboard(strData);
+		theApp.emuledlg->CopyTextToClipboard(strData);
 	}
 }
 

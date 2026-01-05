@@ -45,7 +45,7 @@ namespace Kademlia
 		virtual	~CEntry();
 
 		virtual	CEntry* Copy();
-		virtual bool IsKeyEntry()					{ return false; }
+		virtual bool IsKeyEntry() const			{ return false; }
 
 		uint64	GetIntTagValue(const CKadTagNameString &strTagName, bool bIncludeVirtualTags = true) const;
 		bool	GetIntTagValue(const CKadTagNameString &strTagName, uint64 &rValue, bool bIncludeVirtualTags = true) const;
@@ -56,7 +56,7 @@ namespace Kademlia
 
 		CKadTagValueString	GetCommonFileNameLowerCase() const;
 		CKadTagValueString	GetCommonFileName() const;
-		void		SetFileName(const CKadTagValueString &strName);
+		void	SetFileName(const CKadTagValueString &strName);
 
 		uint32	m_uIP;
 		uint16	m_uTCPPort;
@@ -69,7 +69,7 @@ namespace Kademlia
 
 	protected:
 		void	WriteTagListInc(CDataIO *pData, uint32 nIncreaseTagNumber = 0);
-		CList<structFileNameEntry>	m_listFileNames;
+		CArray<structFileNameEntry>	m_aFileNames;
 		TagList m_listTag;
 	};
 
@@ -86,8 +86,7 @@ namespace Kademlia
 		CKeyEntry();
 		virtual	~CKeyEntry();
 
-		virtual	CEntry*	Copy();
-		virtual bool IsKeyEntry()					{ return true; }
+		virtual bool IsKeyEntry() const				{ return true; }
 
 		bool	StartSearchTermsMatch(const SSearchTerm &rSearchTerm);
 		void	MergeIPsAndFilenames(CKeyEntry *pFromEntry);
@@ -106,8 +105,8 @@ namespace Kademlia
 		static void	AdjustGlobalPublishTracking(uint32 uIP, bool bIncrease, const CString &strDbgReason);
 
 		float	m_fTrustValue;
-		CArray<uint8, uint8> m_anAICHHashPopularity;
-		CArray<CAICHHash>	m_aAICHHashes;
+		CArray<uint8> m_anAICHHashPopularity;
+		CArray<CAICHHash> m_aAICHHashes;
 		static CMap<uint32, uint32, uint32, uint32> s_mapGlobalPublishIPs; // tracks count of publishings for each 255.255.255.0/28 subnet
 		CList<structPublishingIP> *m_pliPublishingIPs;
 		DWORD	dwLastTrustValueCalc;

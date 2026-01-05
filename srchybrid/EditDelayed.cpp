@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -159,7 +159,7 @@ void CEditDelayed::DoDelayedEvalute(bool bForce)
 	}
 }
 
-void CEditDelayed::OnInit(CHeaderCtrl *pColumnHeader, CArray<int, int> *paIgnoredColumns)
+void CEditDelayed::OnInit(CHeaderCtrl *pColumnHeader, CArray<int> *paIgnoredColumns)
 {
 	SetEditRect(false);
 	RECT rectWindow;
@@ -173,14 +173,14 @@ void CEditDelayed::OnInit(CHeaderCtrl *pColumnHeader, CArray<int, int> *paIgnore
 	pImageList->Create(16, 16, theApp.m_iDfltImageListColorFlags | ILC_MASK, 0, 1);
 	pImageList->Add(CTempIconLoader(pColumnHeader ? _T("SEARCHEDIT") : _T("KADNODESEARCH")));
 	m_iwColumn.SetImageList(pImageList);
-	m_iwColumn.Create(_T(""), WS_CHILD | WS_VISIBLE, CRect(0, 0, ICON_LEFTSPACE, rectWindow.bottom), this, 1);
+	m_iwColumn.Create(_T(""), WS_CHILD | WS_VISIBLE, RECT{0, 0, ICON_LEFTSPACE, rectWindow.bottom}, this, 1);
 
 	pImageList = new CImageList();
 	pImageList->Create(16, 16, theApp.m_iDfltImageListColorFlags | ILC_MASK, 0, 1);
 	pImageList->Add(CTempIconLoader(_T("FILTERCLEAR1")));
 	pImageList->Add(CTempIconLoader(_T("FILTERCLEAR2")));
 	m_iwReset.SetImageList(pImageList);
-	m_iwReset.Create(_T(""), WS_CHILD, CRect(0, 0, ICON_LEFTSPACE, rectWindow.bottom), this, 1);
+	m_iwReset.Create(_T(""), WS_CHILD, RECT{0, 0, ICON_LEFTSPACE, rectWindow.bottom}, this, 1);
 
 	if (paIgnoredColumns != NULL)
 		m_aIgnoredColumns.Copy(*paIgnoredColumns);
@@ -376,7 +376,7 @@ void CIconWnd::OnPaint()
 	GetClientRect(&rect);
 	CPaintDC dc(this);
 	dc.FillSolidRect(&rect, ::GetSysColor(COLOR_WINDOW));
-	m_pImageList->Draw(&dc, m_nCurrentIcon, POINT{ 2, (rect.bottom - 16) / 2 }, ILD_NORMAL);
+	m_pImageList->Draw(&dc, m_nCurrentIcon, POINT{2, (rect.bottom - 16) / 2}, ILD_NORMAL);
 }
 
 BOOL CIconWnd::OnEraseBkgnd(CDC*)

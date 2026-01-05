@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -23,19 +23,12 @@
 #include "Preferences.h"
 #include "ServerWnd.h"
 #include "HelpIDs.h"
-#include "ppgwebserver.h"
 #include "UPnPImplWrapper.h"
 #include "UPnPImpl.h"
 #include "Log.h"
-#include "TLSthreading.h"
 
-#include "mbedtls/entropy.h"
-#include "mbedtls/ctr_drbg.h"
-#include "mbedtls/error.h"
-#include "mbedtls/pk.h"
-#include "mbedtls/rsa.h"
 #include "mbedtls/x509_crt.h"
-#include "mbedtls/md.h"
+#include "TLSthreading.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -68,71 +61,69 @@ static int write_buffer(LPCTSTR output_file, const unsigned char *buffer)
 	return 0;
 }
 
-static int write_private_key(mbedtls_pk_context *key, LPCTSTR output_file)
+static int write_private_key(const mbedtls_pk_context *key, LPCTSTR output_file)
 {
 	unsigned char output_buf[16000];
 
-	int ret = mbedtls_pk_write_key_pem(key, output_buf, sizeof(output_buf));
+	int ret = mbedtls_pk_write_key_pem(key, output_buf, sizeof output_buf);
 	return ret ? ret : write_buffer(output_file, output_buf);
 }
 
 //create RSA 2048 key
-int KeyCreate(mbedtls_pk_context *key, mbedtls_ctr_drbg_context *ctr_drbg, LPCTSTR output_file)
+int KeyCreate(mbedtls_pk_context *key, LPCTSTR output_file)
 {
+	psa_key_attributes_t attr = PSA_KEY_ATTRIBUTES_INIT;
+	psa_set_key_algorithm(&attr, PSA_ALG_RSA_PKCS1V15_SIGN(PSA_ALG_ANY_HASH));
+	psa_set_key_type(&attr, PSA_KEY_TYPE_RSA_KEY_PAIR);
+	psa_set_key_bits(&attr, 2048);
+	psa_set_key_usage_flags(&attr, PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_VERIFY_HASH | PSA_KEY_USAGE_EXPORT);
+
 	LPCTSTR pmsg = NULL;
-	int ret = mbedtls_pk_setup(key, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
+	mbedtls_svc_key_id_t key_id;
+	int ret = (int)psa_generate_key(&attr, &key_id);
+	psa_reset_key_attributes(&attr);
+
 	if (ret)
-		pmsg = _T("mbedtls_pk_setup");
+		pmsg = _T("psa_generate_key");
 	else {
-		ret = mbedtls_rsa_gen_key(mbedtls_pk_rsa(*key), mbedtls_ctr_drbg_random, ctr_drbg, 2048u, 65537);
+		ret = mbedtls_pk_wrap_psa(key, key_id);
 		if (ret)
-			pmsg = _T("mbedtls_rsa_gen_key");
+			pmsg = _T("mbedtls_pk_wrap_psa");
 		else {
 			ret = write_private_key(key, output_file);	//write the key to a file
 			if (ret)
 				pmsg = _T("write_private_key");
 		}
 	}
-
 	if (pmsg)
 		DebugLogError(_T("Error: %s returned -0x%04x - %s"), pmsg, -ret, (LPCTSTR)SSLerror(ret));
 	return ret;
 }
 
-int write_certificate(mbedtls_x509write_cert *crt, LPCTSTR output_file, int(*f_rng)(void*, unsigned char*, size_t), void *p_rng)
+int write_certificate(mbedtls_x509write_cert *crt, LPCTSTR output_file)
 {
 	unsigned char output_buf[4096];
 
-	int ret = mbedtls_x509write_crt_pem(crt, output_buf, sizeof output_buf, f_rng, p_rng);
+	int ret = mbedtls_x509write_crt_pem(crt, output_buf, sizeof output_buf);
 	return ret ? ret : write_buffer(output_file, output_buf);
 }
 
 int CertCreate(const struct options &opt)
 {
-	static const char pers[] = "cert create";
 	mbedtls_pk_context issuer_key;
 	mbedtls_x509write_cert crt;
-	mbedtls_entropy_context entropy;
-	mbedtls_ctr_drbg_context ctr_drbg;
 	LPCTSTR pmsg = NULL;
 
-	mbedtls_threading_set_alt(threading_mutex_init_alt, threading_mutex_free_alt, threading_mutex_lock_alt, threading_mutex_unlock_alt);
-	mbedtls_x509write_crt_init(&crt);
+	mbedtls_threading_set_alt(threading_mutex_init_alt, threading_mutex_destroy_alt, threading_mutex_lock_alt, threading_mutex_unlock_alt
+							 , cond_init_alt, cond_destroy_alt, cond_signal_alt, cond_broadcast_alt, cond_wait_alt);
+	psa_crypto_init();
 	mbedtls_pk_init(&issuer_key);
-	mbedtls_ctr_drbg_init(&ctr_drbg);
-	mbedtls_entropy_init(&entropy);
-
-	//seed the PRNG
-	int ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (unsigned char*)pers, sizeof pers);
-	if (ret) {
-		pmsg = _T("mbedtls_ctr_drbg_seed");
-		goto exit;
-	}
+	mbedtls_x509write_crt_init(&crt);
 
 	//generate the key
-	ret = KeyCreate(&issuer_key, &ctr_drbg, opt.issuer_key);
+	int ret = KeyCreate(&issuer_key, opt.issuer_key);
 	if (ret)
-		goto exit; //the bug already was reported
+		goto exit; //the bug already was logged
 
 	mbedtls_x509write_crt_set_subject_key(&crt, &issuer_key);
 	mbedtls_x509write_crt_set_issuer_key(&crt, &issuer_key);
@@ -179,15 +170,15 @@ int CertCreate(const struct options &opt)
 	}
 
 	//write the certificate to a file
-	ret = write_certificate(&crt, opt.cert_file, mbedtls_ctr_drbg_random, &ctr_drbg);
+	ret = write_certificate(&crt, opt.cert_file);
 	if (ret)
 		pmsg = _T("write_certificate");
 
 exit:
-	mbedtls_entropy_free(&entropy);
-	mbedtls_ctr_drbg_free(&ctr_drbg);
-	mbedtls_pk_free(&issuer_key);
 	mbedtls_x509write_crt_free(&crt);
+	mbedtls_pk_free(&issuer_key);
+	mbedtls_psa_crypto_free();
+	mbedtls_threading_free_alt();
 
 	if (pmsg)
 		DebugLogError(_T("Error: %s returned -0x%04x - %s"), pmsg, -ret, (LPCTSTR)SSLerror(ret));
@@ -304,7 +295,7 @@ BOOL CPPgWebServer::OnApply()
 			return FALSE;
 		}
 		thePrefs.SetTemplate(sBuf);
-		if (!theApp.webserver->ReloadTemplates()) {
+		if (bWSIsEnabled && !theApp.webserver->ReloadTemplates()) {
 			GetDlgItem(IDC_TMPLPATH)->SetFocus();
 			return FALSE;
 		}
@@ -317,7 +308,7 @@ BOOL CPPgWebServer::OnApply()
 				return FALSE;
 			}
 			if (!m_bNewCert)
-				m_bNewCert = !thePrefs.GetWebCertPath().CompareNoCase(sBuf);
+				m_bNewCert = (thePrefs.GetWebCertPath().CompareNoCase(sBuf) != 0);
 		}
 		thePrefs.SetWebCertPath(sBuf);
 
@@ -328,7 +319,7 @@ BOOL CPPgWebServer::OnApply()
 				return FALSE;
 			}
 			if (!m_bNewCert)
-				m_bNewCert = !thePrefs.GetWebKeyPath().CompareNoCase(sBuf);
+				m_bNewCert = (thePrefs.GetWebKeyPath().CompareNoCase(sBuf) != 0);
 		}
 		thePrefs.SetWebKeyPath(sBuf);
 
@@ -396,7 +387,7 @@ void CPPgWebServer::Localize()
 
 		SetDlgItemText(IDC_WEB_HTTPS, GetResString(IDS_WEB_HTTPS));
 		SetDlgItemText(IDC_WEB_GENERATE, GetResString(IDS_WEB_GENERATE));
-		SetDlgItemText(IDC_WEB_CERT, GetResString(IDS_CERTIFICATE) + _T(':'));
+		SetDlgItemText(IDC_WEB_CERT, GetResString(IDS_WEB_CERT) + _T(':'));
 		SetDlgItemText(IDC_WEB_KEY, GetResString(IDS_KEY) + _T(':'));
 
 		SetDlgItemText(IDC_STATIC_ADMIN, GetResString(IDS_ADMIN));
@@ -417,6 +408,11 @@ void CPPgWebServer::SetUPnPState()
 void CPPgWebServer::OnChangeHTTPS()
 {
 	BOOL bEnable = IsDlgButtonChecked(IDC_WSENABLED) && IsDlgButtonChecked(IDC_WEB_HTTPS);
+	//forbid compression with TLS
+	if (bEnable)
+		CheckDlgButton(IDC_WS_GZIP, BST_UNCHECKED);
+	GetDlgItem(IDC_WS_GZIP)->EnableWindow(!bEnable);
+
 	GetDlgItem(IDC_WEB_GENERATE)->EnableWindow(bEnable && !m_generating);
 	GetDlgItem(IDC_CERTPATH)->EnableWindow(bEnable);
 	GetDlgItem(IDC_CERTBROWSE)->EnableWindow(bEnable);
@@ -485,19 +481,20 @@ void CPPgWebServer::OnGenerateCertificate()
 	opt.issuer_name = "CN=eMule,O=emule-project.net";
 	opt.not_before = (LPCSTR)not_before;
 	opt.not_after = (LPCSTR)not_after;
-	opt.serial = _byteswap_ushort(rand() & 0xfff); //avoid repeated serials (kind of)
-	if (!opt.serial)
-		++opt.serial; //must be positive
+	opt.serial = static_cast<uint16>(rand()); //avoid repeated serials (kind of)
+	opt.serial += static_cast<uint16>(!opt.serial); //must be positive
+
 	m_bNewCert = !CertCreate(opt);
 	if (m_bNewCert) {
-		AddLogLine(false, _T("New certificate created; serial %d"), opt.serial);
+		AddLogLine(false, GetResString(IDS_CERT_CREATED), opt.serial);
 		SetDlgItemText(IDC_KEYPATH, fkey);
 		SetDlgItemText(IDC_CERTPATH, fcrt);
 		GetDlgItem(IDC_WEB_GENERATE)->EnableWindow(FALSE);
 		SetModified();
 	} else {
-		LogError(_T("Certificate creation failed"));
-		AfxMessageBox(GetResString(IDS_CERT_ERR_CREATE));
+		const CString &sErr(GetResString(IDS_CERT_ERR_CREATE));
+		LogError(sErr);
+		AfxMessageBox(sErr);
 		::InterlockedExchange(&m_generating, 0); //re-enable only if failed
 	}
 }
@@ -506,7 +503,7 @@ void CPPgWebServer::OnBnClickedCertbrowse()
 {
 	CString strCert;
 	GetDlgItemText(IDC_CERTPATH, strCert);
-	CString buffer(GetResString(IDS_CERTIFICATE));
+	CString buffer(GetResString(IDS_WEB_CERT));
 	buffer += _T(" (*.crt)|*.crt|All Files (*.*)|*.*||");
 	if (DialogBrowseFile(buffer, buffer, strCert))
 		SetDlgItemText(IDC_CERTPATH, buffer);

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -19,7 +19,6 @@
 #include "opcodes.h"
 #include "emule.h"
 #include "safefile.h"
-#include "knownfile.h"
 #include "preferences.h"
 #include "sha.h"
 #include "updownclient.h"
@@ -543,12 +542,12 @@ bool CAICHRecoveryHashSet::GetPartHashes(CArray<CAICHHash> &rResult) const
 		return false;
 	}
 
-	uint32 uPartCount = (uint16)(((uint64)m_pOwner->GetFileSize() + (PARTSIZE - 1)) / PARTSIZE);
+	uint32 uPartCount = (uint32)(((uint64)m_pOwner->GetFileSize() + PARTSIZE - 1) / PARTSIZE);
 	if (uPartCount <= 1)
 		return true; // No AICH Part hashes
 	for (uint32 nPart = 0; nPart < uPartCount; ++nPart) {
 		uint64 nPartStartPos = nPart * PARTSIZE;
-		uint32 nPartSize = (uint32)min(PARTSIZE, (uint64)m_pOwner->GetFileSize() - nPartStartPos);
+		uint64 nPartSize = min(PARTSIZE, m_pOwner->GetFileSize() - nPartStartPos);
 		const CAICHHashTree *pPartHashTree = m_pHashTree.FindExistingHash(nPartStartPos, nPartSize);
 		if (pPartHashTree == NULL || !pPartHashTree->m_bHashValid) {
 			rResult.RemoveAll();
@@ -563,10 +562,11 @@ bool CAICHRecoveryHashSet::GetPartHashes(CArray<CAICHHash> &rResult) const
 const CAICHHashTree* CAICHRecoveryHashSet::FindPartHash(uint16 nPart)
 {
 	ASSERT(m_pOwner && m_pOwner->IsPartFile());
-	if (m_pOwner->GetFileSize() <= PARTSIZE)
+	const EMFileSize fsize = m_pOwner->GetFileSize();
+	if (fsize <= PARTSIZE)
 		return &m_pHashTree;
 	uint64 nPartStartPos = nPart * PARTSIZE;
-	uint32 nPartSize = (uint32)(min(PARTSIZE, (uint64)m_pOwner->GetFileSize() - nPartStartPos));
+	uint64 nPartSize = min(PARTSIZE, fsize - nPartStartPos);
 	const CAICHHashTree *phtResult = m_pHashTree.FindHash(nPartStartPos, nPartSize);
 	ASSERT(phtResult != NULL);
 	return phtResult;
@@ -590,7 +590,7 @@ bool CAICHRecoveryHashSet::CreatePartRecoveryData(uint64 nPartStartPos, CFileDat
 	}
 	bool bResult;
 	uint8 nLevel = 0;
-	uint32 nPartSize = (uint32)min(PARTSIZE, (uint64)m_pOwner->GetFileSize() - nPartStartPos);
+	uint64 nPartSize = min(PARTSIZE, m_pOwner->GetFileSize() - nPartStartPos);
 	m_pHashTree.FindHash(nPartStartPos, nPartSize, &nLevel);
 	uint16 nHashesToWrite = (uint16)((nLevel - 1) + nPartSize / EMBLOCKSIZE + static_cast<unsigned>(nPartSize % EMBLOCKSIZE != 0));
 	const bool bUse32BitIdentifier = m_pOwner->IsLargeFile();
@@ -637,7 +637,7 @@ bool CAICHRecoveryHashSet::ReadRecoveryData(uint64 nPartStartPos, CSafeMemFile &
 	// all hash are then taken into the tree, depending on there hash identifier (except the masterhash)
 
 	uint8 nLevel = 0;
-	uint32 nPartSize = (uint32)min(PARTSIZE, (uint64)m_pOwner->GetFileSize() - nPartStartPos);
+	uint64 nPartSize = min(PARTSIZE, m_pOwner->GetFileSize() - nPartStartPos);
 	m_pHashTree.FindHash(nPartStartPos, nPartSize, &nLevel);
 	uint16 nHashsToRead = (uint16)((nLevel - 1) + nPartSize / EMBLOCKSIZE + static_cast<unsigned>(nPartSize % EMBLOCKSIZE != 0));
 
@@ -724,7 +724,7 @@ bool CAICHRecoveryHashSet::SaveHashSet()
 	CSafeFile file;
 	CFileException fex;
 	if (!file.Open(thePrefs.GetMuleDirectory(EMULE_CONFIGDIR) + KNOWN2_MET_FILENAME
-		, CFile::modeCreate | CFile::modeReadWrite | CFile::modeNoTruncate | CFile::osSequentialScan | CFile::typeBinary | CFile::shareDenyNone, &fex))
+			, CFile::modeCreate | CFile::modeReadWrite | CFile::modeNoTruncate | CFile::osSequentialScan | CFile::typeBinary | CFile::shareDenyNone, &fex))
 	{
 		if (fex.m_cause != CFileException::fileNotFound)
 			theApp.QueueLogLine(true, _T("%s%s"), _T("Failed to load ") KNOWN2_MET_FILENAME, (LPCTSTR)CExceptionStrDash(fex));
@@ -846,12 +846,12 @@ bool CAICHRecoveryHashSet::LoadHashSet()
 					theApp.QueueDebugLogLine(true, _T("Failed to load HashSet: Available hashes and expected hash count differ!"));
 					return false;
 				}
-				//uint32 dbgPos = file.GetPosition();
+				//ULONGLONG dbgPos = file.GetPosition();
 				if (!m_pHashTree.LoadLowestLevelHashes(file)) {
 					theApp.QueueDebugLogLine(true, _T("Failed to load HashSet: LoadLowestLevelHashes failed!"));
 					return false;
 				}
-				//uint32 dbgHashRead = (file.GetPosition()-dbgPos)/HASHSIZE;
+				//ULONGLONG dbgHashRead = (file.GetPosition()-dbgPos)/HASHSIZE;
 				if (!ReCalculateHash(false)) {
 					theApp.QueueDebugLogLine(true, _T("Failed to load HashSet: Calculating loaded hashes failed!"));
 					return false;
@@ -1064,7 +1064,7 @@ bool CAICHRecoveryHashSet::IsPartDataAvailable(uint64 nPartStartPos)
 		ASSERT(0);
 		return false;
 	}
-	uint32 nPartSize = (uint32)(min(PARTSIZE, (uint64)m_pOwner->GetFileSize() - nPartStartPos));
+	uint64 nPartSize = min(PARTSIZE, m_pOwner->GetFileSize() - nPartStartPos);
 	for (uint64 nPartPos = 0; nPartPos < nPartSize; nPartPos += EMBLOCKSIZE) {
 		const CAICHHashTree *phtToCheck = m_pHashTree.FindExistingHash(nPartStartPos + nPartPos, min(EMBLOCKSIZE, nPartSize - nPartPos));
 		if (phtToCheck == NULL || !phtToCheck->m_bHashValid)

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -16,6 +16,7 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #pragma once
 
+#define PREFINIFILE	_T("preferences.ini")
 extern LPCTSTR const strDefaultToolbar;
 
 enum EViewSharedFilesAccess
@@ -51,7 +52,6 @@ enum SMTPauth: byte
 	AUTH_OAUTH1,
 	AUTH_OAUTH2 */
 };
-
 
 enum EDefaultDirectory
 {
@@ -91,13 +91,12 @@ struct EmailSettings
 	CString	sTo;
 	CString	sUser;
 	CString	sPass;
-	CString	sEncryptCertName;
+	CStringW sEncryptCertName;
 	uint16	uPort;
 	SMTPauth uAuth;
 	TLSmode uTLS;
 	bool	bSendMail;
 };
-
 
 // deadlake PROXYSUPPORT
 struct ProxySettings
@@ -127,6 +126,8 @@ struct Category_Struct
 	bool	downloadInAlphabeticalOrder; // ZZ:DownloadManager
 };
 
+class	CIni;
+
 class CPreferences
 {
 	friend class CPreferencesWnd;
@@ -144,6 +145,8 @@ class CPreferences
 	friend class CPPgTweaks;
 	friend class Wizard;
 
+	static CIni		*prefsIni;
+	static CIni		*skinsIni;
 	static LPCSTR	m_pszBindAddrA;
 	static LPCWSTR	m_pszBindAddrW;
 	static void		MovePreferences(EDefaultDirectory eSrc, LPCTSTR const sFile, const CString &dst);
@@ -546,6 +549,8 @@ public:
 	static bool		m_bWebUseHttps;
 	static CString	m_sWebHttpsCertificate;
 	static CString	m_sWebHttpsKey;
+	static CString	m_strSecurityZone;
+	static CString	m_strMediaInfoDllPath;
 
 	static bool		showCatTabInfos;
 	static bool		resumeSameCat;
@@ -956,8 +961,8 @@ public:
 	static uint32	GetMaxGraphUploadRate(bool bEstimateIfUnlimited);
 	static void		SetMaxGraphUploadRate(uint32 in);
 
-	static uint32	GetMaxDownload();
-	static uint64	GetMaxDownloadInBytesPerSec(bool dynamic = false);
+	static uint32	GetMaxDownload()					{ return (uint32)(GetMaxDownloadInBytesPerSec(false) / 1024); }
+	static uint64	GetMaxDownloadInBytesPerSec(bool bDynamic);
 	static UINT		GetMaxConnections()					{ return maxconnections; }
 	static UINT		GetMaxHalfConnections()				{ return maxhalfconnections; }
 	static UINT		GetMaxSourcePerFileDefault()		{ return maxsourceperfile; }
@@ -965,8 +970,8 @@ public:
 	static DWORD	GetServerKeepAliveTimeout()			{ return m_dwServerKeepAliveTimeout; }
 	static bool		GetConditionalTCPAccept()			{ return m_bConditionalTCPAccept; }
 
-	static LANGID	GetLanguageID();
-	static void		SetLanguageID(LANGID lid);
+	static LANGID	GetLanguageID()						{ return m_wLanguageID; }
+	static void		SetLanguageID(LANGID lid)			{ m_wLanguageID = lid; }
 	static void		GetLanguages(CWordArray &aLanguageIDs);
 	static void		SetLanguage();
 	static bool		IsLanguageSupported(LANGID lidSelected);
@@ -1010,7 +1015,8 @@ public:
 	static bool		GetUseSystemFontForMainControls()	{ return m_bUseSystemFontForMainControls; }
 
 	static const CString& GetSkinProfile()				{ return m_strSkinProfile; }
-	static void		SetSkinProfile(LPCTSTR pszProfile)	{ m_strSkinProfile = pszProfile; }
+	static CIni*	GetSkinIni()						{ return skinsIni; }
+	static void		SetSkinProfile(LPCTSTR pszProfile);
 
 	static UINT		GetStatsAverageMinutes()			{ return statsAverageMinutes; }
 	static void		SetStatsAverageMinutes(UINT in)		{ statsAverageMinutes = in; }
@@ -1109,7 +1115,7 @@ public:
 	static bool		AddNewFilesPaused()					{ return addnewfilespaused; }
 
 	static bool		TransferlistRemainSortStyle()		{ return m_bTransflstRemain; }
-	static void		TransferlistRemainSortStyle(bool in){ m_bTransflstRemain = in; }
+	static void		TransferlistRemainSortStyle(bool in) { m_bTransflstRemain = in; }
 
 	static DWORD	GetStatsColor(int index)			{ return m_adwStatsColors[index]; }
 	static void		SetStatsColor(int index, DWORD value) { m_adwStatsColors[index] = value; }
@@ -1142,7 +1148,7 @@ public:
 	static bool		GetRearrangeKadSearchKeywords()		{ return m_bRearrangeKadSearchKeywords; }
 
 	static const CString& GetYourHostname()				{ return m_strYourHostname; }
-	static void		SetYourHostname(LPCTSTR pszHostname){ m_strYourHostname = pszHostname; }
+	static void		SetYourHostname(LPCTSTR pszHostname) { m_strYourHostname = pszHostname; }
 	static bool		IsCheckDiskspaceEnabled()			{ return checkDiskspace; }
 	static UINT		GetMinFreeDiskSpace()				{ return m_uMinFreeDiskSpace; }
 	static bool		GetSparsePartFiles();
@@ -1223,9 +1229,9 @@ public:
 	static bool		GetWebUseHttps()					{ return m_bWebUseHttps; }
 	static void		SetWebUseHttps(bool bUse)			{ m_bWebUseHttps = bUse; }
 	static const CString& GetWebCertPath()				{ return m_sWebHttpsCertificate; }
-	static void		SetWebCertPath(const CString &path)		{ m_sWebHttpsCertificate = path; };
+	static void		SetWebCertPath(const CString &path)		{ m_sWebHttpsCertificate = path; }
 	static const CString& GetWebKeyPath()				{ return m_sWebHttpsKey; }
-	static void		SetWebKeyPath(const CString &path)	{ m_sWebHttpsKey = path; };
+	static void		SetWebKeyPath(const CString &path)	{ m_sWebHttpsKey = path; }
 
 	static void		SetMaxSourcesPerFile(UINT in)		{ maxsourceperfile = in; }
 	static void		SetMaxConnections(UINT in)			{ maxconnections = in; }
@@ -1243,7 +1249,7 @@ public:
 	static const CString& GetTemplate()					{ return m_strTemplateFile; }
 	static void		SetTemplate(const CString &in)		{ m_strTemplateFile = in; }
 	static bool		GetNetworkKademlia()				{ return networkkademlia && udpport > 0; }
-	static void		SetNetworkKademlia(bool val);
+	static void		SetNetworkKademlia(bool val)		{ networkkademlia = val; }
 	static bool		GetNetworkED2K()					{ return networked2k; }
 	static void		SetNetworkED2K(bool val)			{ networked2k = val; }
 
@@ -1358,27 +1364,25 @@ public:
 	static int		GetDebugSearchResultDetailLevel()	{ return 0; }
 #endif
 
-
 	// Firewall settings
 	static bool		IsOpenPortsOnStartupEnabled()		{ return m_bOpenPortsOnStartUp; }
-
 	//AICH Hash
 	static bool		IsTrustingEveryHash()				{ return m_bTrustEveryHash; } // this is a debug option
-
+	// Files options
 	static bool		IsRememberingDownloadedFiles()		{ return m_bRememberDownloadedFiles; }
 	static bool		IsRememberingCancelledFiles()		{ return m_bRememberCancelledFiles; }
 	static bool		DoPartiallyPurgeOldKnownFiles()		{ return m_bPartiallyPurgeOldKnownFiles; }
 	static void		SetRememberDownloadedFiles(bool nv)	{ m_bRememberDownloadedFiles = nv; }
 	static void		SetRememberCancelledFiles(bool nv)	{ m_bRememberCancelledFiles = nv; }
-	// mail notifier
+	static const CString &GetInternetSecurityZone()		{ return m_strSecurityZone; }
+	static const CString &GetMediaInfoDllPath()			{ return m_strMediaInfoDllPath; }
+
+	// Notifier, mail
+	static bool		DoFlashOnNewMessage()				{ return m_bIconflashOnNewMessage; }
 	static const EmailSettings &GetEmailSettings()		{ return m_email; }
 	static void		SetEmailSettings(const EmailSettings &settings) { m_email = settings; }
-
 	static bool		IsNotifierSendMailEnabled()			{ return m_email.bSendMail; }
-
 	static void		SetNotifierSendMail(bool nv)		{ m_email.bSendMail = nv; }
-	static bool		DoFlashOnNewMessage()				{ return m_bIconflashOnNewMessage; }
-	static void		IniCopy(const CString &si, const CString &di);
 
 	static void		EstimateMaxUploadCap(uint32 nCurrentUpload);
 	static bool		GetAllocCompleteMode()				{ return m_bAllocFull; }
@@ -1421,7 +1425,7 @@ protected:
 	static CString	m_strFileCommentsFilePath;
 	static Preferences_Ext_Struct *prefsExt;
 	static WORD		m_wWinVer;
-	static CArray<Category_Struct*,Category_Struct*> catArr;
+	static CArray<Category_Struct*> catArr;
 	static CString	m_astrDefaultDirs[13];
 	static bool		m_abDefaultDirsCreated[13];
 	static int		m_nCurrentUserDirMode; // Only for PPgTweaks

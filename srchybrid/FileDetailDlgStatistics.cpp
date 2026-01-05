@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -44,9 +44,9 @@ END_MESSAGE_MAP()
 CFileDetailDlgStatistics::CFileDetailDlgStatistics()
 	: CResizablePage(CFileDetailDlgStatistics::IDD)
 	, m_paFiles()
-	, m_bDataChanged()
-	, nLastRequestCount()
 	, m_hRefreshTimer()
+	, nLastRequestCount()
+	, m_bDataChanged()
 {
 	m_strCaption = GetResString(IDS_SF_STATISTICS);
 	m_psp.pszTitle = m_strCaption;
@@ -69,22 +69,22 @@ BOOL CFileDetailDlgStatistics::OnInitDialog()
 	CResizablePage::OnInitDialog();
 	InitWindowStyles(this);
 
+	AddAnchor(IDC_STATISTICS_GB_SESSION, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(pop_bar, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(pop_baraccept, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(pop_bartrans, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(IDC_STATISTICS_GB_TOTAL, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(pop_bar2, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(pop_baraccept2, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(pop_bartrans2, TOP_LEFT, TOP_RIGHT);
-	AddAnchor(IDC_STATISTICS_GB_TOTAL, TOP_LEFT, TOP_RIGHT);
-	AddAnchor(IDC_STATISTICS_GB_SESSION, TOP_LEFT, TOP_RIGHT);
-	AddAnchor(IDC_FS_POPULARITY_LBL, TOP_RIGHT);
 	AddAnchor(IDC_FS_POPULARITY_VAL, TOP_RIGHT);
-	AddAnchor(IDC_FS_ONQUEUE_LBL, TOP_RIGHT);
+	AddAnchor(IDC_FS_POPULARITY_LBL, TOP_RIGHT);
 	AddAnchor(IDC_FS_ONQUEUE_VAL, TOP_RIGHT);
-	AddAnchor(IDC_FS_UPLOADING_LBL, TOP_RIGHT);
+	AddAnchor(IDC_FS_ONQUEUE_LBL, TOP_RIGHT);
 	AddAnchor(IDC_FS_UPLOADING_VAL, TOP_RIGHT);
-	AddAnchor(IDC_FS_POPULARITY2_LBL, TOP_RIGHT);
+	AddAnchor(IDC_FS_UPLOADING_LBL, TOP_RIGHT);
 	AddAnchor(IDC_FS_POPULARITY2_VAL, TOP_RIGHT);
+	AddAnchor(IDC_FS_POPULARITY2_LBL, TOP_RIGHT);
 
 	AddAllOtherAnchors();
 
@@ -287,9 +287,9 @@ void CFileDetailDlgStatistics::OnSysColorChange()
 void CFileDetailDlgStatistics::OnTimer(UINT_PTR nIDEvent)
 {
 	if (nIDEvent == m_hRefreshTimer) {
-		if (theApp.IsClosing()
-			|| !GetParent()->IsWindowVisible()
-			|| theApp.emuledlg->GetActiveDialog() != (CWnd*)theApp.emuledlg->sharedfileswnd)
+		if (!GetParent()->IsWindowVisible()
+			|| theApp.emuledlg->GetActiveDialog() != (CWnd*)theApp.emuledlg->sharedfileswnd
+			|| theApp.IsClosing())
 		{
 			KillTimer(m_hRefreshTimer);
 			m_hRefreshTimer = 0;

@@ -25,7 +25,7 @@ public:
 	virtual BOOL OnInitDialog();
 
 	void SetFiles(const CSimpleArray<CObject*> *paFiles)	{ m_paFiles = paFiles; m_bDataChanged = true; }
-	void SetTagList(Kademlia::TagList *taglist);
+	void SetTagList(Kademlia::TagList *taglist)				{ m_taglist = taglist; }
 	//CString GetTagNameByID(UINT id);
 	void Localize();
 
@@ -38,7 +38,7 @@ protected:
 
 	void RefreshData();
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnSetActive();
 
 	DECLARE_MESSAGE_MAP()

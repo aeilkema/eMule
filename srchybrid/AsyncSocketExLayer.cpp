@@ -170,19 +170,17 @@ BOOL CAsyncSocketExLayer::TriggerEvent(long lEvent, int nErrorCode, BOOL bPassTh
 
 	if (lEvent & FD_CONNECT) {
 		ASSERT(bPassThrough);
-		if (!nErrorCode)
-			ASSERT(bPassThrough && (GetLayerState() == connected || GetLayerState() == attached));
-		else {
+		if (nErrorCode) {
 			SetLayerState(aborted);
 			m_nCriticalError = nErrorCode;
-		}
+		} else
+			ASSERT(GetLayerState() == connected || GetLayerState() == attached);
 	} else if (lEvent & FD_CLOSE) {
-		if (!nErrorCode)
-			SetLayerState(closed);
-		else {
+		if (nErrorCode) {
 			SetLayerState(aborted);
 			m_nCriticalError = nErrorCode;
-		}
+		} else
+			SetLayerState(closed);
 	}
 	ASSERT(m_pOwnerSocket->m_pLocalAsyncSocketExThreadData);
 	ASSERT(m_pOwnerSocket->m_pLocalAsyncSocketExThreadData->m_pHelperWindow);
@@ -379,17 +377,17 @@ BOOL CAsyncSocketExLayer::ConnectNext(const LPSOCKADDR lpSockAddr, int nSockAddr
 }
 
 //Gets the address of the peer socket to which the socket is connected
-bool CAsyncSocketExLayer::GetPeerName(CString &rPeerAddress, UINT &rPeerPort)
+BOOL CAsyncSocketExLayer::GetPeerName(CString &rPeerAddress, UINT &rPeerPort)
 {
 	return GetPeerNameNext(rPeerAddress, rPeerPort);
 }
 
-bool CAsyncSocketExLayer::GetPeerNameNext(CString &rPeerAddress, UINT &rPeerPort)
+BOOL CAsyncSocketExLayer::GetPeerNameNext(CString &rPeerAddress, UINT &rPeerPort)
 {
 	if (m_pNextLayer)
 		return m_pNextLayer->GetPeerName(rPeerAddress, rPeerPort);
 	if (m_nFamily != AF_INET6 && m_nFamily != AF_INET)
-		return false;
+		return FALSE;
 
 	int nSockAddrLen = (int)((m_nFamily == AF_INET6) ? sizeof(SOCKADDR_IN6) : sizeof(SOCKADDR_IN));
 	LPSOCKADDR sockAddr = (LPSOCKADDR)new char[nSockAddrLen]();
@@ -423,17 +421,17 @@ BOOL CAsyncSocketExLayer::GetPeerNameNext(LPSOCKADDR lpPeerAddr, int *lpPeerAddr
 }
 
 //Gets the address of the sock socket to which the socket is connected
-bool CAsyncSocketExLayer::GetSockName(CString &rSockAddress, UINT &rSockPort)
+BOOL CAsyncSocketExLayer::GetSockName(CString &rSockAddress, UINT &rSockPort)
 {
 	return GetSockNameNext(rSockAddress, rSockPort);
 }
 
-bool CAsyncSocketExLayer::GetSockNameNext(CString &rSockAddress, UINT &rSockPort)
+BOOL CAsyncSocketExLayer::GetSockNameNext(CString &rSockAddress, UINT &rSockPort)
 {
 	if (m_pNextLayer)
 		return m_pNextLayer->GetSockName(rSockAddress, rSockPort);
 	if (m_nFamily != AF_INET6 && m_nFamily != AF_INET)
-		return false;
+		return FALSE;
 
 	int nSockAddrLen = (int)((m_nFamily == AF_INET6) ? sizeof(SOCKADDR_IN6) : sizeof(SOCKADDR_IN));
 	LPSOCKADDR sockAddr = (LPSOCKADDR)new char[nSockAddrLen]();
@@ -524,16 +522,14 @@ void CAsyncSocketExLayer::CallEvent(int nEvent, int nErrorCode)
 		break;
 	case FD_CONNECT:
 		if (GetLayerState() == connecting || GetLayerState() == attached) {
-			if (!nErrorCode)
-				SetLayerState(connected);
-			else {
-				if (!m_pNextLayer && m_nextAddr)
-					if (TryNextProtocol()) {
-						m_nCriticalError = 0;
-						return;
-					}
+			if (nErrorCode) {
+				if (!m_pNextLayer && m_nextAddr && TryNextProtocol()) {
+					m_nCriticalError = 0;
+					return;
+				}
 				SetLayerState(aborted);
-			}
+			} else
+				SetLayerState(connected);
 			m_nPendingEvents &= ~FD_CONNECT;
 			OnConnect(nErrorCode);
 
@@ -619,7 +615,7 @@ bool CAsyncSocketExLayer::CreateNext(UINT nSocketPort, int nSocketType, long lEv
 	return ret;
 }
 
-int CAsyncSocketExLayer::DoLayerCallback(int nType, WPARAM wParam, LPARAM lParam, const char* const str /*=NULL*/)
+int CAsyncSocketExLayer::DoLayerCallback(int nType, WPARAM wParam, LPARAM lParam, const char *const str /*=NULL*/)
 {
 	if (m_pOwnerSocket) {
 		int nError = WSAGetLastError();
@@ -627,7 +623,7 @@ int CAsyncSocketExLayer::DoLayerCallback(int nType, WPARAM wParam, LPARAM lParam
 		t_callbackMsg msg;
 		msg.pLayer = this;
 		if (str) {
-			rsize_t i = strlen(str) + 1;
+			size_t i = strlen(str) + 1;
 			msg.str = new char[i];
 			strcpy_s(msg.str, i, str);
 		} else
@@ -712,11 +708,6 @@ BOOL CAsyncSocketExLayer::ShutDownNext(int nHow /*=CAsyncSocket::sends*/)
 		return shutdown(m_pOwnerSocket->GetSocketHandle(), nHow);
 	}
 	return m_pNextLayer->ShutDownNext(nHow);
-}
-
-ADDRESS_FAMILY CAsyncSocketExLayer::GetFamily() const
-{
-	return m_nFamily;
 }
 
 bool CAsyncSocketExLayer::SetFamily(ADDRESS_FAMILY nFamily)

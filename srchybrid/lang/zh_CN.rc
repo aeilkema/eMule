@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "zh_CN.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
 #ifdef _WIN32
 LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -856,7 +856,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "私人消息"
     IDS_WEB_REMOTE_LINK_ADDED "链接已添加:"
     IDS_WEB_REMOTE_LINK_NOT_ADDED "链接未添加.密码错误."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "优先下载预览所需要的文件块"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "优先下载预览所需要的文件块"
     IDS_IRC_KICK            "踢"
     IDS_IRC_SLAP            "打巴掌"
     IDS_IRC_JOIN            "加入"
@@ -910,7 +910,6 @@ BEGIN
     IDS_NEWMSG              "新的消息来自 '%s' (IP:%s) "
     IDS_PREF_STARTNEXTFILECATONLY "仅在相同的分类中"
     IDS_LOG_ULDL_EVENTS     "记录上传/下载事件"
-//    IDS_PEERCACHE_ENABLED   "你的 ISP 支持 PeerCache 技术,启用 PeerCache 下载!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "允许其他用户添加你为好友"
     IDS_SOURCESWAPBLOCKED   "已禁止置换"
     IDS_TRICKLING           "阻塞"
@@ -1621,9 +1620,6 @@ BEGIN
                             "允许这个选项将使得eMule在Windows启动时自动运行.(默认 禁止)"
     IDS_KAD_WAITCBK         "等待 Kad 返回消息"
     IDS_KAD_TOOMANDYKADLKPS "过多的 Kad 查找"
-//    IDS_PCDS_CLIENTWAIT     "客户端等待"
-//    IDS_PCDS_CACHEWAIT      "缓存等待"
-//    IDS_CACHE               "缓存"
     IDS_INDEXED             "索引"
     IDS_KADINFO_SRC         "\t来源: %u\r\n"
     IDS_KADINFO_KEYW        "\t关键字: %u\r\n"
@@ -1706,8 +1702,6 @@ BEGIN
     IDS_EXTRACT_META_DATA   "展开Meta数据"
     IDS_META_DATA_MEDIADET  "DirectShow (所有其他音频/视频文件)"
     IDS_META_DATA_ID3LIB    "ID3动态链接库 (仅限MPEG音频文件)"
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Windows的通用控件链接库(COMCTL32.DLL)的版本太旧了!\r\n\r\neMule检测到""Windows的通用控件链接库(COMCTL32.DLL)""的版本太旧,以至于它可能使得eMule无法正常工作.为了确保eMule完整 正确的运作,我们强烈建议你将""Windows的通用控件链接库(COMCTL32.DLL)""至少更新到5.8版.\r\n\r\n在Microsoft (R)下载中心可以下载和安装最新版本的""Windows的通用控件链接库(COMCTL32.DLL)"".你愿意访问相应的URL吗?"
     IDS_ASREGEXPR           "使用正则表达式指定分类"
     IDS_STATIC_REGEXP       "下载列表使用的正则表达式:"
     IDS_CARE4ALL            "显示特定的非本分类文件"
@@ -1898,10 +1892,10 @@ BEGIN
     IDS_MARKNOTSPAM         "标记为非垃圾信息"  //"Mark as not Spam"
     IDS_SEARCHSPAMFILTER    "对搜索结果开启垃圾信息过滤"  //"Enable Spam Filter for search results"
     IDS_SHOWSMILEYS         "显示表情符号"  //"Show Smileys"
-    IDS_CAPTCHAREQUEST      "为了避免广告消息,对方要求在发送消息前进行验证.请输入这幅图片中的字母进行验证:" //"In order to avoid spam messages, this user requires you to solve a captcha before you can send him a message. Please enter the letters you see on this image as response:"
-    IDS_CAPTCHAFAILED       "你输入的验证码不正确,消息被对方忽略.你可以通过再次发送消息进行验证." //"Your response to the captcha was wrong and your message has been ignored. You can request a new captcha by sending a new message."
-    IDS_CAPTCHASOLVED       "你输入的验证码正确,对方已经收到你的消息." //"You have passed the captcha check and the user has received your message."
-    IDS_USECAPTCHAS         "需要进行验证码验证" //"Require captcha authentication"
+    IDS_CAPTCHAREQUEST      "为了避免广告消息,对方要求在发送消息前进行验证.请输入这幅图片中的字母进行验证:" //"In order to avoid spam messages, this user requires you to solve a CAPTCHA before you can send him a message. Please enter the letters you see on this image as response:"
+    IDS_CAPTCHAFAILED       "你输入的验证码不正确,消息被对方忽略.你可以通过再次发送消息进行验证." //"Your response to the CAPTCHA was wrong and your message has been ignored. You can request a new CAPTCHA by sending a new message."
+    IDS_CAPTCHASOLVED       "你输入的验证码正确,对方已经收到你的消息." //"You have passed the CAPTCHA check and the user has received your message."
+    IDS_USECAPTCHAS         "需要进行验证码验证" //"Require CAPTCHA authentication"
     IDS_BOOTSRAPNODESDAT    "从以下网址获取节点信息(Nodes.dat):" //"Nodes.dat from URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "从 %s 下载节点信息(Nodes.dat)" //"Downloading nodes.dat from %s"
     IDS_DOWNLOADING_NODESDAT "正在下载节点信息(Nodes.dat)..." //"Downloading nodes.dat..."

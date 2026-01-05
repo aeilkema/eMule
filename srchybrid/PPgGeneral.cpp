@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -308,6 +308,8 @@ void CPPgGeneral::OnLangChange()
 #define SBITS _T("32/")
 #elif defined _M_X64
 #define SBITS _T("64/")
+#elif defined _M_ARM64
+#define SBITS _T("arm64/")
 #else
 #define SBITS
 #endif
@@ -315,7 +317,9 @@ void CPPgGeneral::OnLangChange()
 
 	LANGID newLangId = (LANGID)m_language.GetItemData(m_language.GetCurSel());
 	if (thePrefs.GetLanguageID() != newLangId) {
-		if (!thePrefs.IsLanguageSupported(newLangId)) {
+		if (thePrefs.IsLanguageSupported(newLangId))
+			OnSettingsChange();
+		else {
 			CString sAsk(GetResString(IDS_ASKDOWNLOADLANGCAP));
 			sAsk.AppendFormat(_T("\r\n\r\n%s"), (LPCTSTR)GetResString(IDS_ASKDOWNLOADLANG));
 			if (AfxMessageBox(sAsk, MB_ICONQUESTION | MB_YESNO) == IDYES) {
@@ -347,8 +351,7 @@ void CPPgGeneral::OnLangChange()
 			}
 			// undo change selection
 			SetLangSel();
-		} else
-			OnSettingsChange();
+		}
 	}
 }
 

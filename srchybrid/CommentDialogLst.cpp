@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -33,6 +33,7 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+#define	IDT_REFRESH	301
 
 IMPLEMENT_DYNAMIC(CCommentDialogLst, CResizablePage)
 
@@ -85,7 +86,7 @@ BOOL CCommentDialogLst::OnInitDialog()
 	Localize();
 
 	// start time for calling 'RefreshData'
-	VERIFY((m_timer = SetTimer(301, SEC2MS(5), NULL)) != 0);
+	VERIFY((m_timer = SetTimer(IDT_REFRESH, SEC2MS(5), NULL)) != 0);
 
 	return TRUE;
 }
@@ -197,7 +198,7 @@ void CCommentDialogLst::OnBnClickedFilter()
 			CString strFilter(strCommentFilters.Tokenize(_T("|"), iPos));
 			if (!strFilter.Trim().IsEmpty()) {
 				if (!strNewCommentFilters.IsEmpty())
-					strNewCommentFilters += _T('|');
+					strNewCommentFilters += _T("|");
 				strNewCommentFilters += strFilter;
 			}
 		}

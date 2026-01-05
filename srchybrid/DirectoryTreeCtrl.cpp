@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -20,7 +20,7 @@
 #include "MenuCmds.h"
 #include "otherfunctions.h"
 #include "Preferences.h"
-#include "TitleMenu.h"
+#include "TitledMenu.h"
 #include "UserMsgs.h"
 
 #ifdef _DEBUG
@@ -119,17 +119,14 @@ void CDirectoryTreeCtrl::AddDirectory(const CString &strDir)
 	if (::PathIsUNC(strDir)) {
 		const CString &sShare(GetShareName(strDir));
 		INT_PTR i = m_aUNCshares.GetCount();
-		if (!i)
-			m_aUNCshares.Add(sShare);
-		else
-			while (--i >= 0) {
-				int cmp = sShare.CompareNoCase(m_aUNCshares[i]);
-				if (cmp >= 0) {
-					if (cmp)
-						m_aUNCshares.InsertAt(i + 1, sShare);
-					break;
-				}
-			}
+		while (--i >= 0) {
+			int cmp = sShare.CompareNoCase(m_aUNCshares[i]);
+			if (!cmp)
+				return;
+			if (cmp > 0)
+				break;
+		}
+		m_aUNCshares.InsertAt(i + 1, sShare);
 	}
 }
 
@@ -196,7 +193,7 @@ void CDirectoryTreeCtrl::Init()
 	SHFILEINFO shFinfo;
 
 	// Get the system image list using a "path" which is available on all systems. [patch by bluecow]
-	HIMAGELIST hImgList = (HIMAGELIST)::SHGetFileInfo(_T("."), 0, &shFinfo, sizeof(shFinfo), SHGFI_SYSICONINDEX | SHGFI_SMALLICON);
+	HIMAGELIST hImgList = (HIMAGELIST)::SHGetFileInfo(_T("."), 0, &shFinfo, sizeof shFinfo, SHGFI_SYSICONINDEX | SHGFI_SMALLICON);
 	if (!hImgList) {
 		TRACE(_T("Cannot retrieve the Handle of SystemImageList!"));
 		//return;
@@ -256,7 +253,7 @@ HTREEITEM CDirectoryTreeCtrl::AddChildItem(HTREEITEM hRoot, const CString &strTe
 
 	SHFILEINFO shFinfo;
 	shFinfo.szDisplayName[0] = _T('\0');
-	if (::SHGetFileInfo(strDir, 0, &shFinfo, sizeof(shFinfo), SHGFI_SMALLICON | SHGFI_ICON | SHGFI_OPENICON | SHGFI_DISPLAYNAME)) {
+	if (::SHGetFileInfo(strDir, 0, &shFinfo, sizeof shFinfo, SHGFI_SMALLICON | SHGFI_ICON | SHGFI_OPENICON | SHGFI_DISPLAYNAME)) {
 		itInsert.itemex.iImage = shFinfo.iIcon;
 		::DestroyIcon(shFinfo.hIcon);
 		if (hRoot == NULL && shFinfo.szDisplayName[0] != _T('\0')) {
@@ -409,7 +406,7 @@ void CDirectoryTreeCtrl::OnContextMenu(CWnd*, CPoint point)
 
 	const CString &sItem(GetFullPath(hItem)); //trailing backslash
 	// create the menu
-	CTitleMenu SharedMenu;
+	CTitledMenu SharedMenu;
 	SharedMenu.CreatePopupMenu();
 	SharedMenu.AddMenuTitle(GetResString(IDS_SHAREDFOLDERS));
 
@@ -418,15 +415,15 @@ void CDirectoryTreeCtrl::OnContextMenu(CWnd*, CPoint point)
 	if (IsShared(sItem)) {
 		SharedMenu.AppendMenu(MF_STRING, MP_UNSHAREDIR, GetResString(IDS_UNSHAREDIR));
 		SharedMenu.AppendMenu(MF_STRING, MP_UNSHAREDIRSUB, GetResString(IDS_UNSHAREDIRSUB));
-		if (PathIsUNC(sItem) && !GetParentItem(hItem)) {
-			CString sViewPath;
-			sViewPath.Format(_T("%s %s"), (LPCTSTR)GetResString(IDS_REMOVETHIS), (LPCTSTR)sItem);
-			SharedMenu.AppendMenu(MF_STRING | MF_SEPARATOR);
-			SharedMenu.AppendMenu(MF_STRING, MP_REMOVESHARE, sViewPath);
-		}
 	} else {
 		SharedMenu.AppendMenu(MF_STRING, MP_SHAREDIR, GetResString(IDS_SHAREDIR));
 		SharedMenu.AppendMenu(MF_STRING, MP_SHAREDIRSUB, GetResString(IDS_SHAREDIRSUB));
+	}
+	if (PathIsUNC(sItem) && !GetParentItem(hItem)) {
+		CString sViewPath;
+		sViewPath.Format(_T("%s %s"), (LPCTSTR)GetResString(IDS_REMOVETHIS), (LPCTSTR)sItem);
+		SharedMenu.AppendMenu(MF_STRING | MF_SEPARATOR);
+		SharedMenu.AppendMenu(MF_STRING, MP_REMOVESHARE, sViewPath);
 	}
 
 	// display menu

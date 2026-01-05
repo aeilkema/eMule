@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "pt_PT.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_PTG)
 #ifdef _WIN32
 LANGUAGE LANG_PORTUGUESE, SUBLANG_PORTUGUESE
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -1549,9 +1549,8 @@ BEGIN
     IDS_NEWMSG              "Nova mensagem de '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "apenas na mesma categoria"
     IDS_LOG_ULDL_EVENTS     "Registar eventos de upload/download"
-//    IDS_PEERCACHE_ENABLED   "O seu suporta a tecnologia PeerCache, permitindo downloads a partir da cache!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Permitir que o utilizador o adicione como amigo."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Falta ainda descarregar partes para conseguir pré-visualizar"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Falta ainda descarregar partes para conseguir pré-visualizar"
 END
 
 STRINGTABLE
@@ -1591,9 +1590,6 @@ BEGIN
                             "Active esta opção se quiser que o eMule seja iniciado sempre que arrancar o Windows. (Desactivado por defeito)"
     IDS_KAD_WAITCBK         "Esperar resposta Kad"
     IDS_KAD_TOOMANDYKADLKPS "Demasiados pedidos de informação Kad"
-//    IDS_PCDS_CLIENTWAIT     "Atraso do Cliente"
-//    IDS_PCDS_CACHEWAIT      "Atraso da Cache"
-//    IDS_CACHE               "Cache"//!
     IDS_INDEXED             "Indexado"
     IDS_KADINFO_SRC         "\tFonte: %u\r\n"
     IDS_KADINFO_KEYW        "\tPalavra-chave: %u\r\n"
@@ -1689,8 +1685,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "A livraria de Controlos Comuns do Windows (COMCTL32.DLL) é demasiado antiga!\r\n\r\nO eMule detectou uma versão da ""livraria de Controlos Comuns do Windows (COMCTL32.DLL)"" que é demasiado antiga para ser devidamente utilizada pelo eMule. De forma a assegurar o funcionamento total e fiável do eMule, recomendamos vivamente que actualize a ""livraria de Controlos Comuns do Windows (COMCTL32.DLL)"" para a versão 5.8 ou superior.\r\n\r\nDescarregue e instale a actualização da ""livraria de Controlos Comuns do Windows (COMCTL32.DLL)"" no centro de downloads da Microsoft(R). Deseja visitar o URL correspondente?"
     IDS_ASREGEXPR           "Como Expressão Regular"
     IDS_STATIC_REGEXP       "Expressão Regular para o filtro de visualização:"
     IDS_CARE4ALL            "Avaliar Todos os Ficheiros"
@@ -1931,10 +1925,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Não marcar como Spam"
     IDS_SEARCHSPAMFILTER    "Activar o filtro de Spam para os resultados das pesquisas"
     IDS_SHOWSMILEYS         "Mostrar Smileys"
-    IDS_CAPTCHAREQUEST      "De forma a não receber mensagens spam, este utilizador pede-lhe que solucione um captcha antes que lhe possa enviar uma mensagem. Por favor digite as letras que vê nesta imagem para continuar:"
-    IDS_CAPTCHAFAILED       "A sua resposta ao captcha estava incorrecta e a sua mensagem foi ignorada. Pode pedir um novo captcha enviando uma nova mensagem."
-    IDS_CAPTCHASOLVED       "Você passou a verificação por captcha e o utilizador recebeu a sua mensagem."
-    IDS_USECAPTCHAS         "Pedir verificação captcha"
+    IDS_CAPTCHAREQUEST      "De forma a não receber mensagens spam, este utilizador pede-lhe que solucione um CAPTCHA antes que lhe possa enviar uma mensagem. Por favor digite as letras que vê nesta imagem para continuar:"
+    IDS_CAPTCHAFAILED       "A sua resposta ao CAPTCHA estava incorrecta e a sua mensagem foi ignorada. Pode pedir um novo CAPTCHA enviando uma nova mensagem."
+    IDS_CAPTCHASOLVED       "Você passou a verificação por CAPTCHA e o utilizador recebeu a sua mensagem."
+    IDS_USECAPTCHAS         "Pedir verificação CAPTCHA"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat a partir do URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "A transferir nodes.dat de %s"
     IDS_DOWNLOADING_NODESDAT "A transferir nodes.dat..."

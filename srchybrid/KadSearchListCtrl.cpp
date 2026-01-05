@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -16,14 +16,10 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
 #include "emule.h"
+#include "emuledlg.h"
 #include "KademliaWnd.h"
 #include "KadSearchListCtrl.h"
-#include "KadContactListCtrl.h"
-#include "Ini2.h"
 #include "OtherFunctions.h"
-#include "emuledlg.h"
-#include "DownloadQueue.h"
-#include "PartFile.h"
 #include "kademlia/kademlia/search.h"
 #include "kademlia/utils/LookupHistory.h"
 
@@ -101,13 +97,12 @@ void CKadSearchListCtrl::SetAllIcons()
 
 void CKadSearchListCtrl::Localize()
 {
-	static const UINT uids[8] =
+	static const UINT uids[] =
 	{
-		IDS_NUMBER, IDS_KEY, IDS_TYPE, IDS_SW_NAME, IDS_STATUS,
-		IDS_THELOAD, IDS_PACKSENT, IDS_RESPONSES
+		IDS_NUMBER, IDS_KEY, IDS_TYPE, IDS_SW_NAME, IDS_STATUS
+		, IDS_THELOAD, IDS_PACKSENT, IDS_RESPONSES, 0
 	};
-
-	LocaliseHeaderCtrl(uids, _countof(uids));
+	LocaliseHeader(uids);
 
 	for (int i = GetItemCount(); --i >= 0;)
 		SearchRef(reinterpret_cast<Kademlia::CSearch*>(GetItemData(i)));
@@ -305,13 +300,14 @@ Kademlia::CLookupHistory* CKadSearchListCtrl::FetchAndSelectActiveSearch(bool bM
 			case Kademlia::CSearch::NOTES:
 			case Kademlia::CSearch::STOREFILE:
 			case Kademlia::CSearch::STOREKEYWORD:
-				iIntrestingItem = i;
+				iIntrestingItem = iItem = i;
 				break;
-			case Kademlia::CSearch::NODE:
-			case Kademlia::CSearch::NODECOMPLETE:
-			case Kademlia::CSearch::NODESPECIAL:
-			case Kademlia::CSearch::NODEFWCHECKUDP:
-			case Kademlia::CSearch::FINDBUDDY:
+			// all the rest
+			//case Kademlia::CSearch::NODE:
+			//case Kademlia::CSearch::NODECOMPLETE:
+			//case Kademlia::CSearch::NODESPECIAL:
+			//case Kademlia::CSearch::NODEFWCHECKUDP:
+			//case Kademlia::CSearch::FINDBUDDY:
 			default:
 				if (iItem == -1)
 					iItem = i;
@@ -320,15 +316,9 @@ Kademlia::CLookupHistory* CKadSearchListCtrl::FetchAndSelectActiveSearch(bool bM
 				break;
 		}
 	}
-	if (iIntrestingItem >= 0) {
-		if (bMark)
-			SetItemState(iIntrestingItem, LVIS_SELECTED, LVIS_SELECTED);
-		return ((Kademlia::CSearch*)GetItemData(iIntrestingItem))->GetLookupHistory();
-	}
-	if (iItem >= 0) {
-		if (bMark)
-			SetItemState(iItem, LVIS_SELECTED, LVIS_SELECTED);
-		return ((Kademlia::CSearch*)GetItemData(iItem))->GetLookupHistory();
-	}
-	return NULL;
+	if (iItem < 0)
+		return NULL;
+	if (bMark)
+		SetItemState(iItem, LVIS_SELECTED, LVIS_SELECTED);
+	return ((Kademlia::CSearch *)GetItemData(iItem))->GetLookupHistory();
 }

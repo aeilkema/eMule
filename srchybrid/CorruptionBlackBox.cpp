@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -16,7 +16,6 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "StdAfx.h"
 #include "corruptionblackbox.h"
-#include "knownfile.h"
 #include "updownclient.h"
 #include "log.h"
 #include "emule.h"
@@ -30,7 +29,7 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 
-#define	 CBB_BANTHRESHOLD	32 //% max corrupted data
+#define	CBB_BANTHRESHOLD	32 //% max corrupted data
 
 CCBBRecord::CCBBRecord(uint64 nStartPos, uint64 nEndPos, uint32 dwIP, EBBRStatus BBRStatus)
 {
@@ -39,8 +38,10 @@ CCBBRecord::CCBBRecord(uint64 nStartPos, uint64 nEndPos, uint32 dwIP, EBBRStatus
 		m_nEndPos = nEndPos;
 		m_dwIP = dwIP;
 		m_BBRStatus = BBRStatus;
-	} else
+	} else {
 		ASSERT(0);
+		memset(this, 0, sizeof *this);
+	}
 }
 
 bool CCBBRecord::Merge(uint64 nStartPos, uint64 nEndPos, uint32 dwIP, EBBRStatus BBRStatus)
@@ -61,6 +62,40 @@ bool CCBBRecord::CanMerge(uint64 nStartPos, uint64 nEndPos, uint32 dwIP, EBBRSta
 	return m_dwIP == dwIP && m_BBRStatus == BBRStatus && (nStartPos == m_nEndPos + 1 || nEndPos + 1 == m_nStartPos);
 }
 
+bool CCorruptionBlackBox::Split(CCBBRecord &cbbRec, INT_PTR nPart, uint64 nRelStartPos, uint64 nRelEndPos)
+{
+	//if all this block is inside the new data, only status will change
+	if (cbbRec.m_nStartPos >= nRelStartPos && cbbRec.m_nEndPos <= nRelEndPos)
+		return true;
+	// if new data fully within this block; the block splits into 3
+	if (cbbRec.m_nStartPos < nRelStartPos && cbbRec.m_nEndPos > nRelEndPos) {
+		uint64 nOldStartPos = cbbRec.m_nStartPos;
+		uint64 nOldEndPos = cbbRec.m_nEndPos;
+		cbbRec.m_nStartPos = nRelStartPos;
+		cbbRec.m_nEndPos = nRelEndPos;
+		uint32 dwIP = cbbRec.m_dwIP;
+		EBBRStatus BBRStatus = cbbRec.m_BBRStatus;
+		m_aaRecords[nPart].Add(CCBBRecord(nRelEndPos + 1, nOldEndPos, dwIP, BBRStatus));
+		m_aaRecords[nPart].Add(CCBBRecord(nOldStartPos, nRelStartPos - 1, dwIP, BBRStatus));
+		return true;
+	}
+	// split off the tail of this block
+	if (cbbRec.m_nStartPos >= nRelStartPos && cbbRec.m_nStartPos <= nRelEndPos) {
+		uint64 nOldEndPos = cbbRec.m_nEndPos;
+		cbbRec.m_nEndPos = nRelEndPos;
+		m_aaRecords[nPart].Add(CCBBRecord(nRelEndPos + 1, nOldEndPos, cbbRec.m_dwIP, cbbRec.m_BBRStatus));
+		return true;
+	}
+	// split off the head of this block
+	if (cbbRec.m_nEndPos >= nRelStartPos && cbbRec.m_nEndPos <= nRelEndPos) {
+		uint64 nOldStartPos = cbbRec.m_nStartPos;
+		cbbRec.m_nStartPos = nRelStartPos;
+		m_aaRecords[nPart].Add(CCBBRecord(nOldStartPos, nRelStartPos - 1, cbbRec.m_dwIP, cbbRec.m_BBRStatus));
+		return true;
+	}
+	return false;
+}
+
 void CCorruptionBlackBox::Init(EMFileSize nFileSize)
 {
 	m_aaRecords.SetSize((INT_PTR)(((uint64)nFileSize + PARTSIZE - 1) / PARTSIZE));
@@ -71,9 +106,9 @@ void CCorruptionBlackBox::Free()
 	m_aaRecords.SetSize(0);
 }
 
-void CCorruptionBlackBox::TransferredData(uint64 nStartPos, uint64 nEndPos, const CUpDownClient *pSender)
+void CCorruptionBlackBox::ReceivedData(uint64 nStartPos, uint64 nEndPos, const CUpDownClient *pSender)
 {
-	if (nEndPos - nStartPos >= PARTSIZE || nStartPos > nEndPos) {
+	if (nStartPos > nEndPos || nEndPos - nStartPos >= PARTSIZE) {
 		ASSERT(0);
 		return;
 	}
@@ -91,7 +126,7 @@ void CCorruptionBlackBox::TransferredData(uint64 nStartPos, uint64 nEndPos, cons
 	if (nRelEndPos >= PARTSIZE) {
 		// data crosses the part boundary, split it
 		nRelEndPos = PARTSIZE - 1;
-		TransferredData(nStart + PARTSIZE, nEndPos, pSender);
+		ReceivedData(nStart + PARTSIZE, nEndPos, pSender);
 	}
 
 	INT_PTR posMerge = -1;
@@ -125,7 +160,7 @@ void CCorruptionBlackBox::TransferredData(uint64 nStartPos, uint64 nEndPos, cons
 
 					m_aaRecords[nPart].Add(CCBBRecord(nOldStartPos, nRelStartPos - 1, dwOldIP));
 					//prepare to add one more block
-					nRelStartPos = cbbRec.m_nEndPos + 1;
+					nRelStartPos = nRelEndPos + 1; //same as adjusted cbbRec.m_nEndPos + 1;
 					nRelEndPos = nOldEndPos;
 					dwSenderIP = dwOldIP;
 					ndbgRewritten += nRelEndPos - nRelStartPos + 1;
@@ -173,34 +208,14 @@ void CCorruptionBlackBox::VerifiedData(uint64 nStartPos, uint64 nEndPos)
 	CMap<int, int, int, int> mapDebug;
 #endif
 	for (INT_PTR i = 0; i < m_aaRecords[nPart].GetCount(); ++i) {
-		CCBBRecord &cbbRec(m_aaRecords[nPart][i]);
-		if (cbbRec.m_BBRStatus == BBR_NONE || cbbRec.m_BBRStatus == BBR_VERIFIED) {
-			if (cbbRec.m_nStartPos >= nRelStartPos && cbbRec.m_nEndPos <= nRelEndPos)
-				; //all this block is inside the new verified data; only set status to verified
-			else if (cbbRec.m_nStartPos < nRelStartPos && cbbRec.m_nEndPos > nRelEndPos) {
-				// new data fully within this block; split this block into 3
-				uint64 nOldStartPos = cbbRec.m_nStartPos;
-				uint64 nOldEndPos = cbbRec.m_nEndPos;
-				cbbRec.m_nStartPos = nRelStartPos;
-				cbbRec.m_nEndPos = nRelEndPos;
-				m_aaRecords[nPart].Add(CCBBRecord(nRelEndPos + 1, nOldEndPos, cbbRec.m_dwIP, cbbRec.m_BBRStatus));
-				m_aaRecords[nPart].Add(CCBBRecord(nOldStartPos, nRelStartPos - 1, cbbRec.m_dwIP, cbbRec.m_BBRStatus));
-			} else if (cbbRec.m_nStartPos >= nRelStartPos && cbbRec.m_nStartPos <= nRelEndPos) {
-				// split off the tail of this block
-				uint64 nOldEndPos = cbbRec.m_nEndPos;
-				cbbRec.m_nEndPos = nRelEndPos;
-				m_aaRecords[nPart].Add(CCBBRecord(nRelEndPos + 1, nOldEndPos, cbbRec.m_dwIP, cbbRec.m_BBRStatus));
-			} else if (cbbRec.m_nEndPos >= nRelStartPos && cbbRec.m_nEndPos <= nRelEndPos) {
-				// split off the head of this block
-				uint64 nOldStartPos = cbbRec.m_nStartPos;
-				cbbRec.m_nStartPos = nRelStartPos;
-				m_aaRecords[nPart].Add(CCBBRecord(nOldStartPos, nRelStartPos - 1, cbbRec.m_dwIP, cbbRec.m_BBRStatus));
-			} else
-				continue;
-			cbbRec.m_BBRStatus = BBR_VERIFIED;
+		CCBBRecord *cbbRec = &m_aaRecords[nPart][i];
+		if (cbbRec->m_BBRStatus == BBR_NONE || cbbRec->m_BBRStatus == BBR_VERIFIED)
+			if (Split(*cbbRec, i, nRelStartPos, nRelEndPos)) {
+				cbbRec = &m_aaRecords[nPart][i];
+				cbbRec->m_BBRStatus = BBR_VERIFIED;
 #ifdef _DEBUG
-			nDbgVerifiedBytes += cbbRec.m_nEndPos - cbbRec.m_nStartPos + 1;
-			mapDebug[cbbRec.m_dwIP] = 1;
+				nDbgVerifiedBytes += cbbRec->m_nEndPos - cbbRec->m_nStartPos + 1;
+				mapDebug[cbbRec->m_dwIP] = 1;
 #endif
 			}
 	}
@@ -226,45 +241,26 @@ void CCorruptionBlackBox::CorruptedData(uint64 nStartPos, uint64 nEndPos)
 		ASSERT(0);
 		return;
 	}
-	uint64 nDbgVerifiedBytes = 0;
+	uint64 nDbgCorruptedBytes = 0;
 	for (INT_PTR i = 0; i < m_aaRecords[nPart].GetCount(); ++i) {
-		CCBBRecord &cbbRec(m_aaRecords[nPart][i]);
-		if (cbbRec.m_BBRStatus == BBR_NONE) {
-			if (cbbRec.m_nStartPos >= nRelStartPos && cbbRec.m_nEndPos <= nRelEndPos)
-				;
-			else if (cbbRec.m_nStartPos < nRelStartPos && cbbRec.m_nEndPos > nRelEndPos) {
-				// need to split it 2*
-				uint64 nOldStartPos = cbbRec.m_nStartPos;
-				uint64 nOldEndPos = cbbRec.m_nEndPos;
-				cbbRec.m_nStartPos = nRelStartPos;
-				cbbRec.m_nEndPos = nRelEndPos;
-				m_aaRecords[nPart].Add(CCBBRecord(nRelEndPos + 1, nOldEndPos, cbbRec.m_dwIP, cbbRec.m_BBRStatus));
-				m_aaRecords[nPart].Add(CCBBRecord(nOldStartPos, nRelStartPos - 1, cbbRec.m_dwIP, cbbRec.m_BBRStatus));
-			} else if (cbbRec.m_nStartPos >= nRelStartPos && cbbRec.m_nStartPos <= nRelEndPos) {
-				// need to split it
-				uint64 nOldEndPos = cbbRec.m_nEndPos;
-				cbbRec.m_nEndPos = nRelEndPos;
-				m_aaRecords[nPart].Add(CCBBRecord(nRelEndPos + 1, nOldEndPos, cbbRec.m_dwIP, cbbRec.m_BBRStatus));
-			} else if (cbbRec.m_nEndPos >= nRelStartPos && cbbRec.m_nEndPos <= nRelEndPos) {
-				// need to split it
-				uint64 nOldStartPos = cbbRec.m_nStartPos;
-				cbbRec.m_nStartPos = nRelStartPos;
-				m_aaRecords[nPart].Add(CCBBRecord(nOldStartPos, nRelStartPos - 1, cbbRec.m_dwIP, cbbRec.m_BBRStatus));
-			} else
-				continue;
-			cbbRec.m_BBRStatus = BBR_CORRUPTED;
-			nDbgVerifiedBytes += cbbRec.m_nEndPos - cbbRec.m_nStartPos + 1;
-		}
+		CCBBRecord *cbbRec = &m_aaRecords[nPart][i];
+		if (cbbRec->m_BBRStatus == BBR_NONE)
+			if (Split(*cbbRec, i, nRelStartPos, nRelEndPos)) {
+				cbbRec->m_BBRStatus = BBR_CORRUPTED;
+				nDbgCorruptedBytes += cbbRec->m_nEndPos - cbbRec->m_nStartPos + 1;
+			}
 	}
-	AddDebugLogLine(DLP_HIGH, false, _T("Found and marked %I64u recorded bytes of %I64u as corrupted in the CorruptionBlackBox records"), nDbgVerifiedBytes, (nEndPos - nStartPos) + 1);
+	AddDebugLogLine(DLP_HIGH, false, _T("Found and marked %I64u recorded bytes of %I64u as corrupted in the CorruptionBlackBox records"), nDbgCorruptedBytes, (nEndPos - nStartPos) + 1);
 }
 
 void CCorruptionBlackBox::EvaluateData(uint16 nPart)
 {
-	CArray<uint32, uint32> aGuiltyClients;
-	for (INT_PTR i = m_aaRecords[nPart].GetCount(); --i >= 0;)
-		if (m_aaRecords[nPart][i].m_BBRStatus == BBR_CORRUPTED)
-			aGuiltyClients.Add(m_aaRecords[nPart][i].m_dwIP);
+	CArray<uint32> aGuiltyClients;
+	for (INT_PTR i = m_aaRecords[nPart].GetCount(); --i >= 0;) {
+		const CCBBRecord &cbbRec = m_aaRecords[nPart][i];
+		if (cbbRec.m_BBRStatus == BBR_CORRUPTED)
+			aGuiltyClients.Add(cbbRec.m_dwIP);
+	}
 
 	// check if any IPs are already banned, so we can skip the test for those
 	for (INT_PTR k = 0; k < aGuiltyClients.GetCount();) {
@@ -306,7 +302,7 @@ void CCorruptionBlackBox::EvaluateData(uint16 nPart)
 	for (INT_PTR k = 0; k < iClients; ++k) {
 		int nCorruptPercentage;
 		if ((aDataVerified[k] + aDataCorrupt[k]) > 0)
-			nCorruptPercentage = (int)((aDataCorrupt[k] * 100) / (aDataVerified[k] + aDataCorrupt[k]));
+			nCorruptPercentage = (int)(100 * aDataCorrupt[k] / (aDataVerified[k] + aDataCorrupt[k]));
 		else {
 			AddDebugLogLine(DLP_HIGH, false, _T("CorruptionBlackBox: Program Error: No records for guilty client found!"));
 			ASSERT(0);
@@ -322,7 +318,7 @@ void CCorruptionBlackBox::EvaluateData(uint16 nPart)
 
 			AddDebugLogLine(DLP_HIGH, false, _T("CorruptionBlackBox: Banning: Found client which sent %s of %s corrupted data, %s")
 				, (LPCTSTR)CastItoXBytes(aDataCorrupt[k])
-				, (LPCTSTR)CastItoXBytes((aDataVerified[k] + aDataCorrupt[k]))
+				, (LPCTSTR)CastItoXBytes(aDataVerified[k] + aDataCorrupt[k])
 				, (LPCTSTR)(pClient ? pClient->DbgGetClientInfo() : ipstr(aGuiltyClients[k])));
 		} else { //suspected client
 			if (pClient)

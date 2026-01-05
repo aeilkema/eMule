@@ -1,6 +1,6 @@
 // parts of this file are based on work from pan One (http://home-3.tiscali.nl/~meost/pms/)
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -36,7 +36,7 @@ static char THIS_FILE[] = __FILE__;
 IMPLEMENT_DYNAMIC(CAbstractFile, CObject)
 
 CAbstractFile::CAbstractFile()
-	: m_nFileSize(0ull)
+	: m_nFileSize()
 	, m_FileIdentifier(m_nFileSize)
 	, m_uRating()
 	, m_uUserRating()
@@ -127,11 +127,11 @@ void CAbstractFile::LoadComment()
 {
 	CIni ini(thePrefs.GetFileCommentsFilePath(), md4str(GetFileHash()));
 	m_strComment = ini.GetStringUTF8(_T("Comment")).Left(MAXFILECOMMENTLEN);
-	m_uRating = ini.GetInt(_T("Rate"), 0);
+	m_uRating = ini.GetInt(_T("Rate"));
 	m_bCommentLoaded = true;
 }
 
-void CAbstractFile::CopyTags(const CArray<CTag*, CTag*> &tags)
+void CAbstractFile::CopyTags(const CArray<CTag*> &tags)
 {
 	for (INT_PTR i = 0; i < tags.GetCount(); ++i)
 		m_taglist.Add(new CTag(*tags[i]));
@@ -173,11 +173,6 @@ void CAbstractFile::SetAFileName(LPCTSTR pszFileName, bool bReplaceInvalidFileSy
 		for (int i = m_strFileName.GetLength(); --i >= 0;)
 			if (m_strFileName[i] < _T(' ')) //space
 				m_strFileName.Delete(i, 1);
-}
-
-void CAbstractFile::SetFileType(LPCTSTR pszFileType)
-{
-	m_strFileType = pszFileType;
 }
 
 CString CAbstractFile::GetFileTypeDisplayStr() const
@@ -427,16 +422,16 @@ CString CAbstractFile::GetED2kLink(bool bHashset, bool bHTML, bool bHostname, bo
 		strLink += _T("p=");
 		for (UINT j = 0; j < GetFileIdentifierC().GetAvailableMD4PartHashCount(); ++j) {
 			if (j > 0)
-				strLink += _T(':');
+				strLink += _T(":");
 			strLink += EncodeBase16(GetFileIdentifierC().GetMD4PartHash(j), 16);
 		}
-		strLink += _T('|');
+		strLink += _T("|");
 	}
 
 	if (GetFileIdentifierC().HasAICHHash())
 		strLink.AppendFormat(_T("h=%s|"), (LPCTSTR)GetFileIdentifierC().GetAICHHash().GetString());
 
-	strLink += _T('/');
+	strLink += _T("/");
 	if (bHostname && thePrefs.GetYourHostname().Find(_T('.')) >= 0)
 		strLink.AppendFormat(_T("|sources,%s:%i|/"), (LPCTSTR)thePrefs.GetYourHostname(), thePrefs.GetPort());
 	else if (bSource && dwSourceIP != 0)

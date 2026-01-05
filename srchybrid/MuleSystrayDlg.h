@@ -8,7 +8,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 };
 
-#include "TrayMenuBtn.h"		// Added by ClassView
+#include "TrayMenuBtn.h"	// Added by ClassView
 #include "GradientStatic.h"	// Added by ClassView
 #include "resource.h"
 
@@ -45,7 +45,7 @@ public:
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CMuleSystrayDlg)
 protected:
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
 	//}}AFX_VIRTUAL
 

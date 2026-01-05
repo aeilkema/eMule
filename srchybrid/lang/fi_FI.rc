@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "fi_FI.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FIN)
 #ifdef _WIN32
 LANGUAGE LANG_FINNISH, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -536,7 +536,7 @@ BEGIN
     IDS_PW_INCOMING         "Valmistuneet tiedostot:"
     IDS_PW_TEMP             "Väliaikaiset tiedostot:"
     IDS_PW_BROWSE           "Selaa..."
-    IDS_PW_SHARED           "Jaetut hakemistot (Ctrl-klikkaus lisää alihakemistot):"
+    IDS_PW_SHARED           "Jaetut hakemistot (Ctrl+klikkaus lisää alihakemistot):"
     IDS_CONNECTION          "Yhteys"
     IDS_PW_DOWNL            "Latausraja"
     IDS_PW_UPL              "Lähetysraja"
@@ -854,7 +854,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "Yksityinen viesti"
     IDS_WEB_REMOTE_LINK_ADDED "Linkki lisätty: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED "Linkkiä ei lisätty, salasana on virheellinen."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Lataa esikatseluun tarvittavat osat ensimmäiseksi"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Lataa esikatseluun tarvittavat osat ensimmäiseksi"
     IDS_IRC_KICK            "Potkaise pois"
     IDS_IRC_SLAP            "Lyö"
     IDS_IRC_JOIN            "Liity kanavalle"
@@ -908,7 +908,6 @@ BEGIN
     IDS_NEWMSG              "Uusi viesti käyttäjältä '%s' (IP: %s)"
     IDS_PREF_STARTNEXTFILECATONLY "vain samassa kategoriassa"
     IDS_LOG_ULDL_EVENTS     "Kirjoita lähetys- ja lataustapahtumat lokiin"
-//    IDS_PEERCACHE_ENABLED   "Internetyhteydentarjoajasi tukee PeerCache-teknologiaa. Otan teknologian käyttöön!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Salli käyttäjien lisätä minut kaverikseen."
     IDS_SOURCESWAPBLOCKED   "Vaihto estetty"
     IDS_TRICKLING           "Valmiustila"
@@ -1620,9 +1619,6 @@ BEGIN
                             "Käytä tätä asetusta, jos haluat että eMule käynnistyy Windowsin mukana. (Oletuksena pois päältä)"
     IDS_KAD_WAITCBK         "Odota Kad-takaisinkutsua"
     IDS_KAD_TOOMANDYKADLKPS "Liian monta Kad-hakua"
-//    IDS_PCDS_CLIENTWAIT     "AsiakasOdotus"
-//    IDS_PCDS_CACHEWAIT      "VälimuistiOdotus"
-//    IDS_CACHE               "Välimuisti"
     IDS_INDEXED             "Indeksoitu"
     IDS_KADINFO_SRC         "\tLähde: %u\r\n"
     IDS_KADINFO_KEYW        "\tAvainsana: %u\r\n"
@@ -1705,8 +1701,6 @@ BEGIN
     IDS_EXTRACT_META_DATA   "Kaiva metadata esiin (esim. ID3-tagit)"
     IDS_META_DATA_MEDIADET  "DirectShow (kaikille muille ääni- ja videotiedostoille)"
     IDS_META_DATA_ID3LIB    "ID3 Library (vain MPEG-äänitiedostoille (esim. mp3))"
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Windows-kontrollien yleiskirjasto (COMCTL32.DLL) on liian vanha!\r\n\r\neMule havaitsi ""Windows Common Controls (COMCTL32.DLL)"" kirjastosta version, joka on liian vanha eMulen käytettäväksi. Suosittelemme päivittämään sen, jotta eMule toimisi kunnolla. Päivitetty versio on saatavilla Microsoftin lataussivuilta. Haluatko avata sen osoitteen selaimeesi?"
     IDS_ASREGEXPR           "Tavallisena ilmauksena (REG EX.)"
     IDS_STATIC_REGEXP       "Säännöllinen lauseke näkymän suodattamiseen:"
     IDS_CARE4ALL            "Tarkista kaikki tiedostot"

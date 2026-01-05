@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -17,7 +17,6 @@
 #include "stdafx.h"
 #include "emule.h"
 #include "UpDownClient.h"
-#include "URLClient.h"
 #include "PartFile.h"
 #include "ListenSocket.h"
 #include "Preferences.h"
@@ -29,11 +28,7 @@
 #include "ClientUDPSocket.h"
 #include "emuledlg.h"
 #include "TransferDlg.h"
-#include "Exceptions.h"
 #include "clientlist.h"
-#include "Kademlia/Kademlia/Kademlia.h"
-#include "Kademlia/Kademlia/Prefs.h"
-#include "Kademlia/Kademlia/Search.h"
 #include "SHAHashSet.h"
 #include "SharedFileList.h"
 #include "Log.h"
@@ -48,7 +43,7 @@ static char THIS_FILE[] = __FILE__;
 //	members of CUpDownClient
 //	which are mainly used for downloading functions
 CBarShader CUpDownClient::s_StatusBar(16);
-void CUpDownClient::DrawStatusBar(CDC *dc, const CRect &rect, bool onlygreyrect, bool  bFlat) const
+void CUpDownClient::DrawStatusBar(CDC &dc, const CRect &rect, bool onlygreyrect, bool  bFlat) const
 {
 	if (g_bLowColorDesktop)
 		bFlat = true;
@@ -100,7 +95,7 @@ void CUpDownClient::DrawStatusBar(CDC *dc, const CRect &rect, bool onlygreyrect,
 			for (UINT i = 0; i < m_nPartCount; ++i)
 				if (m_abyPartStatus[i]) {
 					uint64 uBegin = PARTSIZE * i;
-					uint64 uEnd = min(uBegin + PARTSIZE, (uint64)m_reqfile->GetFileSize());
+					uint64 uEnd = min(uBegin + PARTSIZE, m_reqfile->GetFileSize());
 
 					COLORREF colour;
 					if (m_reqfile->IsComplete(uBegin, uEnd - 1))
@@ -298,10 +293,11 @@ void CUpDownClient::SendFileRequest()
 		}
 
 		// OP_SETREQFILEID
-		if (thePrefs.GetDebugClientTCPLevel() > 0)
-			DebugSend("OP_MPSetReqFileID", this, m_reqfile->GetFileHash());
-		if (m_reqfile->GetPartCount() > 1)
+		if (m_reqfile->GetPartCount() > 1) {
+			if (thePrefs.GetDebugClientTCPLevel() > 0)
+				DebugSend("OP_MPSetReqFileID", this, m_reqfile->GetFileHash());
 			dataFileReq.WriteUInt8(OP_SETREQFILEID);
+		}
 
 		if (IsEmuleClient()) {
 			SetRemoteQueueFull(true);
@@ -364,8 +360,8 @@ void CUpDownClient::SendFileRequest()
 		SendPacket(packet);
 
 		// 26-Jul-2003: removed requesting the file status for files <= PARTSIZE for better compatibility
-		// with ed2k protocol (eDonkeyHybrid). if the remote client answers the OP_REQUESTFILENAME
-		// with OP_REQFILENAMEANSWER the file is shared by the remote client. if we know that the file
+		// with ed2k protocol (eDonkeyHybrid). If the remote client answers the OP_REQUESTFILENAME
+		// with OP_REQFILENAMEANSWER the file is shared by the remote client. If we know that the file
 		// is shared, we know also that the file is complete and don't need to request the file status.
 		if (m_reqfile->GetPartCount() > 1) {
 			if (thePrefs.GetDebugClientTCPLevel() > 0)
@@ -665,7 +661,7 @@ void CUpDownClient::SetDownloadState(EDownloadState nNewState, LPCTSTR pszReason
 					, pszReason
 					, (LPCTSTR)DbgGetClientInfo()
 					, nNewState
-					, (LPCTSTR)CastSecondsToHM(GetDownTimeDifference(false) / SEC2MS(1))
+					, (LPCTSTR)CastSecondsToHM(GetDownloadTicks(false) / SEC2MS(1))
 					, (LPCTSTR)CastItoXBytes(GetSessionPayloadDown())
 					, (LPCTSTR)CastItoXBytes(GetSessionDown())
 					, m_PendingBlocks_list.GetCount());
@@ -674,11 +670,11 @@ void CUpDownClient::SetDownloadState(EDownloadState nNewState, LPCTSTR pszReason
 			ResetSessionDown();
 
 			// -khaos--+++> Extended Statistics (Successful/Failed Download Sessions)
-			if (m_bTransferredDownMini && nNewState != DS_ERROR)
+			if (m_bDownloadedAnyBytes && nNewState != DS_ERROR)
 				thePrefs.Add2DownSuccessfulSessions(); // Increment our counters for successful sessions (Cumulative AND Session)
 			else
 				thePrefs.Add2DownFailedSessions(); // Increment our counters failed sessions (Cumulative AND Session)
-			thePrefs.Add2DownSAvgTime(GetDownTimeDifference() / SEC2MS(1));
+			thePrefs.Add2DownSAvgTime(GetDownloadTicks(true) / SEC2MS(1));
 			// <-----khaos-
 
 			m_eDownloadState = nNewState;
@@ -686,8 +682,8 @@ void CUpDownClient::SetDownloadState(EDownloadState nNewState, LPCTSTR pszReason
 			ClearDownloadBlockRequests();
 
 			m_nDownDatarate = 0;
-			m_AverageDDR_list.RemoveAll();
 			m_nSumForAvgDownDataRate = 0;
+			m_AverageDDR_hist.RemoveAll();
 
 			if (nNewState == DS_NONE) {
 				delete[] m_abyPartStatus;
@@ -785,7 +781,7 @@ void CUpDownClient::CreateBlockRequests(int blockCount)
 	Requested_Block_Struct **toadd = new Requested_Block_Struct*[blockCount];
 	if (m_reqfile->GetNextRequestedBlock(this, toadd, blockCount))
 		for (int i = 0; i < blockCount; ++i)
-			m_PendingBlocks_list.AddTail(new Pending_Block_Struct{ toadd[i] });
+			m_PendingBlocks_list.AddTail(new Pending_Block_Struct{toadd[i]});
 
 	delete[] toadd;
 }
@@ -1027,23 +1023,7 @@ void CUpDownClient::ProcessBlockPacket(const uchar *packet, uint32 size, bool pa
 		uint32 lenWritten = 0;
 
 		// Handle differently depending on whether packed or not
-		if (!packed) {
-			// security sanitize check
-			if (nEndPos > cur_block->block->EndOffset) {
-				DebugLogError(_T("Received Blockpacket exceeds requested boundaries (requested end: %I64u, Part %u, received end  %I64u, Part %u), file %s, client %s"), cur_block->block->EndOffset
-					, (uint32)(cur_block->block->EndOffset / PARTSIZE), nEndPos, (uint32)(nEndPos / PARTSIZE), (LPCTSTR)m_reqfile->GetFileName(), (LPCTSTR)DbgGetClientInfo());
-				m_reqfile->RemoveBlockFromList(cur_block->block->StartOffset, cur_block->block->EndOffset);
-				return;
-			}
-			// Write to disk (will be buffered in part file class)
-			lenWritten = m_reqfile->WriteToBuffer(uTransferredFileDataSize
-					, &packet[nHeaderSize]
-					, nStartPos
-					, nEndPos
-					, cur_block->block
-					, this
-					, true); //copy data to a new buffer
-		} else { // Packed
+		if (packed) {
 			ASSERT((int)size > 0);
 			// Create space to store unzipped data, the size is only an initial guess, will be resized in unzip() if not big enough
 			// Don't get too big
@@ -1106,6 +1086,23 @@ void CUpDownClient::ProcessBlockPacket(const uchar *packet, uint32 size, bool pa
 				cur_block->totalUnzipped = 0;
 			}
 			delete[] unzipped;
+		} else {
+			// not packed
+			// security sanitize check
+			if (nEndPos > cur_block->block->EndOffset) {
+				DebugLogError(_T("Received Blockpacket exceeds requested boundaries (requested end: %I64u, Part %u, received end  %I64u, Part %u), file %s, client %s"), cur_block->block->EndOffset
+					, (uint32)(cur_block->block->EndOffset / PARTSIZE), nEndPos, (uint32)(nEndPos / PARTSIZE), (LPCTSTR)m_reqfile->GetFileName(), (LPCTSTR)DbgGetClientInfo());
+				m_reqfile->RemoveBlockFromList(cur_block->block->StartOffset, cur_block->block->EndOffset);
+				return;
+			}
+			// Write to disk (will be buffered in part file class)
+			lenWritten = m_reqfile->WriteToBuffer(uTransferredFileDataSize
+				, &packet[nHeaderSize]
+				, nStartPos
+				, nEndPos
+				, cur_block->block
+				, this
+				, true); //copy data to a new buffer
 		}
 
 		// These checks only need to be done if any data was written
@@ -1116,7 +1113,7 @@ void CUpDownClient::ProcessBlockPacket(const uchar *packet, uint32 size, bool pa
 			m_nTransferredDown += uTransferredFileDataSize;
 			m_nCurSessionPayloadDown += lenWritten;
 			cur_block->block->transferred += lenWritten; //cur_block->block was invalid!
-			SetTransferredDownMini();
+			m_bDownloadedAnyBytes = true;
 
 			// If finished reserved block
 			if (nEndPos == cur_block->block->EndOffset) {
@@ -1154,9 +1151,9 @@ int CUpDownClient::unzip(Pending_Block_Struct *block, const BYTE *zipped, uint32
 			zS = block->zStream;
 
 			// Initialise stream values
-			zS->zalloc = (alloc_func)NULL;
-			zS->zfree = (free_func)NULL;
-			zS->opaque = (voidpf)NULL;
+			zS->zalloc = NULL;
+			zS->zfree = NULL;
+			zS->opaque = NULL;
 
 			// Set output data streams, do this here to avoid overwriting on recursive calls
 			zS->next_out = *unzipped;
@@ -1256,24 +1253,24 @@ uint32 CUpDownClient::CalculateDownloadRate()
 {
 	// Patch By BadWolf - Accurate data rate Calculation
 	const DWORD curTick = ::GetTickCount();
-	m_AverageDDR_list.AddTail(TransferredData{ m_nDownDataRateMS, curTick });
+	m_AverageDDR_hist.AddTail(TransferredData{m_nDownDataRateMS, curTick});
 	m_nSumForAvgDownDataRate += m_nDownDataRateMS;
 	m_nDownDataRateMS = 0;
 
-	while (m_AverageDDR_list.GetCount() > 500)
-		m_nSumForAvgDownDataRate -= m_AverageDDR_list.RemoveHead().datalen;
-
-	if (m_AverageDDR_list.GetCount() > 1 && curTick > m_AverageDDR_list.GetHead().timestamp)
-		m_nDownDatarate = (UINT)(SEC2MS(m_nSumForAvgDownDataRate) / (curTick - m_AverageDDR_list.GetHead().timestamp));
+	while (m_AverageDDR_hist.Count() > 500) {
+		m_nSumForAvgDownDataRate -= m_AverageDDR_hist.Head().datalen;
+		m_AverageDDR_hist.RemoveHead();
+	}
+	if (m_AverageDDR_hist.Count() > 1 && curTick > m_AverageDDR_hist.Head().timestamp)
+		m_nDownDatarate = (UINT)(SEC2MS(m_nSumForAvgDownDataRate) / (curTick - m_AverageDDR_hist.Head().timestamp));
 	else
 		m_nDownDatarate = 0;
-
 	// END Patch By BadWolf
+
 	if (++m_cShowDR >= 30) {
 		m_cShowDR = 0;
 		UpdateDisplayedInfo();
 	}
-
 	return m_nDownDatarate;
 }
 
@@ -1291,9 +1288,8 @@ void CUpDownClient::CheckDownloadTimeout()
 uint16 CUpDownClient::GetAvailablePartCount() const
 {
 	UINT result = 0;
-	for (UINT i = 0; i < m_nPartCount; ++i)
+	for (UINT i = m_nPartCount; i-- > 0;)
 		result += static_cast<UINT>(IsPartAvailable(i));
-
 	return (uint16)result;
 }
 
@@ -1341,7 +1337,7 @@ void CUpDownClient::UDPReaskForDownload()
 		return;
 
 	//TODO: This should be changed to determine if the last 4 UDP packets failed, not the total one.
-	if (m_nTotalUDPPackets > 3 && (m_nFailedUDPPackets / (float)m_nTotalUDPPackets > .3))
+	if (m_nTotalUDPPackets > 3 && (float)m_nFailedUDPPackets / (float)m_nTotalUDPPackets > .3f)
 		return;
 
 	if (GetUDPPort() != 0 && GetUDPVersion() != 0 && thePrefs.GetUDPPort() != 0
@@ -1375,7 +1371,7 @@ void CUpDownClient::UDPReaskForDownload()
 			theApp.downloadqueue->AddUDPFileReasks();
 			theApp.clientudp->SendPacket(response, GetIP(), GetUDPPort(), ShouldReceiveCryptUDPPackets(), GetUserHash(), false, 0);
 			++m_nTotalUDPPackets;
-		} else if (HasLowID() && GetBuddyIP() && GetBuddyPort() && HasValidBuddyID()) {
+		} else if (GetBuddyIP() && GetBuddyPort() && HasValidBuddyID()) { //HasLowID()
 			m_bUDPPending = true;
 			CSafeMemFile data(128);
 			data.WriteHash16(GetBuddyID());
@@ -1411,9 +1407,9 @@ void CUpDownClient::UpdateDisplayedInfo(bool force)
 #else
 	UNREFERENCED_PARAMETER(force);
 #endif
-	theApp.emuledlg->transferwnd->GetDownloadList()->UpdateItem(this);
-	theApp.emuledlg->transferwnd->GetClientList()->RefreshClient(this);
-	theApp.emuledlg->transferwnd->GetDownloadClientsList()->RefreshClient(this);
+	theApp.emuledlg->transferwnd->GetDownloadList().UpdateItem(this);
+	theApp.emuledlg->transferwnd->GetClientList().RefreshClient(this);
+	theApp.emuledlg->transferwnd->GetDownloadClientsList().RefreshClient(this);
 	m_lastRefreshedDLDisplay = curTick;
 }
 
@@ -1577,20 +1573,19 @@ bool CUpDownClient::SwapToAnotherFile(LPCTSTR reason, bool bIgnoreNoNeeded, bool
 		}
 	}
 
-	CPartFile *SwapTo = NULL;
-	POSITION finalpos = NULL;
-	CTypedPtrList<CPtrList, CPartFile*> *usedList = NULL;
-
+	CPartFile *SwapTo;
 	if (allowSame && !bRemoveCompletely) {
 		SwapTo = m_reqfile;
 		if (printDebug)
 			AddDebugLogLine(DLP_VERYLOW, false, _T("ooo Debug: allowSame: File %s SourceReq: %s"), (LPCTSTR)m_reqfile->GetFileName(), IsSourceRequestAllowed(m_reqfile) ? _T("true") : _T("false"));
-	}
+	} else
+		SwapTo = NULL;
 
-	bool SwapToIsNNP = (SwapTo != NULL && SwapTo == m_reqfile && GetDownloadState() == DS_NONEEDEDPARTS);
-
-	CPartFile *skippedDueToSourceExchange = NULL;
+	bool SwapToIsNNP = (SwapTo && SwapTo == m_reqfile && GetDownloadState() == DS_NONEEDEDPARTS);
 	bool skippedIsNNP = false;
+	POSITION finalpos = NULL;
+	CTypedPtrList<CPtrList, CPartFile *> *usedList = NULL;
+	CPartFile *skippedDueToSourceExchange = NULL;
 
 	if (!m_OtherRequests_list.IsEmpty()) {
 		if (printDebug)
@@ -1668,7 +1663,7 @@ bool CUpDownClient::SwapToAnotherFile(LPCTSTR reason, bool bIgnoreNoNeeded, bool
 		}
 	}
 
-	//if ((!SwapTo || SwapTo == m_reqfile && GetDownloadState() == DS_NONEEDEDPARTS) && bIgnoreNoNeeded){
+	//if ((!SwapTo || SwapTo == m_reqfile && GetDownloadState() == DS_NONEEDEDPARTS) && bIgnoreNoNeeded) {
 	if (printDebug)
 		AddDebugLogLine(DLP_VERYLOW, false, _T("ooo Debug: m_OtherNoNeeded_list"));
 
@@ -1677,7 +1672,7 @@ bool CUpDownClient::SwapToAnotherFile(LPCTSTR reason, bool bIgnoreNoNeeded, bool
 		CPartFile *cur_file = m_OtherNoNeeded_list.GetNext(pos);
 
 		if (printDebug)
-			AddDebugLogLine(DLP_VERYLOW, false, _T("ooo Debug: Checking file: %s "), (LPCTSTR)cur_file->GetFileName());
+			AddDebugLogLine(DLP_VERYLOW, false, _T("ooo Debug: Checking file: %s"), (LPCTSTR)cur_file->GetFileName());
 
 		if (!bRemoveCompletely && !ignoreSuspensions && allowSame && IsSwapSuspended(cur_file, doAgressiveSwapping, true)) {
 			if (printDebug)
@@ -1809,7 +1804,7 @@ bool CUpDownClient::DoSwap(CPartFile *SwapTo, bool bRemoveCompletely, LPCTSTR re
 	else
 		AddDebugLogLine(DLP_HIGH, true, _T("o-o Unsync between partfile->srclist and client otherfiles list. Swapping client where client has file in another list, but file doesn't have client in a4af srclist. %s Remove = %s '%s'   -->   '%s'  SwapReason: %s"), (LPCTSTR)DbgGetClientInfo(), (bRemoveCompletely ? _T("Yes") : _T("No")), (LPCTSTR)m_reqfile->GetFileName(), (LPCTSTR)SwapTo->GetFileName(), reason);
 
-	theApp.emuledlg->transferwnd->GetDownloadList()->RemoveSource(this, SwapTo);
+	theApp.emuledlg->transferwnd->GetDownloadList().RemoveSource(this, SwapTo);
 
 	m_reqfile->RemoveDownloadingSource(this);
 
@@ -1820,7 +1815,7 @@ bool CUpDownClient::DoSwap(CPartFile *SwapTo, bool bRemoveCompletely, LPCTSTR re
 		else
 			m_OtherRequests_list.AddTail(m_reqfile);
 
-		theApp.emuledlg->transferwnd->GetDownloadList()->AddSource(m_reqfile, this, true);
+		theApp.emuledlg->transferwnd->GetDownloadList().AddSource(m_reqfile, this, true);
 	} else
 		m_fileReaskTimes.RemoveKey(m_reqfile);
 
@@ -1831,7 +1826,7 @@ bool CUpDownClient::DoSwap(CPartFile *SwapTo, bool bRemoveCompletely, LPCTSTR re
 	pOldRequestFile->UpdateAvailablePartsCount();
 
 	SwapTo->srclist.AddTail(this);
-	theApp.emuledlg->transferwnd->GetDownloadList()->AddSource(SwapTo, this, false);
+	theApp.emuledlg->transferwnd->GetDownloadList().AddSource(SwapTo, this, false);
 
 	return true;
 }
@@ -1847,7 +1842,7 @@ void CUpDownClient::DontSwapTo(/*const*/ CPartFile *file)
 			return;
 		}
 	}
-	m_DontSwap_list.AddHead(PartFileStamp{ file, curTick });
+	m_DontSwap_list.AddHead(PartFileStamp{file, curTick});
 }
 
 bool CUpDownClient::IsSwapSuspended(const CPartFile *file, const bool allowShortReaskTime, const bool fileIsNNP)
@@ -1925,10 +1920,18 @@ bool CUpDownClient::IsValidSource() const
 	return false;
 }
 
+DWORD CUpDownClient::GetDownloadTicks(boolean bReset)
+{
+	DWORD myTime = m_dwDownStartTime;
+	if (bReset)
+		m_dwDownStartTime = 0;
+	return ::GetTickCount() - myTime;
+}
+
 void CUpDownClient::StartDownload()
 {
 	SetDownloadState(DS_DOWNLOADING);
-	InitTransferredDownMini();
+	m_bDownloadedAnyBytes = false;
 	SetDownStartTime();
 	m_lastPartAsked = _UI16_MAX;
 	SendBlockRequests();
@@ -2022,6 +2025,11 @@ DWORD CUpDownClient::GetLastAskedTime(const CPartFile *pFile) const
 	return pair ? pair->value : 0;
 }
 
+void CUpDownClient::SetLastAskedTime()
+{
+	m_fileReaskTimes[m_reqfile] = ::GetTickCount();
+}
+
 // TODO fileident optimize to save some memory
 void CUpDownClient::SetReqFileAICHHash(CAICHHash *val)
 {
@@ -2105,8 +2113,8 @@ void CUpDownClient::ProcessAICHRequest(const uchar *packet, UINT size)
 			&& fileid.HasAICHHash()
 			&& fileid.GetAICHHash() == ahMasterHash
 			&& pKnownFile->GetPartCount() > nPart
-			//&& (uint64)pKnownFile->GetFileSize() > EMBLOCKSIZE
-			&& (uint64)pKnownFile->GetFileSize() > PARTSIZE * nPart + EMBLOCKSIZE)
+			//&& pKnownFile->GetFileSize() > EMBLOCKSIZE
+			&& pKnownFile->GetFileSize() > PARTSIZE * nPart + EMBLOCKSIZE)
 		{
 			CSafeMemFile fileResponse;
 			fileResponse.WriteHash16(pKnownFile->GetFileHash());

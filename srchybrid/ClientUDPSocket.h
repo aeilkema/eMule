@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -43,7 +43,7 @@ public:
 
 	bool	Create();
 	bool	Rebind();
-	uint16	GetConnectedPort()		{ return m_port; }
+	uint16	GetConnectedPort() const	{ return m_port; }
 	bool	SendPacket(Packet *packet, uint32 dwIP, uint16 nPort, bool bEncrypt, const uchar *pachTargetClientHashORKadID, bool bKad, uint32 nReceiverVerifyKey);
 	SocketSentBytes  SendControlData(uint32 maxNumberOfBytesToSend, uint32 /*minFragSize*/); // ZZ:UploadBandWithThrottler (UDP)
 
@@ -55,7 +55,7 @@ protected:
 
 private:
 	int		SendTo(uchar *lpBuf, int nBufLen, uint32 dwIP, uint16 nPort);
-	bool	IsBusy() const			{ return m_bWouldBlock; }
+	bool	IsBusy() const				{ return m_bWouldBlock; }
 
 	CTypedPtrList<CPtrList, UDPPack*> controlpacket_queue;
 

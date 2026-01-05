@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,11 +15,13 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
-#include <sys/stat.h>
-#include <share.h>
-#include <io.h>
+#include <atlimage.h>
 #include <fcntl.h>
+#include <io.h>
 #include <regex>
+#include <share.h>
+#include <ShlObj_core.h>
+#include <sys/stat.h>
 #include "emule.h"
 #include "UpDownClient.h"
 #include "DownloadQueue.h"
@@ -29,21 +31,17 @@
 #include "KnownFileList.h"
 #include "Opcodes.h"
 #include "WebServices.h"
-#include <shlobj.h>
 #include "emuledlg.h"
 #include "MenuCmds.h"
 #include "ZipFile.h"
 #include "RarFile.h"
-#include <atlbase.h>
-#include "StringConversion.h"
 #include "shahashset.h"
 #include "collection.h"
 #include "SafeFile.h"
 #include "Kademlia/Kademlia/kademlia.h"
 #include "kademlia/kademlia/UDPFirewallTester.h"
+#include "kademlia/utils/ThreadName.h"
 #include "Log.h"
-#include "CxImage/xImage.h"
-#include "Netioapi.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -322,12 +320,12 @@ void CommitAndClose(CStdioFile &file)
 
 HINSTANCE BrowserOpen(LPCTSTR lpURL, LPCTSTR lpDirectory)
 {
-	return ShellExecute(NULL, NULL, lpURL, NULL, lpDirectory, SW_SHOWDEFAULT);
+	return ::ShellExecute(NULL, NULL, lpURL, NULL, lpDirectory, SW_SHOWDEFAULT);
 }
 
 void ShellOpen(LPCTSTR lpName, LPCTSTR lpParameters)
 {
-	ShellExecute(NULL, _T("open"), lpName, lpParameters, NULL, SW_SHOW);
+	::ShellExecute(NULL, _T("open"), lpName, lpParameters, NULL, SW_SHOW);
 }
 
 void ShellOpenFile(LPCTSTR lpName)
@@ -337,7 +335,7 @@ void ShellOpenFile(LPCTSTR lpName)
 
 void ShellDefaultVerb(LPCTSTR lpName)
 {
-	ShellExecute(NULL, NULL, lpName, NULL, NULL, SW_SHOW);
+	::ShellExecute(NULL, NULL, lpName, NULL, NULL, SW_SHOW);
 }
 
 bool ShellDeleteFile(LPCTSTR pszFilePath)
@@ -354,53 +352,19 @@ bool ShellDeleteFile(LPCTSTR pszFilePath)
 		fp.pFrom = todel;
 		fp.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_SILENT | FOF_NORECURSION;
 		__try {
-			return (SHFileOperation(&fp) == 0);
+			return !SHFileOperation(&fp);
 		} __except (EXCEPTION_EXECUTE_HANDLER) {
 		}
 	}
-	return (::DeleteFile(pszFilePath) != FALSE);
+	return ::DeleteFile(pszFilePath) != 0;
 }
 
 CString ShellGetFolderPath(int iCSIDL)
 {
-	CString strFolderPath;
-
-	// Try the Unicode version from "shell32" *and* examine the function result - just the presence of that
-	// function does not mean that it returns the requested path.
-	//
-	// Win98: 'SHGetFolderPathW' is available in 'shell32.dll', but it does not support all of the CSIDL values.
-	HRESULT(WINAPI *pfnSHGetFolderPathW)(HWND, int, HANDLE, DWORD, LPWSTR);
-	(FARPROC&)pfnSHGetFolderPathW = GetProcAddress(GetModuleHandle(_T("shell32")), "SHGetFolderPathW");
-	if (pfnSHGetFolderPathW) {
-		WCHAR wszPath[MAX_PATH];
-		if ((*pfnSHGetFolderPathW)(NULL, iCSIDL, NULL, SHGFP_TYPE_CURRENT, wszPath) == S_OK)
-			strFolderPath = wszPath;
-	}
-
-	if (strFolderPath.IsEmpty()) {
-		HMODULE hLibShFolder = LoadLibrary(_T("shfolder.dll"));
-		if (hLibShFolder) {
-			(FARPROC&)pfnSHGetFolderPathW = GetProcAddress(hLibShFolder, "SHGetFolderPathW");
-			if (pfnSHGetFolderPathW) {
-				WCHAR wszPath[MAX_PATH];
-				if ((*pfnSHGetFolderPathW)(NULL, iCSIDL, NULL, SHGFP_TYPE_CURRENT, wszPath) == S_OK)
-					strFolderPath = wszPath;
-			}
-
-			if (strFolderPath.IsEmpty()) {
-				HRESULT(WINAPI *pfnSHGetFolderPathA)(HWND, int, HANDLE, DWORD, LPSTR);
-				(FARPROC&)pfnSHGetFolderPathA = GetProcAddress(hLibShFolder, "SHGetFolderPathA");
-				if (pfnSHGetFolderPathA) {
-					CHAR aszPath[MAX_PATH];
-					if ((*pfnSHGetFolderPathA)(NULL, iCSIDL, NULL, SHGFP_TYPE_CURRENT, aszPath) == S_OK)
-						strFolderPath = CString(aszPath);
-				}
-			}
-			FreeLibrary(hLibShFolder);
-		}
-	}
-
-	return strFolderPath;
+	TCHAR szPath[MAX_PATH];
+	if (SUCCEEDED(::SHGetFolderPath(NULL, iCSIDL, NULL, SHGFP_TYPE_CURRENT, szPath)))
+		return CString(szPath);
+	return CString();
 }
 
 // Print the hash in a format which is similar to CertMgr's.
@@ -431,11 +395,11 @@ CString URLDecode(const CString &inStr, bool bKeepNewLine)
 {
 	// decode escape sequences
 	CString res;
+	TCHAR hexstr[3];
+	hexstr[2] = _T('\0');
 	for (int x = 0; x < inStr.GetLength(); ++x) {
 		if (inStr[x] == _T('%') && x + 2 < inStr.GetLength() && _istxdigit(inStr[x + 1]) && _istxdigit(inStr[x + 2])) {
-			TCHAR hexstr[3];
 			_tcsncpy(hexstr, inStr.Mid(x + 1, 2), 2);
-			hexstr[2] = _T('\0');
 			x += 2;
 
 			// Convert the hex to ASCII
@@ -451,12 +415,11 @@ CString URLDecode(const CString &inStr, bool bKeepNewLine)
 CString URLEncode(const CString &sInT)
 {
 	CStringA sIn(sInT);
-	LPCSTR pInBuf = sIn;
 
 	CString sOut;
 	LPTSTR pOutBuf = sOut.GetBuffer(sIn.GetLength() * 3);
 	// do encoding
-	while (*pInBuf) {
+	for (LPCSTR pInBuf = sIn; *pInBuf; ++pInBuf) {
 		if (_istalnum((BYTE)*pInBuf))
 			*pOutBuf++ = (BYTE)*pInBuf;
 		else {
@@ -464,7 +427,6 @@ CString URLEncode(const CString &sInT)
 			*pOutBuf++ = toHex((BYTE)*pInBuf >> 4);
 			*pOutBuf++ = toHex((BYTE)*pInBuf & 0xf);
 		}
-		++pInBuf;
 	}
 	*pOutBuf = _T('\0');
 	sOut.ReleaseBuffer();
@@ -474,7 +436,6 @@ CString URLEncode(const CString &sInT)
 CString EncodeURLQueryParam(const CString &sInT)
 {
 	CStringA sIn(sInT);
-	LPCSTR pInBuf = sIn;
 
 	// query		= *uric
 	// uric			= reserved | unreserved | escaped
@@ -487,7 +448,7 @@ CString EncodeURLQueryParam(const CString &sInT)
 	CString sOut;
 	LPTSTR pOutBuf = sOut.GetBuffer(sIn.GetLength() * 3);
 	// do encoding
-	while (*pInBuf) {
+	for (LPCSTR pInBuf = sIn; *pInBuf; ++pInBuf) {
 		if (_istalnum((BYTE)*pInBuf))
 			*pOutBuf++ = (BYTE)*pInBuf;
 		else if (_istspace((BYTE)*pInBuf))
@@ -497,7 +458,6 @@ CString EncodeURLQueryParam(const CString &sInT)
 			*pOutBuf++ = toHex((BYTE)*pInBuf >> 4);
 			*pOutBuf++ = toHex((BYTE)*pInBuf & 0xf);
 		}
-		++pInBuf;
 	}
 	*pOutBuf = _T('\0');
 	sOut.ReleaseBuffer();
@@ -523,15 +483,24 @@ CString GetResNoAmp(RESSTRIDTYPE uStringID)
 	return str;
 }
 
+void LocaliseHeaderCtrl(CHeaderCtrl *pHeaderCtrl, const UINT *const uids)
+{
+	HDITEM hdi;
+	hdi.mask = HDI_TEXT;
+	for (size_t i = 0; uids[i]; ++i)
+		if (uids[i] != UINT_MAX) {
+			const CString &sText(GetResString(uids[i]));
+			hdi.pszText = const_cast<LPTSTR>((LPCTSTR)sText);
+			pHeaderCtrl->SetItem((int)i, &hdi);
+		}
+}
+
 bool Ask4RegFix(bool checkOnly, bool dontAsk, bool bAutoTakeCollections)
 {
 	// Barry - Make backup first
 	if (!checkOnly)
 		BackupReg();
 
-	bool bGlobalSet = false;
-	CRegKey regkey;
-	LONG result;
 	TCHAR modbuffer[MAX_PATH];
 	DWORD dwModPathLen = ::GetModuleFileName(NULL, modbuffer, _countof(modbuffer));
 	if (dwModPathLen == 0 || dwModPathLen == _countof(modbuffer))
@@ -542,8 +511,9 @@ bool Ask4RegFix(bool checkOnly, bool dontAsk, bool bAutoTakeCollections)
 	regbuffer.Format(_T("\"%s\" \"%%1\""), (LPCTSTR)strCanonFileName);
 
 	// first check if the registry keys are already set (either by installer in HKLM or by user in HKCU)
-	result = regkey.Open(HKEY_CLASSES_ROOT, _T("ed2k\\shell\\open\\command"), KEY_READ);
-	if (result == ERROR_SUCCESS) {
+	bool bGlobalSet = false;
+	CRegKey regkey;
+	if (regkey.Open(HKEY_CLASSES_ROOT, _T("ed2k\\shell\\open\\command"), KEY_READ) == ERROR_SUCCESS) {
 		TCHAR rbuffer[MAX_PATH + 100];
 		ULONG maxsize = _countof(rbuffer);
 		regkey.QueryStringValue(NULL, rbuffer, &maxsize);
@@ -553,7 +523,12 @@ bool Ask4RegFix(bool checkOnly, bool dontAsk, bool bAutoTakeCollections)
 		regkey.Close();
 	}
 
-	if (!bGlobalSet) {
+	if (bGlobalSet) {
+		if (checkOnly)
+			return bAutoTakeCollections && DoCollectionRegFix(true);
+		if (bAutoTakeCollections)
+			DoCollectionRegFix(false);
+	} else {
 		// we actually need to change the registry and write an entry for HKCU
 		if (checkOnly)
 			return true;
@@ -576,11 +551,6 @@ bool Ask4RegFix(bool checkOnly, bool dontAsk, bool bAutoTakeCollections)
 			regkey.Close();
 		} else
 			ASSERT(0);
-	} else {
-		if (checkOnly)
-			return bAutoTakeCollections && DoCollectionRegFix(true);
-		if (bAutoTakeCollections)
-			DoCollectionRegFix(false);
 	}
 	return false;
 }
@@ -700,7 +670,7 @@ UINT GetMaxWindowsTCPConnections()
 }
 
 #pragma warning(push)
-#pragma warning(disable: 4996) //GetVersionEx()
+#pragma warning(disable:4996) //GetVersionEx()
 WORD DetectWinVersion()
 {
 	OSVERSIONINFOEX osvi;
@@ -736,7 +706,7 @@ WORD DetectWinVersion()
 		}
 		if (osvi.dwMajorVersion == 10 && osvi.dwMinorVersion == 0)
 			return _WINVER_10_; //for Windows 11 - osvi.dwBuildNumber>=22000
-		return _WINVER_7_; // never return Win95 if we get the info about a NT system
+		return _WINVER_7_; // never return Win95 if we get the info about an NT system
 
 	case VER_PLATFORM_WIN32_WINDOWS:
 		if (osvi.dwMajorVersion == 4) {
@@ -775,7 +745,7 @@ bool IsRunningXPSP2OrHigher()
 	WORD wv = thePrefs.GetWindowsVersion();
 	if (wv == _WINVER_XP_)
 		return IsRunningXPSP2();
-	return (wv > _WINVER_XP_);
+	return wv > _WINVER_XP_;
 }
 
 uint64 GetFreeDiskSpaceX(LPCTSTR pDirectory)
@@ -939,8 +909,8 @@ uint32 DecodeBase32(LPCTSTR pszInput, CAICHHash &Hash)
 }
 
 CWebServices::CWebServices()
+	: m_tDefServicesFileLastModified()
 {
-	m_tDefServicesFileLastModified = 0;
 }
 
 CString CWebServices::GetDefaultServicesFile() const
@@ -1010,7 +980,7 @@ INT_PTR CWebServices::ReadAllServices()
 	return m_aServices.GetCount();
 }
 
-int CWebServices::GetAllMenuEntries(CTitleMenu *pMenu, DWORD dwFlags)
+int CWebServices::GetAllMenuEntries(CTitledMenu *pMenu, DWORD dwFlags)
 {
 	struct _stat64 st;
 	if (m_aServices.IsEmpty() || (statUTC(GetDefaultServicesFile(), st) == 0 && st.st_mtime > m_tDefServicesFileLastModified))
@@ -1099,10 +1069,10 @@ extern "C" int CALLBACK BrowseCallbackProc(HWND hWnd, UINT uMsg, LPARAM, LPARAM 
 bool SelectDir(HWND hWnd, LPTSTR pszPath, LPCTSTR pszTitle, LPCTSTR pszDlgTitle)
 {
 	ASSERT(pszPath != NULL);
-	bool bResult = false;
-	(void)CoInitialize(NULL);
+	(void)::CoInitialize(NULL);
 	LPMALLOC pShlMalloc;
-	if (SHGetMalloc(&pShlMalloc) == NOERROR) {
+	bool bResult = (SHGetMalloc(&pShlMalloc) == NOERROR);
+	if (bResult) {
 		BROWSEINFO BrsInfo = {};
 		BrsInfo.hwndOwner = hWnd;
 		BrsInfo.lpszTitle = (pszTitle != NULL) ? pszTitle : pszDlgTitle;
@@ -1125,7 +1095,7 @@ bool SelectDir(HWND hWnd, LPTSTR pszPath, LPCTSTR pszTitle, LPCTSTR pszDlgTitle)
 		pShlMalloc->Release();
 		::PathAddBackslash(pszPath);
 	}
-	CoUninitialize();
+	::CoUninitialize();
 	return bResult;
 }
 
@@ -1133,7 +1103,7 @@ void slosh(CString &path)
 {
 	int i = path.GetLength() - 1;
 	if (i >= 0 && path[i] != _T('\\'))
-		path += _T('\\');
+		path += _T("\\");
 }
 
 void unslosh(CString &path)
@@ -1195,15 +1165,15 @@ CString md4str(const byte *hash)
 
 bool strmd4(const char *pszHash, byte *hash)
 {
+	char str[3];
+	str[2] = 0;
 	for (int i = 0; i < MDX_DIGEST_SIZE; ++i) {
-		char str[3];
 		str[0] = pszHash[i * 2];
 		if (!str[0])
 			return false;
 		str[1] = pszHash[i * 2 + 1];
 		if (!str[1])
 			return false;
-		str[2] = '\0';
 		unsigned b;
 		if (sscanf(str, "%x", &b) != 1)
 			return false;
@@ -1212,19 +1182,19 @@ bool strmd4(const char *pszHash, byte *hash)
 	return true;
 }
 
-bool strmd4(const CString &rstr, byte *hash)
+bool strmd4(const wchar_t *pszHash, byte *hash)
 {
+	wchar_t str[3];
+	str[2] = 0;
 	for (int i = 0; i < MDX_DIGEST_SIZE; ++i) {
-		char str[3];
-		str[0] = (char)rstr[i * 2];
+		str[0] = pszHash[i * 2];
 		if (!str[0])
 			return false;
-		str[1] = (char)rstr[i * 2 + 1];
+		str[1] = pszHash[i * 2 + 1];
 		if (!str[1])
 			return false;
-		str[2] = '\0';
 		unsigned b;
-		if (sscanf(str, "%x", &b) != 1)
+		if (swscanf(str, L"%x", &b) != 1)
 			return false;
 		hash[i] = (byte)b;
 	}
@@ -1304,7 +1274,7 @@ CString CleanupFilename(const CString &filename, bool bExtension)
 
 	// Making title case
 	if (sClean.GetLength() > 1) {
-		sClean.SetAt(0, _totupper(sClean[0]));
+		sClean.SetAt(0, (TCHAR)_totupper(sClean[0]));
 
 		int topos = sClean.ReverseFind(_T('.')) - 1;
 		if (topos < 0)
@@ -1313,7 +1283,7 @@ CString CleanupFilename(const CString &filename, bool bExtension)
 		for (int i = 0; i < topos; ++i)
 			if (!_istalpha(sClean[i]) && sClean[i] != _T('\''))
 				if (i >= sClean.GetLength() - 2 || !_istdigit(sClean[i + 2]))
-					sClean.SetAt(i + 1, _totupper(sClean[i + 1]));
+					sClean.SetAt(i + 1, (TCHAR)_totupper(sClean[i + 1]));
 	}
 
 	// additional formatting
@@ -1330,226 +1300,370 @@ CString CleanupFilename(const CString &filename, bool bExtension)
 	return sClean.Trim();
 }
 
-struct SED2KFileType
+static struct SED2KFileType
 {
 	LPCTSTR pszExt;
 	EED2KFileType iFileType;
 } g_aED2KFileTypes[] =
 {
-	{ _T(".aac"),   ED2KFT_AUDIO },		// Advanced Audio Coding File
-	{ _T(".ac3"),   ED2KFT_AUDIO },		// Audio Codec 3 File
-	{ _T(".aif"),   ED2KFT_AUDIO },		// Audio Interchange File Format
-	{ _T(".aifc"),  ED2KFT_AUDIO },		// Audio Interchange File Format
-	{ _T(".aiff"),  ED2KFT_AUDIO },		// Audio Interchange File Format
-	{ _T(".amr"),   ED2KFT_AUDIO },		// Adaptive Multi-Rate Codec File
-	{ _T(".ape"),   ED2KFT_AUDIO },		// Monkey's Audio Lossless Audio File
-	{ _T(".au"),    ED2KFT_AUDIO },		// Audio File (Sun, Unix)
-	{ _T(".aud"),   ED2KFT_AUDIO },		// General Audio File
-	{ _T(".audio"), ED2KFT_AUDIO },		// General Audio File
-	{ _T(".cda"),   ED2KFT_AUDIO },		// CD Audio Track
-	{ _T(".dmf"),   ED2KFT_AUDIO },		// Delusion Digital Music File
-	{ _T(".dsm"),   ED2KFT_AUDIO },		// Digital Sound Module
-	{ _T(".dts"),   ED2KFT_AUDIO },		// DTS Encoded Audio File
-	{ _T(".far"),   ED2KFT_AUDIO },		// Farandole Composer Module
-	{ _T(".flac"),  ED2KFT_AUDIO },		// Free Lossless Audio Codec File
-	{ _T(".it"),    ED2KFT_AUDIO },		// Impulse Tracker Module
-	{ _T(".m1a"),   ED2KFT_AUDIO },		// MPEG-1 Audio File
-	{ _T(".m2a"),   ED2KFT_AUDIO },		// MPEG-2 Audio File
-	{ _T(".m4a"),   ED2KFT_AUDIO },		// MPEG-4 Audio File
-	{ _T(".mdl"),   ED2KFT_AUDIO },		// DigiTrakker Module
-	{ _T(".med"),   ED2KFT_AUDIO },		// Amiga MED Sound File
-	{ _T(".mid"),   ED2KFT_AUDIO },		// MIDI File
-	{ _T(".midi"),  ED2KFT_AUDIO },		// MIDI File
-	{ _T(".mka"),   ED2KFT_AUDIO },		// Matroska Audio File
-	{ _T(".mod"),   ED2KFT_AUDIO },		// Amiga Music Module File
-	{ _T(".mp1"),   ED2KFT_AUDIO },		// MPEG-1 Audio File
-	{ _T(".mp2"),   ED2KFT_AUDIO },		// MPEG-2 Audio File
-	{ _T(".mp3"),   ED2KFT_AUDIO },		// MPEG-3 Audio File
-	{ _T(".mpa"),   ED2KFT_AUDIO },		// MPEG Audio File
-	{ _T(".mpc"),   ED2KFT_AUDIO },		// Musepack Compressed Audio File
-	{ _T(".mtm"),   ED2KFT_AUDIO },		// MultiTracker Module
-	{ _T(".ogg"),   ED2KFT_AUDIO },		// Ogg Vorbis Compressed Audio File
-	{ _T(".psm"),   ED2KFT_AUDIO },		// Protracker Studio Module
-	{ _T(".ptm"),   ED2KFT_AUDIO },		// PolyTracker Module
-	{ _T(".ra"),    ED2KFT_AUDIO },		// Real Audio File
-	{ _T(".rmi"),   ED2KFT_AUDIO },		// MIDI File
-	{ _T(".s3m"),   ED2KFT_AUDIO },		// Scream Tracker 3 Module
-	{ _T(".snd"),   ED2KFT_AUDIO },		// Audio File (Sun, Unix)
-	{ _T(".stm"),   ED2KFT_AUDIO },		// Scream Tracker 2 Module
-	{ _T(".umx"),   ED2KFT_AUDIO },		// Unreal Music Package
-	{ _T(".wav"),   ED2KFT_AUDIO },		// WAVE Audio File
-	{ _T(".wma"),   ED2KFT_AUDIO },		// Windows Media Audio File
-	{ _T(".xm"),    ED2KFT_AUDIO },		// Fasttracker 2 Extended Module
+	{ _T(".669"),	ED2KFT_AUDIO },		// Unis Composer Music File
+	{ _T(".aa"),	ED2KFT_AUDIO },		// Audible Audiobook File
+	{ _T(".aac"),	ED2KFT_AUDIO },		// Advanced Audio Coding File
+	{ _T(".aax"),	ED2KFT_AUDIO },		// Audible Enhanced Audiobook File
+	{ _T(".ac3"),	ED2KFT_AUDIO },		// Audio Codec 3 File
+	{ _T(".aif"),	ED2KFT_AUDIO },		// Audio Interchange File Format
+	{ _T(".aifc"),	ED2KFT_AUDIO },		// Audio Interchange File Format
+	{ _T(".aiff"),	ED2KFT_AUDIO },		// Audio Interchange File Format
+	{ _T(".amf"),	ED2KFT_AUDIO },		// DSMI Advanced Module Format
+	{ _T(".amr"),	ED2KFT_AUDIO },		// Adaptive Multi-Rate Codec File
+	{ _T(".ams"),	ED2KFT_AUDIO },		// Extreme Tracker Module
+	{ _T(".ape"),	ED2KFT_AUDIO },		// Monkey's Audio Lossless Audio File
+	{ _T(".au"),	ED2KFT_AUDIO },		// Audio File (Sun, Unix)
+	{ _T(".aud"),	ED2KFT_AUDIO },		// General Audio File
+	{ _T(".audio"),	ED2KFT_AUDIO },		// General Audio File
+	{ _T(".caf"),	ED2KFT_AUDIO },		// Apple Core Audio Format File
+	{ _T(".cda"),	ED2KFT_AUDIO },		// CD Audio Track
+	{ _T(".dbm"),	ED2KFT_AUDIO },		// DigiBooster 3
+	{ _T(".dff"),	ED2KFT_AUDIO },		// DSDIFF Audio File (high-res)
+	{ _T(".dmf"),	ED2KFT_AUDIO },		// Delusion Digital Music File
+	{ _T(".dsf"),	ED2KFT_AUDIO },		// DSD Stream Audio File (high-res)
+	{ _T(".dsm"),	ED2KFT_AUDIO },		// Digital Sound Module
+	{ _T(".dts"),	ED2KFT_AUDIO },		// DTS Encoded Audio File
+	{ _T(".far"),	ED2KFT_AUDIO },		// Farandole Composer Module
+	{ _T(".flac"),	ED2KFT_AUDIO },		// Free Lossless Audio Codec File
+	{ _T(".it"),	ED2KFT_AUDIO },		// Impulse Tracker Module
+	{ _T(".kar"),	ED2KFT_AUDIO },		// Karaoke MIDI File
+	{ _T(".m1a"),	ED2KFT_AUDIO },		// MPEG-1 Audio File
+	{ _T(".m2a"),	ED2KFT_AUDIO },		// MPEG-2 Audio File
+	{ _T(".m3u"),	ED2KFT_AUDIO },		// MP3 Playlist File
+	{ _T(".m4a"),	ED2KFT_AUDIO },		// MPEG-4 Audio File
+	{ _T(".m4b"),	ED2KFT_AUDIO },		// MPEG-4 Audiobook File (M4A audio with chapters)
+	{ _T(".mdl"),	ED2KFT_AUDIO },		// DigiTrakker Module
+	{ _T(".med"),	ED2KFT_AUDIO },		// Amiga MED Sound File
+	{ _T(".mid"),	ED2KFT_AUDIO },		// MIDI File
+	{ _T(".midi"),	ED2KFT_AUDIO },		// MIDI File
+	{ _T(".mka"),	ED2KFT_AUDIO },		// Matroska Audio File
+	{ _T(".mod"),	ED2KFT_AUDIO },		// Amiga Music Module File
+	{ _T(".mol"),	ED2KFT_AUDIO },		// Module Playlist files
+	{ _T(".mp1"),	ED2KFT_AUDIO },		// MPEG-1 Audio File
+	{ _T(".mp2"),	ED2KFT_AUDIO },		// MPEG-2 Audio File
+	{ _T(".mp3"),	ED2KFT_AUDIO },		// MPEG-1/2 Audio Layer 3 File
+	{ _T(".mpa"),	ED2KFT_AUDIO },		// MPEG Audio File
+	{ _T(".mpc"),	ED2KFT_AUDIO },		// Musepack Compressed Audio File
+	{ _T(".mpp"),	ED2KFT_AUDIO },		// Musepack Audio File
+	{ _T(".mtm"),	ED2KFT_AUDIO },		// MultiTracker Module
+	{ _T(".nst"),	ED2KFT_AUDIO },		// Noise Tracker Music Module
+	{ _T(".oga"),	ED2KFT_AUDIO },		// Ogg Audio File
+	{ _T(".ogg"),	ED2KFT_AUDIO },		// Ogg Vorbis Compressed Audio File
+	{ _T(".okt"),	ED2KFT_AUDIO },		// Oktalyzer Module (Amiga)
+	{ _T(".opus"),	ED2KFT_AUDIO },		// Opus Audio File
+	{ _T(".psm"),	ED2KFT_AUDIO },		// Protracker Studio Module
+	{ _T(".ptm"),	ED2KFT_AUDIO },		// PolyTracker Module
+	{ _T(".ra"),	ED2KFT_AUDIO },		// Real Audio File
+	{ _T(".rmi"),	ED2KFT_AUDIO },		// MIDI File
+	{ _T(".s3m"),	ED2KFT_AUDIO },		// Scream Tracker 3 Module
+	{ _T(".snd"),	ED2KFT_AUDIO },		// Audio File (Sun, Unix)
+	{ _T(".stm"),	ED2KFT_AUDIO },		// Scream Tracker 2 Module
+	{ _T(".ult"),	ED2KFT_AUDIO },		// UltraTracker Music Module
+	{ _T(".umx"),	ED2KFT_AUDIO },		// Unreal Music Package
+	{ _T(".wav"),	ED2KFT_AUDIO },		// WAVE Audio File
+	{ _T(".weba"),	ED2KFT_AUDIO },		// WebM Audio File
+	{ _T(".wma"),	ED2KFT_AUDIO },		// Windows Media Audio File
+	{ _T(".wow"),	ED2KFT_AUDIO },		// Grave Composer audio tracker
+	{ _T(".wv"),	ED2KFT_AUDIO },		// WavPack Lossless Audio File
+	{ _T(".xm"),	ED2KFT_AUDIO },		// Fasttracker 2 Extended Module
 
-	{ _T(".3g2"),   ED2KFT_VIDEO },		// 3GPP Multimedia File
-	{ _T(".3gp"),   ED2KFT_VIDEO },		// 3GPP Multimedia File
-	{ _T(".3gp2"),  ED2KFT_VIDEO },		// 3GPP Multimedia File
-	{ _T(".3gpp"),  ED2KFT_VIDEO },		// 3GPP Multimedia File
-	{ _T(".amv"),   ED2KFT_VIDEO },		// Anime Music Video File
-	{ _T(".asf"),   ED2KFT_VIDEO },		// Advanced Systems Format File
-	{ _T(".avi"),   ED2KFT_VIDEO },		// Audio Video Interleave File
-	{ _T(".bik"),   ED2KFT_VIDEO },		// BINK Video File
-	{ _T(".divx"),  ED2KFT_VIDEO },		// DivX-Encoded Movie File
+	{ _T(".3g2"),	ED2KFT_VIDEO },		// 3GPP Multimedia File
+	{ _T(".3gp"),	ED2KFT_VIDEO },		// 3GPP Multimedia File
+	{ _T(".3gp2"),	ED2KFT_VIDEO },		// 3GPP Multimedia File
+	{ _T(".3gpp"),	ED2KFT_VIDEO },		// 3GPP Multimedia File
+	{ _T(".amv"),	ED2KFT_VIDEO },		// Anime Music Video File
+	{ _T(".asf"),	ED2KFT_VIDEO },		// Advanced Systems Format File
+	{ _T(".avi"),	ED2KFT_VIDEO },		// Audio Video Interleave File
+	{ _T(".bik"),	ED2KFT_VIDEO },		// BINK Video File
+	{ _T(".divx"),	ED2KFT_VIDEO },		// DivX-Encoded Movie File
 	{ _T(".dvr-ms"),ED2KFT_VIDEO },		// Microsoft Digital Video Recording
-	{ _T(".flc"),   ED2KFT_VIDEO },		// FLIC Video File
-	{ _T(".fli"),   ED2KFT_VIDEO },		// FLIC Video File
-	{ _T(".flic"),  ED2KFT_VIDEO },		// FLIC Video File
-	{ _T(".flv"),   ED2KFT_VIDEO },		// Flash Video File
-	{ _T(".hdmov"), ED2KFT_VIDEO },		// High-Definition QuickTime Movie
-	{ _T(".ifo"),   ED2KFT_VIDEO },		// DVD-Video Disc Information File
-	{ _T(".m1v"),   ED2KFT_VIDEO },		// MPEG-1 Video File
-	{ _T(".m2t"),   ED2KFT_VIDEO },		// MPEG-2 Video Transport Stream
-	{ _T(".m2ts"),  ED2KFT_VIDEO },		// MPEG-2 Video Transport Stream
-	{ _T(".m2v"),   ED2KFT_VIDEO },		// MPEG-2 Video File
-	{ _T(".m4b"),   ED2KFT_VIDEO },		// MPEG-4 Video File
-	{ _T(".m4v"),   ED2KFT_VIDEO },		// MPEG-4 Video File
-	{ _T(".mkv"),   ED2KFT_VIDEO },		// Matroska Video File
-	{ _T(".mov"),   ED2KFT_VIDEO },		// QuickTime Movie File
-	{ _T(".movie"), ED2KFT_VIDEO },		// QuickTime Movie File
-	{ _T(".mp1v"),  ED2KFT_VIDEO },		// MPEG-1 Video File
-	{ _T(".mp2v"),  ED2KFT_VIDEO },		// MPEG-2 Video File
-	{ _T(".mp4"),   ED2KFT_VIDEO },		// MPEG-4 Video File
-	{ _T(".mpe"),   ED2KFT_VIDEO },		// MPEG Video File
-	{ _T(".mpeg"),  ED2KFT_VIDEO },		// MPEG Video File
-	{ _T(".mpg"),   ED2KFT_VIDEO },		// MPEG Video File
-	{ _T(".mpv"),   ED2KFT_VIDEO },		// MPEG Video File
-	{ _T(".mpv1"),  ED2KFT_VIDEO },		// MPEG-1 Video File
-	{ _T(".mpv2"),  ED2KFT_VIDEO },		// MPEG-2 Video File
-	{ _T(".ogm"),   ED2KFT_VIDEO },		// Ogg Media File
-	{ _T(".pva"),   ED2KFT_VIDEO },		// MPEG Video File
-	{ _T(".qt"),    ED2KFT_VIDEO },		// QuickTime Movie
-	{ _T(".ram"),   ED2KFT_VIDEO },		// Real Audio Media
+	{ _T(".f4v"),	ED2KFT_VIDEO },		// Flash MP4 Video File
+	{ _T(".flc"),	ED2KFT_VIDEO },		// FLIC Video File
+	{ _T(".fli"),	ED2KFT_VIDEO },		// FLIC Video File
+	{ _T(".flic"),	ED2KFT_VIDEO },		// FLIC Video File
+	{ _T(".flv"),	ED2KFT_VIDEO },		// Flash Video File
+	{ _T(".h264"),	ED2KFT_VIDEO },		// H.264 Raw Video Stream
+	{ _T(".h265"),	ED2KFT_VIDEO },		// H.265 Raw Video Stream
+	{ _T(".hdmov"),	ED2KFT_VIDEO },		// High-Definition QuickTime Movie
+	{ _T(".hevc"),	ED2KFT_VIDEO },		// HEVC Raw Video Stream
+	{ _T(".ifo"),	ED2KFT_VIDEO },		// DVD-Video Disc Information File
+	{ _T(".m1v"),	ED2KFT_VIDEO },		// MPEG-1 Video File
+	{ _T(".m2t"),	ED2KFT_VIDEO },		// MPEG-2 Video Transport Stream
+	{ _T(".m2ts"),	ED2KFT_VIDEO },		// MPEG-2 Video Transport Stream
+	{ _T(".m2v"),	ED2KFT_VIDEO },		// MPEG-2 Video File
+	{ _T(".m4v"),	ED2KFT_VIDEO },		// MPEG-4 Video File
+	{ _T(".mkv"),	ED2KFT_VIDEO },		// Matroska Video File
+	{ _T(".mov"),	ED2KFT_VIDEO },		// QuickTime Movie File
+	{ _T(".movie"),	ED2KFT_VIDEO },		// QuickTime Movie File
+	{ _T(".mp1v"),	ED2KFT_VIDEO },		// MPEG-1 Video File
+	{ _T(".mp2v"),	ED2KFT_VIDEO },		// MPEG-2 Video File
+	{ _T(".mp4"),	ED2KFT_VIDEO },		// MPEG-4 Video File
+	{ _T(".mpe"),	ED2KFT_VIDEO },		// MPEG-1 Video File
+	{ _T(".mpeg"),	ED2KFT_VIDEO },		// MPEG-1 or MPEG-2 Video File
+	{ _T(".mpg"),	ED2KFT_VIDEO },		// MPEG-1 or MPEG-2 Video File
+	{ _T(".mps"),	ED2KFT_VIDEO },		// MPEG-1 Video File
+	{ _T(".mpv"),	ED2KFT_VIDEO },		// MPEG Video File
+	{ _T(".mpv1"),	ED2KFT_VIDEO },		// MPEG-1 Video File
+	{ _T(".mpv2"),	ED2KFT_VIDEO },		// MPEG-2 Video File
+	{ _T(".mts"),	ED2KFT_VIDEO },		// AVCHD Video File
+	{ _T(".mxf"),	ED2KFT_VIDEO },		// Material Exchange Format File
+	{ _T(".ogm"),	ED2KFT_VIDEO },		// Ogg Media File
+	{ _T(".ogv"),	ED2KFT_VIDEO },		// Ogg Theora Video File
+	{ _T(".pva"),	ED2KFT_VIDEO },		// MPEG Video File
+	{ _T(".qt"),	ED2KFT_VIDEO },		// QuickTime Movie
+	{ _T(".ram"),	ED2KFT_VIDEO },		// Real Audio Media
 	{ _T(".ratdvd"),ED2KFT_VIDEO },		// RatDVD Disk Image
-	{ _T(".rm"),    ED2KFT_VIDEO },		// Real Media File
-	{ _T(".rmm"),   ED2KFT_VIDEO },		// Real Media File
-	{ _T(".rmvb"),  ED2KFT_VIDEO },		// Real Video Variable Bit Rate File
-	{ _T(".rv"),    ED2KFT_VIDEO },		// Real Video File
-	{ _T(".smil"),  ED2KFT_VIDEO },		// SMIL Presentation File
-	{ _T(".smk"),   ED2KFT_VIDEO },		// Smacker Compressed Movie File
-	{ _T(".swf"),   ED2KFT_VIDEO },		 // Macromedia Flash Movie
-	{ _T(".tp"),    ED2KFT_VIDEO },		// Video Transport Stream File
-	{ _T(".ts"),    ED2KFT_VIDEO },		// Video Transport Stream File
-	{ _T(".vid"),   ED2KFT_VIDEO },		// General Video File
-	{ _T(".video"), ED2KFT_VIDEO },		// General Video File
-	{ _T(".vob"),   ED2KFT_VIDEO },		// DVD Video Object File
-	{ _T(".vp6"),   ED2KFT_VIDEO },		// TrueMotion VP6 Video File
-	{ _T(".wm"),    ED2KFT_VIDEO },		// Windows Media Video File
-	{ _T(".wmv"),   ED2KFT_VIDEO },		// Windows Media Video File
-	{ _T(".xvid"),  ED2KFT_VIDEO },		// Xvid-Encoded Video File
+	{ _T(".rm"),	ED2KFT_VIDEO },		// Real Media File
+	{ _T(".rmm"),	ED2KFT_VIDEO },		// Real Media File
+	{ _T(".rmvb"),	ED2KFT_VIDEO },		// Real Video Variable Bit Rate File
+	{ _T(".rv"),	ED2KFT_VIDEO },		// Real Video File
+	{ _T(".rv9"),	ED2KFT_VIDEO },		// Real Video File
+	{ _T(".smil"),	ED2KFT_VIDEO },		// SMIL Presentation File
+	{ _T(".smk"),	ED2KFT_VIDEO },		// Smacker Compressed Movie File
+	{ _T(".swf"),	ED2KFT_VIDEO },		// Macromedia Flash Movie
+	{ _T(".tp"),	ED2KFT_VIDEO },		// Video Transport Stream File
+	{ _T(".ts"),	ED2KFT_VIDEO },		// Video Transport Stream File
+	{ _T(".vid"),	ED2KFT_VIDEO },		// General Video File
+	{ _T(".video"),	ED2KFT_VIDEO },		// General Video File
+	{ _T(".vivo"),	ED2KFT_VIDEO },		// VivoActive Movies and Audio
+	{ _T(".vob"),	ED2KFT_VIDEO },		// DVD Video Object File
+	{ _T(".vp6"),	ED2KFT_VIDEO },		// TrueMotion VP6 Video File
+	{ _T(".webm"),	ED2KFT_VIDEO },		// Web Media File
+	{ _T(".wm"),	ED2KFT_VIDEO },		// Windows Media Video File
+	{ _T(".wmv"),	ED2KFT_VIDEO },		// Windows Media Video File
+	{ _T(".xvid"),	ED2KFT_VIDEO },		// Xvid-Encoded Video File
 
-	{ _T(".bmp"),   ED2KFT_IMAGE },		// Bitmap Image File
-	{ _T(".emf"),   ED2KFT_IMAGE },		// Enhanced Windows Metafile
-	{ _T(".gif"),   ED2KFT_IMAGE },		// Graphical Interchange Format File
-	{ _T(".ico"),   ED2KFT_IMAGE },		// Icon File
-	{ _T(".jfif"),  ED2KFT_IMAGE },		// JPEG File Interchange Format
-	{ _T(".jpe"),   ED2KFT_IMAGE },		// JPEG Image File
-	{ _T(".jpeg"),  ED2KFT_IMAGE },		// JPEG Image File
-	{ _T(".jpg"),   ED2KFT_IMAGE },		// JPEG Image File
-	{ _T(".pct"),   ED2KFT_IMAGE },		// PICT Picture File
-	{ _T(".pcx"),   ED2KFT_IMAGE },		// Paintbrush Bitmap Image File
-	{ _T(".pic"),   ED2KFT_IMAGE },		// PICT Picture File
-	{ _T(".pict"),  ED2KFT_IMAGE },		// PICT Picture File
-	{ _T(".png"),   ED2KFT_IMAGE },		// Portable Network Graphic
-	{ _T(".psd"),   ED2KFT_IMAGE },		// Photoshop Document
-	{ _T(".psp"),   ED2KFT_IMAGE },		// Paint Shop Pro Image File
-	{ _T(".tga"),   ED2KFT_IMAGE },		// Targa Graphic
-	{ _T(".tif"),   ED2KFT_IMAGE },		// Tagged Image File
-	{ _T(".tiff"),  ED2KFT_IMAGE },		// Tagged Image File
-	{ _T(".wmf"),   ED2KFT_IMAGE },		// Windows Metafile
-	{ _T(".wmp"),   ED2KFT_IMAGE },		// Windows Media Photo File
-	{ _T(".xif"),   ED2KFT_IMAGE },		// ScanSoft Pagis Extended Image Format File
+	{ _T(".apng"),	ED2KFT_IMAGE },		// Animated PNG File
+	{ _T(".arw"),	ED2KFT_IMAGE },		// Sony Alpha RAW Image
+	{ _T(".avif"),	ED2KFT_IMAGE },		// AV1 Image File
+	{ _T(".bmp"),	ED2KFT_IMAGE },		// Bitmap Image File
+	{ _T(".cr2"),	ED2KFT_IMAGE },		// Canon RAW 2 Image
+	{ _T(".cr3"),	ED2KFT_IMAGE },		// Canon RAW 3 Image
+	{ _T(".dcx"),	ED2KFT_IMAGE },		// Zsoft Multi-Page Paintbrush file
+	{ _T(".dng"),	ED2KFT_IMAGE },		// Digital Negative RAW Image
+	{ _T(".emf"),	ED2KFT_IMAGE },		// Enhanced Windows Metafile
+	{ _T(".gif"),	ED2KFT_IMAGE },		// Graphical Interchange Format File
+	{ _T(".heic"),	ED2KFT_IMAGE },		// High Efficiency Image File
+	{ _T(".heif"),	ED2KFT_IMAGE },		// High Efficiency Image Format File
+	{ _T(".ico"),	ED2KFT_IMAGE },		// Icon File
+	{ _T(".j2k"),	ED2KFT_IMAGE },		// JPEG 2000 Code Stream
+	{ _T(".jfif"),	ED2KFT_IMAGE },		// JPEG File Interchange Format
+	{ _T(".jp2"),	ED2KFT_IMAGE },		// JPEG 2000 Image File
+	{ _T(".jpe"),	ED2KFT_IMAGE },		// JPEG Image File
+	{ _T(".jpeg"),	ED2KFT_IMAGE },		// JPEG Image File
+	{ _T(".jpg"),	ED2KFT_IMAGE },		// JPEG Image File
+	{ _T(".jxl"),	ED2KFT_IMAGE },		// JPEG XL Image File
+	{ _T(".nef"),	ED2KFT_IMAGE },		// Nikon Electronic Format RAW Image
+	{ _T(".orf"),	ED2KFT_IMAGE },		// Olympus RAW Image
+	{ _T(".pbk"),	ED2KFT_IMAGE },		// Adobe Pixel Bender Kernel file
+	{ _T(".pct"),	ED2KFT_IMAGE },		// PICT Picture File
+	{ _T(".pcx"),	ED2KFT_IMAGE },		// Paintbrush Bitmap Image File
+	{ _T(".pic"),	ED2KFT_IMAGE },		// PICT Picture File
+	{ _T(".pict"),	ED2KFT_IMAGE },		// PICT Picture File
+	{ _T(".png"),	ED2KFT_IMAGE },		// Portable Network Graphic
+	{ _T(".psd"),	ED2KFT_IMAGE },		// Photoshop Document
+	{ _T(".psp"),	ED2KFT_IMAGE },		// Paint Shop Pro Image File
+	{ _T(".raf"),	ED2KFT_IMAGE },		// Fujifilm RAW Image
+	{ _T(".rw2"),	ED2KFT_IMAGE },		// Panasonic RAW Image
+	{ _T(".svg"),	ED2KFT_IMAGE },		// Scalable Vector Graphics File
+	{ _T(".tga"),	ED2KFT_IMAGE },		// Targa Graphic
+	{ _T(".tif"),	ED2KFT_IMAGE },		// Tagged Image File
+	{ _T(".tiff"),	ED2KFT_IMAGE },		// Tagged Image File
+	{ _T(".wbmp"),	ED2KFT_IMAGE },		// Wireless Application Protocol Bitmap Format
+	{ _T(".webp"),	ED2KFT_IMAGE },		// Weppy Photo File
+	{ _T(".wmf"),	ED2KFT_IMAGE },		// Windows Metafile
+	{ _T(".wmp"),	ED2KFT_IMAGE },		// Windows Media Photo File
+	{ _T(".xcf"),	ED2KFT_IMAGE },		// GIMP Image File
+	{ _T(".xif"),	ED2KFT_IMAGE },		// ScanSoft Pagis Extended Image Format File
+	{ _T(".xpm"),	ED2KFT_IMAGE },		// X-Windows Pixmap
 
-	{ _T(".7z"),    ED2KFT_ARCHIVE },	// 7-Zip Compressed File
-	{ _T(".ace"),   ED2KFT_ARCHIVE },	// WinAce Compressed File
-	{ _T(".alz"),   ED2KFT_ARCHIVE },	// ALZip Archive
-	{ _T(".arc"),   ED2KFT_ARCHIVE },	// Compressed File Archive
-	{ _T(".arj"),   ED2KFT_ARCHIVE },	// ARJ Compressed File Archive
-	{ _T(".bz2"),   ED2KFT_ARCHIVE },	// Bzip Compressed File
-	{ _T(".cab"),   ED2KFT_ARCHIVE },	// Cabinet File
-	{ _T(".cbr"),   ED2KFT_ARCHIVE },	// Comic Book RAR Archive
-	{ _T(".cbz"),   ED2KFT_ARCHIVE },	// Comic Book ZIP Archive
-	{ _T(".gz"),    ED2KFT_ARCHIVE },	// Gnu Zipped File
-	{ _T(".hqx"),   ED2KFT_ARCHIVE },	// BinHex 4.0 Encoded File
-	{ _T(".lha"),   ED2KFT_ARCHIVE },	// LHARC Compressed Archive
-	{ _T(".lzh"),   ED2KFT_ARCHIVE },	// LZH Compressed File
-	{ _T(".msi"),   ED2KFT_ARCHIVE },	// Microsoft Installer File
-	{ _T(".pak"),   ED2KFT_ARCHIVE },	// PAK (Packed) File
-	{ _T(".par"),   ED2KFT_ARCHIVE },	// Parchive Index File
-	{ _T(".par2"),  ED2KFT_ARCHIVE },	// Parchive 2 Index File
-	{ _T(".rar"),   ED2KFT_ARCHIVE },	// WinRAR Compressed Archive
-	{ _T(".sit"),   ED2KFT_ARCHIVE },	// Stuffit Archive
-	{ _T(".sitx"),  ED2KFT_ARCHIVE },	// Stuffit X Archive
-	{ _T(".tar"),   ED2KFT_ARCHIVE },	// Consolidated Unix File Archive
-	{ _T(".tbz2"),  ED2KFT_ARCHIVE },	// Tar BZip 2 Compressed File
-	{ _T(".tgz"),   ED2KFT_ARCHIVE },	// Gzipped Tar File
-	{ _T(".xpi"),   ED2KFT_ARCHIVE },	// Mozilla Installer Package
-	{ _T(".z"),     ED2KFT_ARCHIVE },	// Unix Compressed File
-	{ _T(".zip"),   ED2KFT_ARCHIVE },	// Zipped File
+	{ _T(".7z"),	ED2KFT_ARCHIVE },	// 7-Zip Compressed File
+	{ _T(".ace"),	ED2KFT_ARCHIVE },	// WinAce Compressed File
+	{ _T(".alz"),	ED2KFT_ARCHIVE },	// ALZip Archive
+	{ _T(".arc"),	ED2KFT_ARCHIVE },	// Compressed File Archive
+	{ _T(".arj"),	ED2KFT_ARCHIVE },	// ARJ Compressed File Archive
+	{ _T(".bz2"),	ED2KFT_ARCHIVE },	// Bzip Compressed File
+	{ _T(".cab"),	ED2KFT_ARCHIVE },	// Cabinet File
+	{ _T(".cb7"),	ED2KFT_ARCHIVE },	// Comic Book 7-Zip Archive
+	{ _T(".cba"),	ED2KFT_ARCHIVE },	// Comic Book ACE Archive
+	{ _T(".cbr"),	ED2KFT_ARCHIVE },	// Comic Book RAR Archive
+	{ _T(".cbt"),	ED2KFT_ARCHIVE },	// Comic Book Tarball
+	{ _T(".cbz"),	ED2KFT_ARCHIVE },	// Comic Book ZIP Archive
+	{ _T(".gz"),	ED2KFT_ARCHIVE },	// Gnu Zipped File
+	{ _T(".hqx"),	ED2KFT_ARCHIVE },	// BinHex 4.0 Encoded File
+	{ _T(".lha"),	ED2KFT_ARCHIVE },	// LHARC Compressed Archive
+	{ _T(".lz"),	ED2KFT_ARCHIVE },	// Lzip Compressed File
+	{ _T(".lz4"),	ED2KFT_ARCHIVE },	// LZ4 Compressed File
+	{ _T(".lzh"),	ED2KFT_ARCHIVE },	// LZH Compressed File
+	{ _T(".lzma"),	ED2KFT_ARCHIVE },	// LZMA Compressed File
+	{ _T(".pak"),	ED2KFT_ARCHIVE },	// PAK (Packed) File
+	{ _T(".par"),	ED2KFT_ARCHIVE },	// Parchive Index File
+	{ _T(".par2"),	ED2KFT_ARCHIVE },	// Parchive 2 Index File
+	{ _T(".rar"),	ED2KFT_ARCHIVE },	// WinRAR Compressed Archive
+	{ _T(".sea"),	ED2KFT_ARCHIVE },	// Stuffit Self-Extracting Archive
+	{ _T(".sit"),	ED2KFT_ARCHIVE },	// Stuffit Archive
+	{ _T(".sitx"),	ED2KFT_ARCHIVE },	// Stuffit X Archive
+	{ _T(".tar"),	ED2KFT_ARCHIVE },	// Consolidated Unix File Archive
+	{ _T(".tbz2"),	ED2KFT_ARCHIVE },	// Tar BZip 2 Compressed File
+	{ _T(".tgz"),	ED2KFT_ARCHIVE },	// Gzipped Tar File
+	{ _T(".tlz"),	ED2KFT_ARCHIVE },	// Tar LZMA Compressed File
+	{ _T(".txz"),	ED2KFT_ARCHIVE },	// Tar XZ Compressed File
+	{ _T(".uc2"),	ED2KFT_ARCHIVE },	// UltraCompressor 2 Archive
+	{ _T(".xz"),	ED2KFT_ARCHIVE },	// XZ Compressed File
+	{ _T(".z"),		ED2KFT_ARCHIVE },	// Unix Compressed File
+	{ _T(".zip"),	ED2KFT_ARCHIVE },	// Zipped File
+	{ _T(".zoo"),	ED2KFT_ARCHIVE },	// Zoo Archive
+	{ _T(".zst"),	ED2KFT_ARCHIVE },	// Zstandard Compressed File
 
-	{ _T(".bat"),   ED2KFT_PROGRAM },	// Batch File
-	{ _T(".cmd"),   ED2KFT_PROGRAM },	// Command File
-	{ _T(".com"),   ED2KFT_PROGRAM },	// COM File
-	{ _T(".exe"),   ED2KFT_PROGRAM },	// Executable File
-	{ _T(".hta"),   ED2KFT_PROGRAM },	// HTML Application
-	{ _T(".js"),    ED2KFT_PROGRAM },	// Java Script
-	{ _T(".jse"),   ED2KFT_PROGRAM },	// Encoded  Java Script
-	{ _T(".msc"),   ED2KFT_PROGRAM },	// Microsoft Common Console File
-	{ _T(".vbe"),   ED2KFT_PROGRAM },	// Encoded Visual Basic Script File
-	{ _T(".vbs"),   ED2KFT_PROGRAM },	// Visual Basic Script File
-	{ _T(".wsf"),   ED2KFT_PROGRAM },	// Windows Script File
-	{ _T(".wsh"),   ED2KFT_PROGRAM },	// Windows Scripting Host File
+	{ _T(".apk"),	ED2KFT_PROGRAM },	// Android Application Package
+	{ _T(".app"),	ED2KFT_PROGRAM },	// macOS Application Bundle
+	{ _T(".appimage"),ED2KFT_PROGRAM },	// Linux AppImage Application
+	{ _T(".appx"),	ED2KFT_PROGRAM },	// Windows App Package
+	{ _T(".bat"),	ED2KFT_PROGRAM },	// Batch File
+	{ _T(".cmd"),	ED2KFT_PROGRAM },	// Command File
+	{ _T(".com"),	ED2KFT_PROGRAM },	// Executable COM File
+	{ _T(".cpl"),	ED2KFT_PROGRAM },	// Windows Control Panel Applet
+	{ _T(".deb"),	ED2KFT_PROGRAM },	// Debian Software Package
+	{ _T(".dll"),	ED2KFT_PROGRAM },	// Dynamic Link Library File
+	{ _T(".exe"),	ED2KFT_PROGRAM },	// Executable File
+	{ _T(".flatpak"), ED2KFT_PROGRAM },	// Flatpak Application Package
+	{ _T(".hta"),	ED2KFT_PROGRAM },	// HTML Application
+	{ _T(".jar"),	ED2KFT_PROGRAM },	// Java Archive (application/library)
+	{ _T(".js"),	ED2KFT_PROGRAM },	// Java Script
+	{ _T(".jse"),	ED2KFT_PROGRAM },	// Encoded Java Script
+	{ _T(".msc"),	ED2KFT_PROGRAM },	// Microsoft Common Console File
+	{ _T(".msi"),	ED2KFT_PROGRAM },	// Microsoft Installer File
+	{ _T(".msix"),	ED2KFT_PROGRAM },	// Windows App Package
+	{ _T(".ps1"),	ED2KFT_PROGRAM },	// PowerShell Script
+	{ _T(".psd1"),	ED2KFT_PROGRAM },	// PowerShell Data File
+	{ _T(".psm1"),	ED2KFT_PROGRAM },	// PowerShell Module File
+	{ _T(".rpm"),	ED2KFT_PROGRAM },	// RPM Software Package
+	{ _T(".scr"),	ED2KFT_PROGRAM },	// Windows Screensaver Executable
+	{ _T(".sh"),	ED2KFT_PROGRAM },	// Unix Shell Script
+	{ _T(".snap"),	ED2KFT_PROGRAM },	// Snap Application Package
+	{ _T(".vbe"),	ED2KFT_PROGRAM },	// Encoded Visual Basic Script File
+	{ _T(".vbs"),	ED2KFT_PROGRAM },	// Visual Basic Script File
+	{ _T(".wsf"),	ED2KFT_PROGRAM },	// Windows Script File
+	{ _T(".wsh"),	ED2KFT_PROGRAM },	// Windows Scripting Host File
+	{ _T(".sys"),	ED2KFT_PROGRAM },	// Microsoft system file
+	{ _T(".xpi"),	ED2KFT_PROGRAM },	// Mozilla eXtension Installer Package
 
-	{ _T(".bin"),   ED2KFT_CDIMAGE },	// CD Image
-	{ _T(".bwa"),   ED2KFT_CDIMAGE },	// BlindWrite Disk Information File
-	{ _T(".bwi"),   ED2KFT_CDIMAGE },	// BlindWrite CD/DVD Disc Image
-	{ _T(".bws"),   ED2KFT_CDIMAGE },	// BlindWrite Sub Code File
-	{ _T(".bwt"),   ED2KFT_CDIMAGE },	// BlindWrite 4 Disk Image
-	{ _T(".ccd"),   ED2KFT_CDIMAGE },	// CloneCD Disk Image
-	{ _T(".cue"),   ED2KFT_CDIMAGE },	// Cue Sheet File
-	{ _T(".dmg"),   ED2KFT_CDIMAGE },	// Mac OS X Disk Image
-	{ _T(".img"),   ED2KFT_CDIMAGE },	// Disk Image Data File
-	{ _T(".iso"),   ED2KFT_CDIMAGE },	// Disc Image File
-	{ _T(".mdf"),   ED2KFT_CDIMAGE },	// Media Disc Image File
-	{ _T(".mds"),   ED2KFT_CDIMAGE },	// Media Descriptor File
-	{ _T(".nrg"),   ED2KFT_CDIMAGE },	// Nero CD/DVD Image File
-	{ _T(".sub"),   ED2KFT_CDIMAGE },	// Subtitle File
-	{ _T(".toast"), ED2KFT_CDIMAGE },	// Toast Disc Image
+	{ _T(".b5t"),	ED2KFT_CDIMAGE },	// BlindWrite 5 Disc Image
+	{ _T(".b6t"),	ED2KFT_CDIMAGE },	// BlindWrite 6 Disc Image
+	{ _T(".bin"),	ED2KFT_CDIMAGE },	// CD Image
+	{ _T(".bwa"),	ED2KFT_CDIMAGE },	// BlindWrite Disk Information File
+	{ _T(".bwi"),	ED2KFT_CDIMAGE },	// BlindWrite CD/DVD Disc Image
+	{ _T(".bws"),	ED2KFT_CDIMAGE },	// BlindWrite Sub Code File
+	{ _T(".bwt"),	ED2KFT_CDIMAGE },	// BlindWrite 4 Disk Image
+	{ _T(".ccd"),	ED2KFT_CDIMAGE },	// CloneCD Disk Image
+	{ _T(".cdi"),	ED2KFT_CDIMAGE },	// DiscJuggler Disc Image
+	{ _T(".cue"),	ED2KFT_CDIMAGE },	// Cue Sheet File
+	{ _T(".daa"),	ED2KFT_CDIMAGE },	// PowerISO Disc Image
+	{ _T(".dmg"),	ED2KFT_CDIMAGE },	// Mac OS X Disk Image
+	{ _T(".dmz"),	ED2KFT_CDIMAGE },	// Disk Masher Z?
+	{ _T(".img"),	ED2KFT_CDIMAGE },	// Disk Image Data File
+	{ _T(".iso"),	ED2KFT_CDIMAGE },	// Disc Image File
+	{ _T(".isz"),	ED2KFT_CDIMAGE },	// Compressed ISO Disc Image
+	{ _T(".mdf"),	ED2KFT_CDIMAGE },	// Media Disc Image File
+	{ _T(".mds"),	ED2KFT_CDIMAGE },	// Media Descriptor File
+	{ _T(".mdx"),	ED2KFT_CDIMAGE },	// DAEMON Tools Disc Image
+	{ _T(".nra"),	ED2KFT_CDIMAGE },	// Nero Audio-CD Compilation
+	{ _T(".nrg"),	ED2KFT_CDIMAGE },	// Nero CD/DVD Image File
+	{ _T(".qcow2"),	ED2KFT_CDIMAGE },	// QEMU Copy-On-Write Disk Image
+	{ _T(".sub"),	ED2KFT_CDIMAGE },	// Subtitle file
+	{ _T(".toast"),	ED2KFT_CDIMAGE },	// Toast Disc Image
+	{ _T(".uif"),	ED2KFT_CDIMAGE },	// MagicISO Disc Image
+	{ _T(".vcd"),	ED2KFT_CDIMAGE },	// Virtual CD Disc Image
+	{ _T(".vdi"),	ED2KFT_CDIMAGE },	// VirtualBox Virtual Disk Image
+	{ _T(".vhd"),	ED2KFT_CDIMAGE },	// Virtual Hard Disk Image
+	{ _T(".vhdx"),	ED2KFT_CDIMAGE },	// Hyper-V Virtual Hard Disk Image
+	{ _T(".vmdk"),	ED2KFT_CDIMAGE },	// VMware Virtual Disk Image
+	{ _T(".wim"),	ED2KFT_CDIMAGE },	// Windows Imaging Format File
 
-	{ _T(".chm"),   ED2KFT_DOCUMENT },	// Compiled HTML Help File
-	{ _T(".css"),   ED2KFT_DOCUMENT },	// Cascading Style Sheet
-	{ _T(".diz"),   ED2KFT_DOCUMENT },	// Description in Zip File
-	{ _T(".doc"),   ED2KFT_DOCUMENT },	// Document File
-	{ _T(".dot"),   ED2KFT_DOCUMENT },	// Document Template File
-	{ _T(".hlp"),   ED2KFT_DOCUMENT },	// Help File
-	{ _T(".htm"),   ED2KFT_DOCUMENT },	// HTML File
-	{ _T(".html"),  ED2KFT_DOCUMENT },	// HTML File
-	{ _T(".nfo"),   ED2KFT_DOCUMENT },	// Warez Information File
-	{ _T(".pdf"),   ED2KFT_DOCUMENT },	// Portable Document Format File
-	{ _T(".pps"),   ED2KFT_DOCUMENT },	// PowerPoint Slide Show
-	{ _T(".ppt"),   ED2KFT_DOCUMENT },	// PowerPoint Presentation
-	{ _T(".ps"),    ED2KFT_DOCUMENT },	// PostScript File
-	{ _T(".rtf"),   ED2KFT_DOCUMENT },	// Rich Text Format File
-	{ _T(".text"),  ED2KFT_DOCUMENT },	// General Text File
-	{ _T(".txt"),   ED2KFT_DOCUMENT },	// Text File
-	{ _T(".wri"),   ED2KFT_DOCUMENT },	// Windows Write Document
-	{ _T(".xls"),   ED2KFT_DOCUMENT },	// Microsoft Excel Spreadsheet
-	{ _T(".xml"),   ED2KFT_DOCUMENT },	// XML File
+	{ _T(".azw"),	ED2KFT_DOCUMENT },	// EBook File
+	{ _T(".azw3"),	ED2KFT_DOCUMENT },	// Amazon Kindle KF8 E-Book
+	{ _T(".chm"),	ED2KFT_DOCUMENT },	// Compiled HTML Help File
+	{ _T(".css"),	ED2KFT_DOCUMENT },	// Cascading Style Sheet
+	{ _T(".csv"),	ED2KFT_DOCUMENT },	// Comma-Separated Values File
+	{ _T(".diz"),	ED2KFT_DOCUMENT },	// Description in Zip File
+	{ _T(".djvu"),	ED2KFT_DOCUMENT },	// DjVu Document
+	{ _T(".doc"),	ED2KFT_DOCUMENT },	// Microsoft Word Document
+	{ _T(".docm"),	ED2KFT_DOCUMENT },	// Microsoft Word Macro-Enabled Document
+	{ _T(".docx"),	ED2KFT_DOCUMENT },	// Microsoft Word Document (OOXML)
+	{ _T(".dot"),	ED2KFT_DOCUMENT },	// Document Template File
+	{ _T(".dotx"),	ED2KFT_DOCUMENT },	// Microsoft Word Template (OOXML)
+	{ _T(".epub"),	ED2KFT_DOCUMENT },	// EBook File
+	{ _T(".fb2"),	ED2KFT_DOCUMENT },	// FictionBook 2 E-Book
+	{ _T(".hlp"),	ED2KFT_DOCUMENT },	// Help File
+	{ _T(".htm"),	ED2KFT_DOCUMENT },	// HTML File
+	{ _T(".html"),	ED2KFT_DOCUMENT },	// HTML File
+	{ _T(".ini"),	ED2KFT_DOCUMENT },	// Initialisation file
+	{ _T(".json"),	ED2KFT_DOCUMENT },	// JSON File
+	{ _T(".key"),	ED2KFT_DOCUMENT },	// Apple Keynote Presentation
+	{ _T(".kfx"),	ED2KFT_DOCUMENT },	// Amazon Kindle KFX E-Book
+	{ _T(".markdown"),ED2KFT_DOCUMENT },// Markdown Document
+	{ _T(".md"),	ED2KFT_DOCUMENT },	// Markdown Document
+	{ _T(".mobi"),	ED2KFT_DOCUMENT },	// EBook File
+	{ _T(".nfo"),	ED2KFT_DOCUMENT },	// Warez Information File
+	{ _T(".numbers"),ED2KFT_DOCUMENT },	// Apple Numbers Spreadsheet
+	{ _T(".odp"),	ED2KFT_DOCUMENT },	// OpenDocument Presentation
+	{ _T(".ods"),	ED2KFT_DOCUMENT },	// OpenDocument Spreadsheet
+	{ _T(".odt"),	ED2KFT_DOCUMENT },	// OpenDocument File
+	{ _T(".otp"),	ED2KFT_DOCUMENT },	// OpenDocument Presentation Template
+	{ _T(".ots"),	ED2KFT_DOCUMENT },	// OpenDocument Spreadsheet Template
+	{ _T(".ott"),	ED2KFT_DOCUMENT },	// OpenDocument Template File
+	{ _T(".oxps"),	ED2KFT_DOCUMENT },	// OpenXPS Document
+	{ _T(".pages"),	ED2KFT_DOCUMENT },	// Apple Pages Document
+	{ _T(".pdf"),	ED2KFT_DOCUMENT },	// Portable Document Format File
+	{ _T(".potx"),	ED2KFT_DOCUMENT },	// PowerPoint Template (OOXML)
+	{ _T(".pps"),	ED2KFT_DOCUMENT },	// PowerPoint Slide Show
+	{ _T(".ppsx"),	ED2KFT_DOCUMENT },	// PowerPoint Slide Show (OOXML)
+	{ _T(".ppt"),	ED2KFT_DOCUMENT },	// PowerPoint Presentation
+	{ _T(".pptm"),	ED2KFT_DOCUMENT },	// PowerPoint Macro-Enabled Presentation
+	{ _T(".pptx"),	ED2KFT_DOCUMENT },	// PowerPoint Presentation (OOXML)
+	{ _T(".ps"),	ED2KFT_DOCUMENT },	// PostScript File
+	{ _T(".rtf"),	ED2KFT_DOCUMENT },	// Rich Text Format File
+	{ _T(".srt"),	ED2KFT_DOCUMENT },	// SubRip Text
+	{ _T(".stc"),	ED2KFT_DOCUMENT },	// OpenOffice.org 1.0 Spreadsheet Template
+	{ _T(".sti"),	ED2KFT_DOCUMENT },	// OpenOffice.org 1.0 Presentation Template
+	{ _T(".stw"),	ED2KFT_DOCUMENT },	// OpenOffice.org 1.0 Document Template File
+	{ _T(".sxc"),	ED2KFT_DOCUMENT },	// OpenOffice.org 1.0 Spreadsheet
+	{ _T(".sxi"),	ED2KFT_DOCUMENT },	// OpenOffice.org 1.0 Presentation
+	{ _T(".sxw"),	ED2KFT_DOCUMENT },	// OpenOffice.org 1.0 Document File
+	{ _T(".tex"),	ED2KFT_DOCUMENT },	// LaTeX Source Document
+	{ _T(".text"),	ED2KFT_DOCUMENT },	// General Text File
+	{ _T(".txt"),	ED2KFT_DOCUMENT },	// Text File
+	{ _T(".wri"),	ED2KFT_DOCUMENT },	// Windows Write Document
+	{ _T(".xls"),	ED2KFT_DOCUMENT },	// Excel Spreadsheet
+	{ _T(".xlsm"),	ED2KFT_DOCUMENT },	// Excel Macro-Enabled Spreadsheet
+	{ _T(".xlsx"),	ED2KFT_DOCUMENT },	// Excel Spreadsheet (OOXML)
+	{ _T(".xlt"),	ED2KFT_DOCUMENT },	// Excel Template
+	{ _T(".xltx"),	ED2KFT_DOCUMENT },	// Excel Template (OOXML)
+	{ _T(".xml"),	ED2KFT_DOCUMENT },	// XML File
+	{ _T(".xps"),	ED2KFT_DOCUMENT },	// XML Paper Specification Document
+	{ _T(".yaml"),	ED2KFT_DOCUMENT },	// YAML File
+	{ _T(".yml"),	ED2KFT_DOCUMENT },	// YAML File
 
 	{ _T(".emulecollection"), ED2KFT_EMULECOLLECTION }
 };
 
-int __cdecl CompareE2DKFileType(const void *p1, const void *p2) noexcept
+static int __cdecl CompareE2DKFileType(const void *p1, const void *p2) noexcept
 {
 	return _tcscmp(reinterpret_cast<const SED2KFileType*>(p1)->pszExt, reinterpret_cast<const SED2KFileType*>(p2)->pszExt);
 }
 
 EED2KFileType GetED2KFileTypeID(LPCTSTR pszFileName)
 {
-	LPCTSTR pszExt = _tcsrchr(pszFileName, _T('.'));
-	if (pszExt == NULL)
-		return ED2KFT_ANY;
+	LPCTSTR const pszExt = ::PathFindExtension(pszFileName);
+	if (!pszExt[0] || !pszExt[1])
+		return ED2KFT_ANY; //no extension
 	CString strExt(pszExt);
-
 	SED2KFileType ft;
 	ft.pszExt = strExt.MakeLower();
 	ft.iFileType = ED2KFT_ANY;
@@ -1578,7 +1692,7 @@ LPCTSTR GetED2KFileTypeSearchTerm(EED2KFileType iFileID)
 	case ED2KFT_EMULECOLLECTION:
 		return _T(ED2KFTSTR_EMULECOLLECTION);
 	}
-	return NULL;
+	return _T(ED2KFTSTR_ANY);
 }
 
 // Returns the ed2k file type integer ID which is to be used for publishing+searching
@@ -1670,7 +1784,7 @@ public:
 #ifdef _DEBUG
 		// check for duplicate entries
 		LPCTSTR pszLast = g_aED2KFileTypes[0].pszExt;
-		for (int i = 1; i < _countof(g_aED2KFileTypes); ++i) {
+		for (size_t i = 1; i < _countof(g_aED2KFileTypes); ++i) {
 			ASSERT(_tcscmp(pszLast, g_aED2KFileTypes[i].pszExt) != 0);
 			pszLast = g_aED2KFileTypes[i].pszExt;
 		}
@@ -1679,7 +1793,7 @@ public:
 };
 CED2KFileTypes theED2KFileTypes; // get the list sorted *before* any code is accessing it
 
-const BYTE* FindPattern(const BYTE *pucBuff, int iBuffSize, const BYTE *pucPattern, int iPatternSize)
+static const BYTE* FindPattern(const BYTE *pucBuff, int iBuffSize, const BYTE *pucPattern, int iPatternSize)
 {
 	for (int iSearchRange = iBuffSize - iPatternSize; iSearchRange >= 0; --iSearchRange) {
 		if (memcmp(pucBuff, pucPattern, iPatternSize) == 0)
@@ -1733,7 +1847,7 @@ CString GetNextString(const CString &rstr, TCHAR chToken, int &riStart)
 {
 	int iStart = riStart;
 	int iLen;
-	if (chToken != _T('\0') && iStart >= 0) {
+	if (chToken && iStart >= 0) {
 		int iToken = rstr.Find(chToken, iStart);
 		if (iToken >= 0) {
 			iLen = iToken - iStart;
@@ -1791,7 +1905,7 @@ int GetModuleErrorString(DWORD dwError, CString &rstrError, LPCTSTR pszModule)
 	LPCVOID lpSource;
 	if (pszModule) {
 		dwFlags = FORMAT_MESSAGE_FROM_HMODULE | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS;
-		lpSource = GetModuleHandle(pszModule);
+		lpSource = ::GetModuleHandle(pszModule);
 	} else {
 		dwFlags = FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS;
 		lpSource = NULL;
@@ -1913,7 +2027,7 @@ LPCTSTR GetShellExecuteErrMsg(DWORD dwShellExecError)
 		_T("Dynamic-link library (DLL) file was invalid. One of the DLLs required to run this application was corrupt.")},
 	  {21,
 		_T("Application requires Microsoft Windows 32-bit extensions.")},
-	  /*22-31	 RESERVED FOR FUTURE USE. NOT RETURNED BY VERSION 3.0.*/
+	  /*22-31	RESERVED FOR FUTURE USE. NOT RETURNED BY VERSION 3.0.*/
 	  {24,
 		_T("Command line too long.")}, // 30.03.99 []: Seen under WinNT 4.0/Win98 for a very long command line!
 
@@ -1975,7 +2089,7 @@ CString DbgGetHexDump(const uint8 *data, UINT size)
 	buffer.Format(_T("Size=%u, Data=["), size);
 	UINT i;
 	for (i = 0; i < size && i < 50; ++i)
-		buffer.AppendFormat(&(_T(" %02x")[static_cast<int>(!i)]), data[i]);
+		buffer.AppendFormat(&_T(" %02x")[static_cast<size_t>(!i)], data[i]);
 
 	buffer += (i < size) ? _T("]") : _T("..]");
 	return buffer;
@@ -1984,49 +2098,10 @@ CString DbgGetHexDump(const uint8 *data, UINT size)
 void DbgSetThreadName(LPCSTR szThreadName, ...)
 {
 #ifdef DEBUG
-
-#ifndef MS_VC_EXCEPTION
-#define MS_VC_EXCEPTION 0x406d1388
-
-#pragma pack(push, 8)
-	typedef struct tagTHREADNAME_INFO
-	{
-		DWORD dwType;		// must be 0x1000
-		LPCSTR szName;		// pointer to name (in same addr space)
-		DWORD dwThreadID;	// thread ID (-1 caller thread)
-		DWORD dwFlags;		// reserved for future use, must be zero
-	} THREADNAME_INFO;
-#endif
-#pragma pack(pop)
-
-#pragma warning(push)
-#pragma warning(disable: 6320 6322)
-	__try {
-		va_list args;
-		va_start(args, szThreadName);
-		int lenBuf = 0;
-		char *buffer = NULL;
-		int lenResult;
-		do { // the VS debugger truncates the string to 31 characters anyway!
-			lenBuf += 128;
-			delete[] buffer;
-			buffer = new char[lenBuf];
-			lenResult = vsnprintf(buffer, lenBuf, szThreadName, args);
-		} while (lenResult == -1);
-		va_end(args);
-		THREADNAME_INFO info;
-		info.dwType = 0x1000;
-		info.szName = buffer;
-		info.dwThreadID = _UI32_MAX;
-		info.dwFlags = 0;
-		__try {
-			RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR*)&info);
-		} __except (EXCEPTION_CONTINUE_EXECUTION) {
-		}
-		delete[] buffer;
-	} __except (EXCEPTION_CONTINUE_EXECUTION) {
-	}
-#pragma warning(pop)
+	va_list args;
+	va_start(args, szThreadName);
+	Kademlia::SetThreadName(szThreadName, args);
+	va_end(args);
 #else
 	UNREFERENCED_PARAMETER(szThreadName);
 #endif
@@ -2060,7 +2135,7 @@ bool IsGoodIP(uint32 nIP, bool forceCheck)
 
 	if (nIP == 0 || (uint8)nIP == 127 || (uint8)nIP >= 224) {
 #ifdef _DEBUG
-		return ((uint8)nIP == 127 && thePrefs.GetAllowLocalHostIP());
+		return ((uint8)nIP == 127) && thePrefs.GetAllowLocalHostIP();
 #else
 		return false;
 #endif
@@ -2111,7 +2186,7 @@ CString GetFormatedUInt(ULONG ulVal)
 	}
 	CString strVal;
 	const int iBuffSize = _countof(szVal) * 2;
-	int iResult = GetNumberFormat(LOCALE_SYSTEM_DEFAULT, 0, szVal, &nf, strVal.GetBuffer(iBuffSize), iBuffSize);
+	int iResult = ::GetNumberFormat(LOCALE_SYSTEM_DEFAULT, 0, szVal, &nf, strVal.GetBuffer(iBuffSize), iBuffSize);
 	strVal.ReleaseBuffer();
 	return iResult ? strVal : CString(szVal);
 }
@@ -2133,7 +2208,7 @@ CString GetFormatedUInt64(ULONGLONG ullVal)
 	}
 	const int iBuffSize = _countof(szVal) * 2;
 	CString strVal;
-	int iResult = GetNumberFormat(LOCALE_SYSTEM_DEFAULT, 0, szVal, &nf, strVal.GetBuffer(iBuffSize), iBuffSize);
+	int iResult = ::GetNumberFormat(LOCALE_SYSTEM_DEFAULT, 0, szVal, &nf, strVal.GetBuffer(iBuffSize), iBuffSize);
 	strVal.ReleaseBuffer();
 	return iResult ? strVal : CString(szVal);
 }
@@ -2218,7 +2293,7 @@ void DebugHexDump(CFile &file)
 	}
 }
 
-LPCTSTR DbgGetFileNameFromID(const uchar *hash)
+static LPCTSTR DbgGetFileNameFromID(const uchar *hash)
 {
 	CKnownFile *reqfile = theApp.sharedfiles->GetFileByID(hash);
 	if (reqfile != NULL)
@@ -2544,7 +2619,7 @@ void throwCStr(LPCTSTR pStr)
 
 ULONGLONG GetDiskFileSize(LPCTSTR pszFilePath)
 {
-	// If the file is not compressed nor sparse, 'GetCompressedFileSize' returns the 'normal' file size.
+	// If the file is neither compressed nor sparse, 'GetCompressedFileSize' returns the 'normal' file size.
 	ULONGLONG ullCompFileSize;
 	((LPDWORD)&ullCompFileSize)[0] = ::GetCompressedFileSize(pszFilePath, &((LPDWORD)&ullCompFileSize)[1]);
 	if (((LPDWORD)&ullCompFileSize)[0] != INVALID_FILE_SIZE || ::GetLastError() == NO_ERROR)
@@ -2563,8 +2638,8 @@ ULONGLONG GetDiskFileSize(LPCTSTR pszFilePath)
 // Listview helper function
 void GetPopupMenuPos(const CListCtrl &lv, CPoint &point)
 {
-	// If the context menu was not opened using the right mouse button,
-	// but the keyboard (Shift+F10), get a useful position for the context menu.
+	// If context menu was opened using keyboard and not the right mouse button,
+	// calculate suitable position for the context menu.
 	if (point.x == -1 && point.y == -1) {
 		int iSel = lv.GetNextItem(-1, LVNI_SELECTED | LVNI_FOCUSED);
 		if (iSel >= 0) {
@@ -2582,8 +2657,8 @@ void GetPopupMenuPos(const CListCtrl &lv, CPoint &point)
 
 void GetPopupMenuPos(const CTreeCtrl &tv, CPoint &point)
 {
-	// If the context menu was not opened using the right mouse button,
-	// but the keyboard (Shift+F10), get a useful position for the context menu.
+	// If context menu was opened using keyboard and not the right mouse button,
+	// calculate suitable position for the context menu.
 	if (point.x == -1 && point.y == -1) {
 		HTREEITEM hSel = tv.GetNextItem(TVI_ROOT, TVGN_CARET);
 		if (hSel) {
@@ -2613,9 +2688,9 @@ CString StripInvalidFilenameChars(const CString &strText)
 			strDest += *pszSource;
 
 	static LPCTSTR const apszReservedFilenames[] = {
-		_T("NUL"), _T("CON"), _T("PRN"), _T("AUX"), _T("CLOCK$"),
-		_T("COM1"),_T("COM2"),_T("COM3"),_T("COM4"),_T("COM5"),_T("COM6"),_T("COM7"),_T("COM8"),_T("COM9"),
-		_T("LPT1"),_T("LPT2"),_T("LPT3"),_T("LPT4"),_T("LPT5"),_T("LPT6"),_T("LPT7"),_T("LPT8"),_T("LPT9")
+		_T("NUL"), _T("CON"), _T("PRN"), _T("AUX"), _T("CLOCK$")
+		, _T("COM1"),_T("COM2"),_T("COM3"),_T("COM4"),_T("COM5"),_T("COM6"),_T("COM7"),_T("COM8"),_T("COM9")
+		, _T("LPT1"),_T("LPT2"),_T("LPT3"),_T("LPT4"),_T("LPT5"),_T("LPT6"),_T("LPT7"),_T("LPT8"),_T("LPT9")
 	};
 	for (unsigned i = 0; i < _countof(apszReservedFilenames); ++i) {
 		int nPrefixLen = (uint32)_tcslen(apszReservedFilenames[i]);
@@ -2623,7 +2698,7 @@ CString StripInvalidFilenameChars(const CString &strText)
 			if (strDest.GetLength() == nPrefixLen) {
 				// Filename is a reserved file name:
 				// Append an underscore character
-				strDest += _T('_');
+				strDest += _T("_");
 				break;
 			}
 			if (strDest[nPrefixLen] == _T('.')) {
@@ -2676,7 +2751,7 @@ void ipstrA(CHAR *pszAddress, int iMaxAddress, uint32 nIP)
 	snprintf(pszAddress, iMaxAddress, "%u.%u.%u.%u", pucIP[0], pucIP[1], pucIP[2], pucIP[3]);
 }
 
-bool IsDaylightSavingTimeActive(LONG &rlDaylightBias)
+static bool IsDaylightSavingTimeActive(LONG &rlDaylightBias)
 {
 	TIME_ZONE_INFORMATION tzi;
 	if (GetTimeZoneInformation(&tzi) != TIME_ZONE_ID_DAYLIGHT)
@@ -2690,12 +2765,12 @@ class CVolumeInfo
 public:
 	static bool IsNTFSVolume(LPCTSTR pszVolume)
 	{
-		return (GetVolumeInfo(pszVolume) == _T("NTFS"));
+		return GetVolumeInfo(pszVolume) == _T("NTFS");
 	}
 
 	static bool IsFATVolume(LPCTSTR pszVolume)
 	{
-		return (_tcsnicmp(GetVolumeInfo(pszVolume), _T("FAT"), 3) == 0);
+		return _tcsnicmp(GetVolumeInfo(pszVolume), _T("FAT"), 3) == 0;
 	}
 
 	static const CString& GetVolumeInfo(LPCTSTR pszVolume)
@@ -2709,10 +2784,10 @@ public:
 
 		// 'GetVolumeInformation' may cause a noticeable delay - depending on the type of volume
 		// which is queried. As we are using that function for almost every file (for compensating
-		// the NTFS file time issues), we need to cash this information.
+		// the NTFS file time issues), we need to cache this information.
 		//
 		// The cache gets cleared when the user manually hits the 'Reload' button in the 'Shared
-		// Files' window and when Windows broadcasts a message about that a volume was mounted/unmounted.
+		// Files' window and when Windows broadcasts a message on volume's mounting state change.
 		//
 		DWORD dwMaximumComponentLength = 0;
 		DWORD dwFileSystemFlags = 0;
@@ -2728,9 +2803,9 @@ public:
 			m_mapVolumeInfo.RemoveAll();
 		else {
 			TCHAR szRoot[MAX_PATH];
-			szRoot[0] = _T('\0');
-			PathBuildRoot(szRoot, iDrive);
-			if (szRoot[0] != _T('\0')) {
+			*szRoot = _T('\0');
+			::PathBuildRoot(szRoot, iDrive);
+			if (*szRoot) {
 				CString strVolumeId(szRoot);
 				ASSERT(strVolumeId.Right(1) == _T("\\"));
 				strVolumeId.MakeLower();
@@ -2746,12 +2821,12 @@ protected:
 static CVolumeInfo g_VolumeInfo;
 CMapStringToString CVolumeInfo::m_mapVolumeInfo;
 
-bool IsNTFSVolume(LPCTSTR pszVolume)
+static bool IsNTFSVolume(LPCTSTR pszVolume)
 {
 	return g_VolumeInfo.IsNTFSVolume(pszVolume);
 }
 
-bool IsFATVolume(LPCTSTR pszVolume)
+static bool IsFATVolume(LPCTSTR pszVolume)
 {
 	return g_VolumeInfo.IsFATVolume(pszVolume);
 }
@@ -2761,7 +2836,7 @@ void ClearVolumeInfoCache(int iDrive)
 	g_VolumeInfo.ClearCache(iDrive);
 }
 
-bool IsFileOnNTFSVolume(LPCTSTR pszFilePath)
+static bool IsFileOnNTFSVolume(LPCTSTR pszFilePath)
 {
 	CString strRootPath(pszFilePath);
 	BOOL bResult = ::PathStripToRoot(strRootPath.GetBuffer());
@@ -2787,13 +2862,13 @@ bool IsFileOnFATVolume(LPCTSTR pszFilePath)
 	return IsFATVolume(strRootPath);
 }
 
-// ignore real(!) thumbs.db files -- seems that lot of ppl have 'thumbs.db' files without the 'System' file attribute
+// ignore real(!) thumbs.db files -- seems that lots of ppl have 'thumbs.db' files without the 'System' file attribute
 bool IsThumbsDb(const CString &sFilePath, const CString &sFileName)
 {
 	if (sFileName.CompareNoCase(_T("thumbs.db")) == 0) {
 		// if that's a valid 'Storage' file, we declare it as a "thumbs.db" file.
 		CComPtr<IStorage> pStorage;
-		if (StgOpenStorage(sFilePath, NULL, STGM_READ | STGM_SHARE_DENY_WRITE, NULL, 0, &pStorage) == S_OK) {
+		if (StgOpenStorage((CStringW)sFilePath, NULL, STGM_READ | STGM_SHARE_DENY_WRITE, NULL, 0, &pStorage) == S_OK) {
 			CComPtr<IEnumSTATSTG> pEnumSTATSTG;
 			if (SUCCEEDED(pStorage->EnumElements(0, NULL, 0, &pEnumSTATSTG))) {
 				STATSTG statstg;
@@ -2808,7 +2883,7 @@ bool IsThumbsDb(const CString &sFilePath, const CString &sFileName)
 	return false;
 }
 
-bool IsAutoDaylightTimeSetActive()
+static bool IsAutoDaylightTimeSetActive()
 {
 	CRegKey key;
 	if (key.Open(HKEY_LOCAL_MACHINE, _T("SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation"), KEY_READ) == ERROR_SUCCESS) {
@@ -2886,7 +2961,7 @@ int statUTC(HANDLE hFile, struct _stat64 &ft)
 		ft.st_atime = FileTimeToUnixTime(fi.ftLastAccessTime);
 		ft.st_ctime = FileTimeToUnixTime(fi.ftCreationTime);
 		ft.st_mtime = FileTimeToUnixTime(fi.ftLastWriteTime);
-		ft.st_size = ((__int64)fi.nFileSizeHigh << 32) | fi.nFileIndexLow;
+		ft.st_size = ((__int64)fi.nFileSizeHigh << 32) | fi.nFileSizeLow;
 		return 0;
 	}
 	return -1;
@@ -2944,38 +3019,6 @@ uint32 GetRandomUInt32()
 #endif
 }
 
-HWND ReplaceRichEditCtrl(CWnd *pwndRE, CWnd *pwndParent, CFont *pFont)
-{
-	HWND hwndNewRE = NULL;
-
-	ASSERT(pwndRE);
-	if (pwndRE) {
-		TCHAR szClassName[MAX_PATH];
-		if (GetClassName(pwndRE->m_hWnd, szClassName, _countof(szClassName)) && _tcsicmp(szClassName, _T("RichEdit20W")) == 0)
-			return NULL;
-
-		CRect rcWnd;
-		pwndRE->GetWindowRect(rcWnd);
-
-		DWORD dwStyle = pwndRE->GetStyle();
-		dwStyle |= WS_VSCROLL | WS_HSCROLL;
-		DWORD dwExStyle = pwndRE->GetExStyle();
-
-		CString strText;
-		pwndRE->GetWindowText(strText);
-
-		LONG_PTR uCtrlID = ::GetWindowLongPtr(*pwndRE, GWLP_ID);
-
-		pwndRE->DestroyWindow();
-
-		pwndParent->ScreenToClient(&rcWnd);
-		hwndNewRE = ::CreateWindowEx(dwExStyle, RICHEDIT_CLASS, strText, dwStyle, rcWnd.left, rcWnd.top, rcWnd.Width(), rcWnd.Height(), pwndParent->m_hWnd, (HMENU)uCtrlID, NULL, NULL);
-		if (hwndNewRE && pFont && pFont->m_hObject)
-			::SendMessage(hwndNewRE, WM_SETFONT, (WPARAM)pFont->m_hObject, 0);
-	}
-	return hwndNewRE;
-}
-
 void DisableAutoSelect(CRichEditCtrl &re)
 {
 	re.SetSel(0, 0);
@@ -2992,10 +3035,9 @@ void InstallSkin(LPCTSTR pszSkinPackage)
 
 	static TCHAR const _szSkinSuffix[] = _T(".") EMULSKIN_BASEEXT _T(".ini");
 	UINT uid = 0;
-	CString szExt(::PathFindExtension(pszSkinPackage));
-	szExt.MakeLower();
-
-	if (szExt == _T(".zip")) {
+	LPCTSTR pszExt = ::PathFindExtension(pszSkinPackage);
+	pszExt += static_cast<int>(*pszExt != _T('\0'));
+	if (_tcsicmp(pszExt, _T("zip")) == 0) {
 		CZIPFile zip;
 		if (zip.Open(pszSkinPackage)) {
 			// Search the "*.eMuleSkin.ini" file.
@@ -3052,7 +3094,7 @@ void InstallSkin(LPCTSTR pszSkinPackage)
 			zip.Close();
 		} else
 			uid = IDS_INSTALL_SKIN_PKG_ERROR;
-	} else if (szExt == _T(".rar")) {
+	} else if (_tcsicmp(pszExt, _T("rar")) == 0) {
 		CRARFile rar;
 		if (rar.Open(pszSkinPackage)) {
 			bool bError = false;
@@ -3124,7 +3166,7 @@ int CompareLocaleStringNoCaseA(LPCSTR psz1, LPCSTR psz2)
 {
 	// SDK says: The 'CompareString' function is optimized to run at the highest speed when 'dwCmpFlags' is set to 0
 	// or NORM_IGNORECASE, and 'cchCount1' and 'cchCount2' have the value -1.
-	int iResult = CompareStringA(GetThreadLocale(), NORM_IGNORECASE, psz1, -1, psz2, -1);
+	int iResult = CompareStringA(::GetThreadLocale(), NORM_IGNORECASE, psz1, -1, psz2, -1);
 	return iResult ? iResult - CSTR_EQUAL : 0;
 }
 
@@ -3132,7 +3174,7 @@ int CompareLocaleStringNoCaseW(LPCWSTR psz1, LPCWSTR psz2)
 {
 	// SDK says: The 'CompareString' function is optimized to run at the highest speed when 'dwCmpFlags' is set to 0
 	// or NORM_IGNORECASE, and 'cchCount1' and 'cchCount2' have the value -1.
-	int iResult = CompareStringW(GetThreadLocale(), NORM_IGNORECASE, psz1, -1, psz2, -1);
+	int iResult = CompareStringW(::GetThreadLocale(), NORM_IGNORECASE, psz1, -1, psz2, -1);
 	return iResult ? iResult - CSTR_EQUAL : 0;
 }
 
@@ -3140,7 +3182,7 @@ int CompareLocaleString(LPCTSTR psz1, LPCTSTR psz2)
 {
 	// SDK says: The 'CompareString' function is optimized to run at the highest speed when 'dwCmpFlags' is set to 0
 	// or NORM_IGNORECASE, and 'cchCount1' and 'cchCount2' have the value -1.
-	int iResult = CompareString(GetThreadLocale(), 0, psz1, -1, psz2, -1);
+	int iResult = CompareString(::GetThreadLocale(), 0, psz1, -1, psz2, -1);
 	return iResult ? iResult - CSTR_EQUAL : 0;
 }
 
@@ -3154,7 +3196,7 @@ int __cdecl CompareCStringPtrLocaleString(const void *p1, const void *p2)
 	return CompareLocaleString(*(CString*)p1, *(CString*)p2);
 }
 
-void Sort(CStringArray &astr, int(__cdecl *pfnCompare)(const void*, const void*))
+void Sort(CStringArray &astr, int(__cdecl *pfnCompare)(const void*, const void*) noexcept)
 {
 	qsort(astr.GetData(), astr.GetCount(), sizeof(CString*), pfnCompare);
 }
@@ -3169,13 +3211,13 @@ int __cdecl CompareCStringPtrPtrLocaleString(const void *p1, const void *p2)
 	return CompareLocaleString(**(CString**)p1, **(CString**)p2);
 }
 
-void Sort(CSimpleArray<const CString*> &apstr, int(__cdecl *pfnCompare)(const void*, const void*))
+void Sort(CSimpleArray<const CString*> &apstr, int(__cdecl *pfnCompare)(const void*, const void*) noexcept)
 {
 	qsort(apstr.GetData(), apstr.GetSize(), sizeof(CString*), pfnCompare);
 }
 
 // SLUGFILLER: heapsortCompletesrc
-void HeapSort(CArray<uint16, uint16> &count, UINT first, UINT last)
+void HeapSort(CArray<uint16> &count, UINT first, UINT last)
 {
 	for (UINT r = first; !(r & (UINT)INT_MIN) && (r << 1) < last;) {
 		UINT r2 = (r << 1) + 1;
@@ -3268,7 +3310,7 @@ int FontPointSizeToLogUnits(int nPointSize)
 #endif
 		pt.x = 0;
 		::DPtoLP(hDC, &pt, 1);
-		POINT ptOrg = {0, 0};
+		POINT ptOrg = {};
 		::DPtoLP(hDC, &ptOrg, 1);
 		nPointSize = -abs(pt.y - ptOrg.y);
 		::ReleaseDC(HWND_DESKTOP, hDC);
@@ -3290,6 +3332,122 @@ bool PointInClient(const CWnd &wnd, const CPoint &point)
 		wnd.GetClientRect(rcClient);
 		wnd.ClientToScreen(rcClient);
 		return rcClient.PtInRect(point);
+	}
+	return true;
+}
+
+bool IsEd2kLinkInClipboard(LPCSTR pszLinkType, int iLinkTypeLen)
+{
+	bool bIsLink = false;
+	if (::IsClipboardFormatAvailable(CF_TEXT) && ::OpenClipboard(NULL)) {
+		HGLOBAL	hText = ::GetClipboardData(CF_TEXT);
+		if (hText != NULL) {
+			// Use the ANSI string
+			LPCSTR pszText = static_cast<LPCSTR>(::GlobalLock(hText));
+			if (pszText != NULL) {
+				while (isspace(*pszText))
+					++pszText;
+				bIsLink = (_strnicmp(pszText, pszLinkType, iLinkTypeLen) == 0);
+				::GlobalUnlock(hText);
+			}
+		}
+		::CloseClipboard();
+	}
+	return bIsLink;
+}
+
+CString CopyTextFromClipboard()
+{
+	bool bResult = false;
+	CString strClipboard;
+	if (::IsClipboardFormatAvailable(CF_UNICODETEXT) && ::OpenClipboard(NULL)) {
+		HGLOBAL hMem = ::GetClipboardData(CF_UNICODETEXT);
+		if (hMem) {
+			LPCWSTR pwsz = (LPCWSTR)::GlobalLock(hMem);
+			if (pwsz) {
+				strClipboard = pwsz;
+				::GlobalUnlock(hMem);
+				bResult = true;
+			}
+		}
+		::CloseClipboard();
+	}
+	if (!bResult && ::IsClipboardFormatAvailable(CF_TEXT) && ::OpenClipboard(NULL)) {
+		HGLOBAL hMem = ::GetClipboardData(CF_TEXT);
+		if (hMem != NULL) {
+			LPCSTR lptstr = (LPCSTR)::GlobalLock(hMem);
+			if (lptstr != NULL) {
+				strClipboard = lptstr;
+				::GlobalUnlock(hMem);
+			}
+		}
+		::CloseClipboard();
+	}
+	return strClipboard;
+}
+
+bool CopyTextToClipboard(const CString &strText)
+{
+	if (strText.IsEmpty())
+		return false;
+
+	HGLOBAL hGlobalT = ::GlobalAlloc(GHND | GMEM_SHARE, (strText.GetLength() + 1) * sizeof(TCHAR));
+	if (hGlobalT != NULL) {
+		LPTSTR pGlobalT = static_cast<LPTSTR>(::GlobalLock(hGlobalT));
+		if (pGlobalT != NULL) {
+			_tcscpy(pGlobalT, strText);
+			::GlobalUnlock(hGlobalT);
+		} else {
+			::GlobalFree(hGlobalT);
+			hGlobalT = NULL;
+		}
+	}
+
+	CStringA strTextA(strText);
+	HGLOBAL hGlobalA = ::GlobalAlloc(GHND | GMEM_SHARE, (strTextA.GetLength() + 1) * sizeof(char));
+	if (hGlobalA != NULL) {
+		LPSTR pGlobalA = static_cast<LPSTR>(::GlobalLock(hGlobalA));
+		if (pGlobalA != NULL) {
+			strcpy(pGlobalA, strTextA);
+			::GlobalUnlock(hGlobalA);
+		} else {
+			::GlobalFree(hGlobalA);
+			hGlobalA = NULL;
+		}
+	}
+
+	if (hGlobalT == NULL && hGlobalA == NULL)
+		return false;
+
+	int iCopied = 0;
+	if (::OpenClipboard(NULL)) {
+		if (::EmptyClipboard()) {
+			if (hGlobalT) {
+				if (::SetClipboardData(CF_UNICODETEXT, hGlobalT) != NULL)
+					++iCopied;
+				else {
+					::GlobalFree(hGlobalT);
+					hGlobalT = NULL;
+				}
+			}
+			if (hGlobalA) {
+				if (::SetClipboardData(CF_TEXT, hGlobalA) != NULL)
+					++iCopied;
+				else {
+					::GlobalFree(hGlobalA);
+					hGlobalA = NULL;
+				}
+			}
+		}
+		::CloseClipboard();
+	}
+
+	if (iCopied == 0) {
+		if (hGlobalT)
+			::GlobalFree(hGlobalT);
+		if (hGlobalA)
+			::GlobalFree(hGlobalA);
+		return false;
 	}
 	return true;
 }
@@ -3330,10 +3488,11 @@ bool IsUnicodeFile(LPCTSTR pszFilePath)
 	return bResult;
 }
 
-bool IsRegExpValid(const CString & regexpr)
+bool IsRegExpValid(const CString &regexpr)
 {
 	try {
 		std::basic_regex<TCHAR> reFN(regexpr);
+		(void)reFN;
 	} catch (const std::regex_error&) {
 		return false;
 	}
@@ -3359,16 +3518,16 @@ ULONGLONG GetModuleVersion(LPCTSTR pszFilePath)
 {
 	ULONGLONG ullVersion = 0;
 	DWORD dwUnused;
-	DWORD dwVerInfSize = GetFileVersionInfoSize(const_cast<LPTSTR>(pszFilePath), &dwUnused);
+	DWORD dwVerInfSize = ::GetFileVersionInfoSize(const_cast<LPTSTR>(pszFilePath), &dwUnused);
 	if (dwVerInfSize != 0) {
 		LPBYTE pucVerInf = (LPBYTE)malloc(dwVerInfSize);
 		if (pucVerInf) {
-			if (GetFileVersionInfo(const_cast<LPTSTR>(pszFilePath), 0, dwVerInfSize, pucVerInf)) {
+			if (::GetFileVersionInfo(const_cast<LPTSTR>(pszFilePath), 0, dwVerInfSize, pucVerInf)) {
 				VS_FIXEDFILEINFO *pFileInf = NULL;
 				UINT uLen = 0;
-				if (VerQueryValue(pucVerInf, _T("\\"), (LPVOID*)&pFileInf, &uLen) && pFileInf && uLen) {
-					ullVersion = MAKEDLLVERULL(HIWORD(pFileInf->dwFileVersionMS), LOWORD(pFileInf->dwFileVersionMS),
-						HIWORD(pFileInf->dwFileVersionLS), LOWORD(pFileInf->dwFileVersionLS));
+				if (::VerQueryValue(pucVerInf, _T("\\"), (LPVOID*)&pFileInf, &uLen) && pFileInf && uLen) {
+					ullVersion = MAKEDLLVERULL(HIWORD(pFileInf->dwFileVersionMS), LOWORD(pFileInf->dwFileVersionMS)
+											, HIWORD(pFileInf->dwFileVersionLS), LOWORD(pFileInf->dwFileVersionLS));
 				}
 			}
 			free(pucVerInf);
@@ -3419,7 +3578,7 @@ uint64 GetFreeTempSpace(INT_PTR tempdirindex)
 	if (tempdirindex >= 0)
 		return GetFreeDiskSpaceX(thePrefs.GetTempDir(tempdirindex));
 
-	CArray<int, int> hist;
+	CArray<int> hist;
 	uint64 sum = 0;
 	for (INT_PTR i = 0; i < thePrefs.GetTempDirCount(); ++i) {
 		int pdn = GetPathDriveNumber(thePrefs.GetTempDir(i));
@@ -3581,12 +3740,12 @@ static const SFileExts s_fileexts[] =
 	{ARCHIVE_7Z,			_T("7Z"),			_T("|7Z|") },
 	{AUDIO_MPEG,			_T("MPEG Audio"),	_T("|MP2|MP3|") },
 	{IMAGE_ISO,				_T("ISO/NRG"),		_T("|ISO|NRG|") },
-	{VIDEO_MPG,				_T("MPEG Video"),	_T("|MPG|MPEG|") },
+	{VIDEO_MPG,				_T("MPEG Video"),	_T("|MPG|MPEG|VOB|") },
 	{VIDEO_AVI,				_T("AVI"),			_T("|AVI|DIVX|") },
-	{VIDEO_MP4,				_T("MP4"),			_T("|MP4|MOV|QT|")},
+	{VIDEO_MP4,				_T("MP4"),			_T("|MP4|MOV|QT|3GP|M4V|")},
 	{VIDEO_MKV,				_T("MKV"),			_T("|MKV|")},
 	{VIDEO_OGG,				_T("OGG"),			_T("|OGG|OGM|")},
-	{WM,					_T("Microsoft Media Audio/Video"), _T("|ASF|WMV|WMA|") },
+	{WM,					_T("Microsoft Media Audio/Video"), _T("|ASF|WMV|WMA|WM|") },
 	{PIC_JPG,				_T("JPEG"),			_T("|JPG|JPEG|") },
 	{PIC_PNG,				_T("PNG"),			_T("|PNG|") },
 	{PIC_GIF,				_T("GIF"),			_T("|GIF|") },
@@ -3646,7 +3805,7 @@ EFileType GetFileTypeEx(CShareableFile *kfile, bool checkextention, bool checkfi
 	CPartFile *pfile = static_cast<CPartFile*>(kfile);
 
 	bool test4iso = (!kfile->IsPartFile()
-		|| ((uint64)pfile->GetCompletedSize() > 0x8000 + HEADERCHECKSIZE
+		|| (pfile->GetCompletedSize() > 0x8000ull + HEADERCHECKSIZE
 			&& pfile->IsCompleteBD(0x8000, 0x8000 + HEADERCHECKSIZE)));
 	if (checkfileheader && (!kfile->IsPartFile() || pfile->IsCompleteBDSafe(0, HEADERCHECKSIZE) || test4iso)) {
 		try {
@@ -3722,9 +3881,9 @@ EFileType GetFileTypeEx(CShareableFile *kfile, bool checkextention, bool checkfi
 	if (!checkextention)
 		return res;
 
-	LPCTSTR pDot = ::PathFindExtension(kfile->GetFileName());
-	CString extLC(pDot + static_cast<int>(*pDot != _T('\0'))); //skip the dot
-	extLC.MakeLower();
+	LPCTSTR const pDot = ::PathFindExtension(kfile->GetFileName());
+	CString extLC(&pDot[static_cast<int>(*pDot != _T('\0'))]); //skip the dot
+	extLC.MakeUpper();
 
 	for (const SFileExts *ext = s_fileexts; ext->ftype != FILETYPE_UNKNOWN; ++ext) {
 		const CString &testext(ext->extlist);
@@ -3755,10 +3914,10 @@ bool ExtensionIs(LPCTSTR pszFilePath, LPCTSTR pszExt)
 // 1 - type matches acceptable extension
 // 0 - extension not found
 //-1 - extension was found, but types did not match
-int IsExtensionTypeOf(EFileType ftype, const CString &ext)
+int IsExtensionTypeOf(EFileType ftype, LPCTSTR const pszExt)
 {
 	CString fext;
-	fext.Format(_T("|%s|"), (LPCTSTR)ext);
+	fext.Format(_T("|%s|"), pszExt);
 	for (const SFileExts *pext = s_fileexts; pext->ftype != FILETYPE_UNKNOWN; ++pext) {
 		const CString &testext(pext->extlist);
 		if (testext.Find(fext) >= 0)
@@ -3808,12 +3967,35 @@ bool _tmakepathlimit(LPTSTR path, LPCTSTR drive, LPCTSTR dir, LPCTSTR fname, LPC
 
 	size_t sLen = _tcslen(tchBuffer);
 	if (sLen >= MAX_PATH) {
-		path[0] = _T('\0');
+		*path = _T('\0');
 		ASSERT(0);
 		return false;
 	}
 	_tcscpy(path, tchBuffer);
 	return true;
+}
+
+void makepathabs(CString &sPath)
+{
+	if (sPath.IsEmpty())
+		return;
+	// expand any optional available environment strings
+	TCHAR szExpSkinRes[MAX_PATH];
+	DWORD u = ::ExpandEnvironmentStrings(sPath, szExpSkinRes, _countof(szExpSkinRes));
+	if (!u || u > _countof(szExpSkinRes))
+		return;
+	sPath = szExpSkinRes;
+
+	// convert relative to absolute
+	if (::PathIsRelative(sPath)) {
+		TCHAR szFullResPath[MAX_PATH];
+		TCHAR szSkinResFolder[MAX_PATH];
+		_tcsncpy(szSkinResFolder, thePrefs.GetSkinProfile(), _countof(szSkinResFolder));
+		szSkinResFolder[_countof(szSkinResFolder) - 1] = _T('\0');
+		::PathRemoveFileSpec(szSkinResFolder);
+		_tmakepathlimit(szFullResPath, NULL, szSkinResFolder, sPath, NULL);
+		sPath = szFullResPath;
+	}
 }
 
 bool HasSubdirectories(const CString &strDir)
@@ -3870,22 +4052,169 @@ uint8 GetMyConnectOptions(bool bEncryption, bool bCallback)
 	return byCryptOptions;
 }
 
-bool AddIconGrayscaledToImageList(CImageList &rList, HICON hIcon)
+//Colour distance sRGB redmean
+static unsigned ColourDistance(BGR e1, BGR e2)
 {
-	// Use to create grey-scaled alpha using icons on WinXP and lower
-	// Only works with edited CxImage lib, not 6.0 standard
-	bool bResult = false;
-	ICONINFO iinfo;
-	if (::GetIconInfo(hIcon, &iinfo)) {
-		CxImage cxGray;
-		if (cxGray.CreateFromHBITMAP(iinfo.hbmColor)) {
-			cxGray.GrayScale();
-			HBITMAP hGrayBmp = cxGray.MakeBitmap(NULL, true);
-			bResult = rList.Add(CBitmap::FromHandle(hGrayBmp), CBitmap::FromHandle(iinfo.hbmMask)) != -1;
-			::DeleteObject(hGrayBmp);
+	int rmean = ((int)e1.r + (int)e2.r) / 2;
+	int r = (int)e1.r - (int)e2.r;
+	int g = (int)e1.g - (int)e2.g;
+	int b = (int)e1.b - (int)e2.b;
+	return (((512 + rmean) * r * r) >> 8) + 4 * g * g + (((767 - rmean) * b * b) >> 8);
+}
+
+int bestclr(const RGBQUAD* const palette, const BGR c)
+{
+	unsigned dist = UINT_MAX;
+	int best = -1;
+	for (int i = 256; --i >= 0;) {
+		unsigned d = ColourDistance(*(BGR*)&palette[i], c);
+		if (!d)
+			return i;
+		if (d < dist) {
+			dist = d;
+			best = i;
 		}
-		::DeleteObject(iinfo.hbmColor);
-		::DeleteObject(iinfo.hbmMask);
 	}
-	return bResult;
+	return best;
+}
+
+static HBITMAP GreyBitmap(const HBITMAP inbmp)
+{
+	BITMAP bm;
+	if (!inbmp || ::GetObject(inbmp, sizeof bm, &bm) != sizeof bm)
+		return 0;
+	ASSERT(bm.bmBitsPixel != 16); //not implemented
+
+#define BGR2GREY(b,g,r) (((b)*117+(g)*601+(r)*306)>>10)
+
+	HDC hdc = ::CreateCompatibleDC(NULL);
+	HBITMAP hbmPrev = (HBITMAP)::SelectObject(hdc, inbmp);
+	struct {
+		BITMAPINFOHEADER bmiHeader;
+		RGBQUAD bmiColors[256];
+	} bmiGrey = { {0} };
+	bmiGrey.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmiGrey.bmiHeader.biWidth = bm.bmWidth;
+	bmiGrey.bmiHeader.biHeight = bm.bmHeight;
+	bmiGrey.bmiHeader.biPlanes = bm.bmPlanes;
+	bmiGrey.bmiHeader.biBitCount = bm.bmBitsPixel;
+	bmiGrey.bmiHeader.biCompression = BI_RGB;
+	if (bm.bmBitsPixel <= 8) { //1, 2, 4, 8 bpp
+		DWORD i = ::GetDIBColorTable(hdc, 0, _countof(bmiGrey.bmiColors), bmiGrey.bmiColors);
+		bmiGrey.bmiHeader.biClrUsed = i;
+		while (i-- > 0) {
+			BYTE b = BGR2GREY(bmiGrey.bmiColors[i].rgbBlue, bmiGrey.bmiColors[i].rgbGreen, bmiGrey.bmiColors[i].rgbRed);
+			bmiGrey.bmiColors[i] = RGBQUAD{b, b, b, bmiGrey.bmiColors[i].rgbReserved};
+		}
+	}
+
+	BYTE *pBits;
+	HBITMAP outbmp = ::CreateDIBSection(NULL, (BITMAPINFO*)&bmiGrey, DIB_RGB_COLORS, (void**)&pBits, NULL, 0);
+	if (outbmp) {
+		HDC hdcMem = ::CreateCompatibleDC(NULL);
+		HBITMAP hBitmapOld = (HBITMAP)::SelectObject(hdcMem, outbmp);
+		::BitBlt(hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, hdc, 0, 0, SRCCOPY);
+		::SelectObject(hdcMem, hBitmapOld);
+		::DeleteDC(hdcMem);
+		if (bm.bmBitsPixel >= 24) {
+			int step = bm.bmBitsPixel / 8;
+			for (int i = bm.bmHeight; --i >= 0;) {
+				BYTE *d = pBits;
+				for (int j = bm.bmWidth; --j >= 0;) {
+					BYTE g = (BYTE)BGR2GREY(d[0], d[1], d[2]);
+					d[0] = d[1] = d[2] = g;
+					d += step;
+				}
+				pBits += bm.bmWidthBytes;
+			}
+		}
+	}
+
+	::SelectObject(hdc, hbmPrev);
+	::DeleteDC(hdc);
+	return outbmp;
+}
+
+// Create grey-scaled icon for WinXP and lower
+static HICON GreyIcon(const HICON hIcon)
+{
+	HICON hGreyIcon = 0;
+	if (hIcon) {
+		ICONINFO iinfo;
+		if (::GetIconInfo(hIcon, &iinfo)) {
+			HBITMAP hGreyBmp = GreyBitmap(iinfo.hbmColor);
+			::DeleteObject(iinfo.hbmColor);
+			if (hGreyBmp) {
+				iinfo.hbmColor = hGreyBmp;
+				hGreyIcon = ::CreateIconIndirect(&iinfo);
+				::DeleteObject(hGreyBmp);
+			}
+			::DeleteObject(iinfo.hbmMask);
+		}
+	}
+	return hGreyIcon;
+}
+
+int AddIconGreyedToImageList(CImageList &rList, const HICON hIcon)
+{
+	int nPos = -1;
+	HICON hGreyBmp = GreyIcon(hIcon);
+	if (hGreyBmp) {
+		nPos = rList.Add(hGreyBmp);
+		::DeleteObject(hGreyBmp);
+	}
+	return nPos;
+}
+
+byte* bmp2mem(HBITMAP hbmp, size_t &size, REFGUID imgfmt)
+{
+	if (hbmp) {
+		CComPtr<IStream> stream;
+		stream.Attach(::SHCreateMemStream(NULL, 0));
+		CImage bmp;
+		bmp.Attach(hbmp);
+		HRESULT h = bmp.Save(stream, imgfmt);
+		bmp.Detach();
+		if (SUCCEEDED(h)) {
+			ULARGE_INTEGER liSize;
+			if (SUCCEEDED(IStream_Size(stream, &liSize))) {
+				size = (size_t)liSize.QuadPart;
+				if (SUCCEEDED(IStream_Reset(stream))) {
+					byte *outbuf = new byte[size];
+					if (SUCCEEDED(IStream_Read(stream, outbuf, (ULONG)size)))
+						return outbuf;
+					delete[] outbuf;
+				}
+			}
+		}
+	}
+	return NULL;
+}
+
+HBITMAP mem2bmp(const byte *inbuf, const size_t size)
+{
+	if (inbuf && size) {
+		CComPtr<IStream> stream;
+		stream.Attach(::SHCreateMemStream(inbuf, (UINT)size));
+		CImage img;
+		if (SUCCEEDED(img.Load(stream)))
+			return img.Detach();
+	}
+	return 0;
+}
+
+HICON ReplaceIconGreyedInImageList(CImageList &rList, int nPos)
+{
+	if (nPos >= 0 && nPos < rList.GetImageCount()) {
+		HICON hIcon = rList.ExtractIcon(nPos);
+		if (hIcon) {
+			HICON hGreyIcon = GreyIcon(hIcon);
+			if (hGreyIcon) {
+				VERIFY(rList.Replace(nPos, hGreyIcon) == nPos);
+				VERIFY(::DestroyIcon(hGreyIcon));
+			}
+		}
+		return hIcon;
+	}
+	return 0;
 }

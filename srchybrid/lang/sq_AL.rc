@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "sq_AL.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_SQI)
 #ifdef _WIN32
 LANGUAGE LANG_ALBANIAN, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -519,7 +519,7 @@ BEGIN
     IDS_PW_INCOMING         "Skedat hyrëse"
     IDS_PW_TEMP             "Skeda kohëshkurtër"
     IDS_PW_BROWSE           "Shfleto..."
-    IDS_PW_SHARED           "Direktoritë Shpërndarë (Ctrl-Klikim përfshin nëndirektoritë)"
+    IDS_PW_SHARED           "Direktoritë Shpërndarë (Ctrl+Klikim përfshin nëndirektoritë)"
     IDS_CONNECTION          "Lidhje"
     IDS_PW_DOWNL            "Kufiri i shkarkimit"
     IDS_PW_UPL              "Kufiri i ngarkimit"
@@ -801,7 +801,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "Mesazh Privat"
     IDS_WEB_REMOTE_LINK_ADDED "U shtua linku: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED "Linku nuk u shtua. Fjalëkalimi i gabuar."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Shkarko më përpara pjesët që nevojiten për parashikim"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Shkarko më përpara pjesët që nevojiten për parashikim"
     IDS_IRC_KICK            "Shkelm"
     IDS_IRC_SLAP            "Dackë"
     IDS_IRC_JOIN            "HYR"
@@ -818,7 +818,6 @@ BEGIN
     IDS_NEWMSG              "Mesazh i Ri nga '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "Vetëm në të njëjtën kategori"
     IDS_LOG_ULDL_EVENTS     "Trego ngjarje mbi ngarkesën/shkarkesën"
-//    IDS_PEERCACHE_ENABLED   "ISPja juaj e përkrah teknologjinë 'PeerCache', merret leje shkarkimi nga depo e fshehtë!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Lejo përdoruesin që t'ju shtojë si shok"
     IDS_SOURCESWAPBLOCKED   "Tramba u bllokua"
     IDS_TRICKLING           "Në mbështetje"
@@ -1622,9 +1621,6 @@ BEGIN
                             "Lejo këtë zgjedhje që eMule të punojë kur Windows nis. (Tipike: Palejuar)"
     IDS_KAD_WAITCBK         "Prit Marrjen e Kad-it"
     IDS_KAD_TOOMANDYKADLKPS "Shumë Shikime në Kad"
-//    IDS_PCDS_CLIENTWAIT     "KlientPritje"
-//    IDS_PCDS_CACHEWAIT      "DepoPritje"
-//    IDS_CACHE               "Depoja"
     IDS_INDEXED             "E treguar"
     IDS_KADINFO_SRC         "\tBurimi: %u\r\n"
     IDS_KADINFO_KEYW        "\tFjala: %u\r\n"
@@ -1711,8 +1707,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Libraria e Kontrolleve të Zakonshme të Windows-it (COMCTL32.DLL) është tepër e vjetër!\r\n\r\neMule diktoi një version të ""Librarisë së Kontrolleve të Zakonshme të Windows-it (COMCTL32.DLL)"" që është tepër i vjetër për t'u përdorur siç duhet prej tij. Për të siguruar një funksionim të plotë dhe të pametë të eMule, rekomandojmë që ta ridatoni ""Librarinë e Kontrolleve të Zakonshme të Windows-it (COMCTL32.DLL)"", të paktën në versionin 5.8.\r\n\r\nShkarkoni dhe instaloni ridatimin e ""Librarisë së Kontrolleve të Zakonshme të Windows-it (COMCTL32.DLL)"" në Qendrën e Shkarkimit Microsoft (R). A doni të vizitoni URL-në korrespondues?"
     IDS_ASREGEXPR           "Si Shprehje e Rregullt"
     IDS_STATIC_REGEXP       "Shprehje e Rregullt për filtrin e shikimit:"
     IDS_CARE4ALL            "Vlerëso Gjithë Skedat"
@@ -1917,10 +1911,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Shenjo si jo-Spam"
     IDS_SEARCHSPAMFILTER    "Lejo Filtër Spami për rezultate kërkimi"
     IDS_SHOWSMILEYS         "Trego Gazmorët"
-    IDS_CAPTCHAREQUEST      "Që të shmangen mesazhet spame, ky përdorues ju kërkon që të zgjidhni një 'captcha' përpara se t'i dërgoni një mesazh. Ju lutemi vendosni si përgjigje shkronjat e kësaj figure:"
-    IDS_CAPTCHAFAILED       "Përgjigja juaj ndaj 'captcha' ishte e gabuar dhe mesazhi juaj u përbuz. Ju mund të kërkoni një 'captcha' të re duke dërguar një mesazh të ri."
-    IDS_CAPTCHASOLVED       "Ju e kaluat verifikimin e 'captcha' dhe përdoruesi e mori mesazhin tuaj."
-    IDS_USECAPTCHAS         "Kërko certifikimin me 'captcha'"
+    IDS_CAPTCHAREQUEST      "Që të shmangen mesazhet spame, ky përdorues ju kërkon që të zgjidhni një 'CAPTCHA' përpara se t'i dërgoni një mesazh. Ju lutemi vendosni si përgjigje shkronjat e kësaj figure:"
+    IDS_CAPTCHAFAILED       "Përgjigja juaj ndaj 'CAPTCHA' ishte e gabuar dhe mesazhi juaj u përbuz. Ju mund të kërkoni një 'CAPTCHA' të re duke dërguar një mesazh të ri."
+    IDS_CAPTCHASOLVED       "Ju e kaluat verifikimin e 'CAPTCHA' dhe përdoruesi e mori mesazhin tuaj."
+    IDS_USECAPTCHAS         "Kërko certifikimin me 'CAPTCHA'"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat nga URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "Shkarkim i 'nodes.dat' nga %s"
     IDS_DOWNLOADING_NODESDAT "Shkarkim i 'nodes.dat'..."

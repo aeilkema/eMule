@@ -30,12 +30,10 @@ their client on the eMule forum.
 
 #pragma once
 #include "kademlia/routing/Maps.h"
-#include "kademlia/kademlia/Tag.h"
 
-#define INV_KAD_KEYWORD_CHARS	" ()[]{}<>,._-!?:;\\/\""
-extern LPCSTR g_aszInvKadKeywordCharsA;
-extern LPCTSTR g_aszInvKadKeywordChars;
-extern LPCWSTR g_awszInvKadKeywordChars;
+extern LPCSTR const g_szInvKadKeywordCharsA;
+extern LPCTSTR const g_szInvKadKeywordChars;
+extern LPCWSTR const g_szInvKadKeywordCharsW;
 
 namespace Kademlia
 {

@@ -1,4 +1,4 @@
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -14,6 +14,7 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #pragma once
+#include "ring.h"
 
 class CSafeMemFile;
 class CSearchFile;
@@ -65,8 +66,8 @@ public:
 	CDownloadQueue();
 	~CDownloadQueue();
 
-	void	Process();
 	void	Init();
+	void	Process();
 
 	// add/remove entries
 	void	AddPartFilesToShare();
@@ -77,7 +78,7 @@ public:
 	void	RemoveFile(CPartFile *toremove);
 	void	DeleteAll();
 
-	INT_PTR	GetFileCount() const							{ return filelist.GetCount(); }
+	INT_PTR	GetFileCount() const						{ return filelist.GetCount(); }
 	UINT	GetDownloadingFileCount() const;
 	UINT	GetPausedFileCount() const;
 
@@ -103,18 +104,18 @@ public:
 	bool	RemoveSource(CUpDownClient *toremove, bool bDoStatsUpdate = true);
 
 	// statistics
-	typedef struct
+	struct SDownloadStats
 	{
 		unsigned a[23];
-	} SDownloadStats;
+	};
 	void	GetDownloadSourcesStats(SDownloadStats &results);
 	int		GetDownloadFilesStats(uint64 &rui64TotalFileSize, uint64 &rui64TotalLeftToTransfer, uint64 &rui64TotalAdditionalNeededSpace);
-	uint32	GetDatarate() const								{ return m_datarate; }
+	uint32	GetDatarate() const							{ return m_datarate; }
 
-	void	AddUDPFileReasks()								{ ++m_nUDPFileReasks; }
-	uint32	GetUDPFileReasks() const						{ return m_nUDPFileReasks; }
-	void	AddFailedUDPFileReasks()						{ ++m_nFailedUDPFileReasks; }
-	uint32	GetFailedUDPFileReasks() const					{ return m_nFailedUDPFileReasks; }
+	void	AddUDPFileReasks()							{ ++m_nUDPFileReasks; }
+	uint32	GetUDPFileReasks() const					{ return m_nUDPFileReasks; }
+	void	AddFailedUDPFileReasks()					{ ++m_nFailedUDPFileReasks; }
+	uint32	GetFailedUDPFileReasks() const				{ return m_nFailedUDPFileReasks; }
 
 	// categories
 	void	ResetCatParts(UINT cat);
@@ -130,7 +131,7 @@ public:
 	void	ResetLocalServerRequests();
 
 	// searching in Kad
-	void	SetLastKademliaFileRequest()					{ m_lastkademliafilerequest = ::GetTickCount(); }
+	void	SetLastKademliaFileRequest()				{ m_lastkademliafilerequest = ::GetTickCount(); }
 	bool	DoKademliaFileRequest() const;
 	void	KademliaSearchFile(uint32 nSearchID, const Kademlia::CUInt128 *pcontactID, const Kademlia::CUInt128 *pbuddyID, uint8 type, uint32 ip, uint16 tcp, uint16 udp, uint32 dwBuddyIP, uint16 dwBuddyPort, uint8 byCryptOptions);
 
@@ -145,7 +146,7 @@ public:
 	void	ExportPartMetFilesOverview() const;
 	void	OnConnectionState(bool bConnected);
 
-	void	AddToResolved(CPartFile *pFile, SUnresolvedHostname *pUH);
+	void	AddToResolved(const CPartFile *pFile, SUnresolvedHostname *pUH);
 
 	CString	GetOptimalTempDir(UINT nCat, EMFileSize nFileSize);
 
@@ -165,12 +166,7 @@ private:
 	CTypedPtrList<CPtrList, CPartFile*> m_localServerReqQueue;
 
 	// By BadWolf - Accurate Speed Measurement
-	typedef struct
-	{
-		uint32	datalen;
-		DWORD	timestamp; //tick count
-	} TransferredData;
-	CList<TransferredData> average_dr_list;
+	CRing<TransferredData> average_dr_hist;
 	// END By BadWolf - Accurate Speed Measurement
 
 	CSourceHostnameResolveWnd m_srcwnd;

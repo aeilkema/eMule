@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -16,7 +16,6 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
 #include "SafeFile.h"
-#include "Packets.h"
 #include "StringConversion.h"
 #include "kademlia/utils/UInt128.h"
 #include "OtherFunctions.h"
@@ -69,7 +68,7 @@ void CFileDataIO::ReadHash16(uchar *pVal)
 	Read(pVal, 16);
 }
 
-CString CFileDataIO::ReadString(bool bOptUTF8, UINT uRawSize)
+CStringW CFileDataIO::ReadString(bool bOptUTF8, UINT uRawSize)
 {
 	const UINT uMaxShortRawSize = SHORT_RAW_ED2K_UTF8_STR;
 	if (uRawSize <= uMaxShortRawSize) {
@@ -109,7 +108,7 @@ CString CFileDataIO::ReadString(bool bOptUTF8, UINT uRawSize)
 	return CStringW(acRaw, uRawSize); // use local codepage
 }
 
-CString CFileDataIO::ReadString(bool bOptUTF8)
+CStringW CFileDataIO::ReadString(bool bOptUTF8)
 {
 	UINT uLen = ReadUInt16();
 	return ReadString(bOptUTF8, uLen);

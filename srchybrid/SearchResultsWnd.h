@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -20,11 +20,7 @@
 #include "ButtonsTabCtrl.h"
 #include "ClosableTabCtrl.h"
 #include "DropDownButton.h"
-#include "IconStatic.h"
-#include "EditX.h"
 #include "EditDelayed.h"
-#include "ComboBoxEx2.h"
-#include "ListCtrlEditable.h"
 
 class CCustomAutoComplete;
 class Packet;
@@ -60,9 +56,8 @@ class CSearchResultsWnd : public CResizableFormView
 		IDD = IDD_SEARCH
 	};
 	void	NoTabItems();
-
 public:
-	explicit CSearchResultsWnd(CWnd *pParent = NULL);   // standard constructor
+	explicit CSearchResultsWnd(CWnd *pParent = NULL);	// standard constructor
 	virtual	~CSearchResultsWnd();
 	CSearchResultsWnd(const CSearchResultsWnd&) = delete;
 	CSearchResultsWnd& operator=(const CSearchResultsWnd&) = delete;
@@ -80,15 +75,15 @@ public:
 
 	bool	DoNewEd2kSearch(SSearchParams *pParams);
 	void	CancelEd2kSearch();
-	bool	IsLocalEd2kSearchRunning() const	{ return (m_uTimerLocalServer != 0); }
-	bool	IsGlobalEd2kSearchRunning() const	{ return (global_search_timer != 0); }
+	bool	IsLocalEd2kSearchRunning() const	{ return m_uTimerLocalServer != 0; }
+	bool	IsGlobalEd2kSearchRunning() const	{ return global_search_timer != 0; }
 	void	LocalEd2kSearchEnd(UINT count, bool bMoreResultsAvailable);
 	void	AddEd2kSearchResults(UINT count);
 	void	SetNextSearchID(uint32 uNextID)		{ m_nEd2kSearchID = uNextID; }
 	uint32	GetNextSearchID()					{ return ++m_nEd2kSearchID; }
 
 	bool	DoNewKadSearch(SSearchParams *pParams);
-	void	CancelKadSearch(uint32 uSearchID);
+	void	CancelKadSearch(uint32 uSearchID)	{ SearchCancelled(uSearchID); }
 
 	bool	CanSearchRelatedFiles() const;
 	void	SearchRelatedFiles(CPtrList &listFiles);
@@ -96,14 +91,14 @@ public:
 	void	DownloadSelected();
 	void	DownloadSelected(bool bPaused);
 
-	bool	CanDeleteSearches() const			{ return (searchselect.GetItemCount() > 0); };
+	bool	CanDeleteSearches() const			{ return searchselect.GetItemCount() > 0; }
 	void	DeleteSearch(uint32 uSearchID);
 	void	DeleteAllSearches();
 	void	DeleteSelectedSearch();
 
-	bool	CreateNewTab(SSearchParams *pParams, bool bActiveIcon = true);
+	bool	CreateOrFindTab(SSearchParams *pParams, bool bActiveIcon);
 	void	ShowSearchSelector(bool visible);
-	int		GetSelectedCat()					{ return m_cattabs.GetCurSel(); }
+	int		GetSelectedCat() const				{ return m_cattabs.GetCurSel(); }
 	void	UpdateCatTabs();
 
 	SSearchParams* GetSearchResultsParams(uint32 uSearchID) const;
@@ -128,40 +123,40 @@ protected:
 	bool		m_b64BitSearchPacket;
 	bool		m_globsearch;
 	bool		m_cancelled;
+	bool		m_bTabs;
 
-	bool StartNewSearch(SSearchParams *pParams);
-	void SearchStarted();
-	void SearchCancelled(uint32 uSearchID);
+	bool	StartNewSearch(SSearchParams *pParams);
+	void	SearchStarted();
+	void	SearchCancelled(uint32 uSearchID);
 	CString	CreateWebQuery(SSearchParams *pParams);
-	void ShowResults(const SSearchParams *pParams);
-	void SetAllIcons();
-	void SetSearchResultsIcon(uint32 uSearchID, int iImage);
-	void SetActiveSearchResultsIcon(uint32 uSearchID);
-	void SetInactiveSearchResultsIcon(uint32 uSearchID);
-
+	void	ShowResults(const SSearchParams *pParams);
+	void	SetAllIcons();
+	void	SetSearchResultsIcon(uint32 uSearchID, int iImage);
+	void	SetActiveSearchResultsIcon(uint32 uSearchID);
+	void	SetInactiveSearchResultsIcon(uint32 uSearchID);
 
 	virtual void OnInitialUpdate();
 	virtual BOOL PreTranslateMessage(MSG *pMsg);
 	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
-	afx_msg void OnDblClkSearchList(LPNMHDR, LRESULT *pResult);
-	afx_msg void OnSelChangeTab(LPNMHDR, LRESULT *pResult);
-	afx_msg void OnSelChangingTab(LPNMHDR, LRESULT *pResult);
+	afx_msg void OnBnClickedClearAll();
+	afx_msg void OnBnClickedDownloadSelected();
+	afx_msg void OnBnClickedOpenParamsWnd();
+	afx_msg LRESULT OnChangeFilter(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnClose();
 	afx_msg LRESULT OnCloseTab(WPARAM wParam, LPARAM);
+	afx_msg HBRUSH OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor);
+	afx_msg void OnDblClkSearchList(LPNMHDR, LRESULT *pResult);
 	afx_msg LRESULT OnDblClickTab(WPARAM wParam, LPARAM);
 	afx_msg void OnDestroy();
-	afx_msg void OnSysColorChange();
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
-	afx_msg void OnBnClickedDownloadSelected();
-	afx_msg void OnBnClickedClearAll();
-	afx_msg void OnClose();
-	afx_msg BOOL OnHelpInfo(HELPINFO*);
+	afx_msg BOOL OnHelpInfo(HELPINFO *);
 	afx_msg LRESULT OnIdleUpdateCmdUI(WPARAM, LPARAM);
-	afx_msg void OnBnClickedOpenParamsWnd();
+	afx_msg void OnSearchListMenuBtnDropDown(LPNMHDR, LRESULT *);
+	afx_msg void OnSelChangingTab(LPNMHDR, LRESULT *pResult);
+	afx_msg void OnSelChangeTab(LPNMHDR, LRESULT *pResult);
+	afx_msg void OnSysColorChange();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
-	afx_msg LRESULT OnChangeFilter(WPARAM wParam, LPARAM lParam);
-	afx_msg void OnSearchListMenuBtnDropDown(LPNMHDR, LRESULT*);
-	afx_msg HBRUSH OnCtlColor(CDC *pDC, CWnd *pWnd, UINT nCtlColor);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 };

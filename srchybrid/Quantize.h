@@ -25,17 +25,17 @@
 
 class CQuantizer
 {
-	typedef struct _NODE
+	struct NODE
 	{
-		struct _NODE *pChild[8];    // Pointers to child nodes
-		struct _NODE *pNext;        // Pointer to next reducible node
-		UINT nPixelCount;           // Number of pixels represented by this leaf
-		UINT nRedSum;               // Sum of red components
-		UINT nGreenSum;             // Sum of green components
-		UINT nBlueSum;              // Sum of blue components
-		UINT nAlphaSum;             // Sum of alpha components
-		bool bIsLeaf;               // true if node has no children
-	} NODE;
+		struct NODE *pChild[8];	// Pointers to child nodes
+		struct NODE *pNext;		// Pointer to next reducible node
+		UINT nPixelCount;		// Number of pixels represented by this leaf
+		UINT nRedSum;			// Sum of red components
+		UINT nGreenSum;			// Sum of green components
+		UINT nBlueSum;			// Sum of blue components
+		UINT nAlphaSum;			// Sum of alpha components
+		bool bIsLeaf;			// true if node has no children
+	};
 protected:
 	NODE *m_pTree;
 	NODE *m_pReducibleNodes[9];
@@ -47,8 +47,8 @@ protected:
 public:
 	CQuantizer(UINT nMaxColors, UINT nColorBits);
 	virtual ~CQuantizer();
-	BOOL ProcessImage(HANDLE hImage);
-	UINT GetColorCount() const;
+	BOOL ProcessImage(void *bmpImage);
+	UINT GetColorCount() const			{ return m_nLeafCount; }
 	void SetColorTable(RGBQUAD *prgb);
 
 protected:
@@ -57,5 +57,5 @@ protected:
 	void DeleteTree(NODE **ppNode);
 	static void ReduceTree(UINT nColorBits, UINT *pLeafCount, NODE **pReducibleNodes);
 	static void GetPaletteColors(NODE *pTree, RGBQUAD *prgb, UINT *pIndex, UINT *pSum);
-	static BYTE GetPixelIndex(long x, long y, int nbit, long effwdt, BYTE *pimage);
+	static BYTE GetPixelIndex(long x, long y, int nbit, long effwdt, const BYTE *pimage);
 };

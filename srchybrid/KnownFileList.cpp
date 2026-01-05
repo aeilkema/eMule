@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,7 +15,6 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
-#include <io.h>
 #include "emule.h"
 #include "SharedFileList.h"
 #include "KnownFileList.h"
@@ -23,7 +22,6 @@
 #include "opcodes.h"
 #include "Preferences.h"
 #include "SafeFile.h"
-#include "UpDownClient.h"
 #include "DownloadQueue.h"
 #include "emuledlg.h"
 #include "TransferDlg.h"
@@ -97,13 +95,14 @@ bool CKnownFileList::LoadKnownFiles()
 		uint32 uRecordsNumber = file.ReadUInt32();
 		for (uint32 i = 0; i < uRecordsNumber; ++i) {
 			pRecord = new CKnownFile();
-			if (!pRecord->LoadFromFile(file)) {
+			if (pRecord->LoadFromFile(file))
+				SafeAddKFile(pRecord);
+			else {
 				TRACE(_T("*** Failed to load entry %u (name=%s  hash=%s  size=%I64u  parthashes=%u expected parthashes=%u) from known.met\n")
 					, i, (LPCTSTR)pRecord->GetFileName(), (LPCTSTR)md4str(pRecord->GetFileHash()), (uint64)pRecord->GetFileSize()
 					, pRecord->GetFileIdentifier().GetAvailableMD4PartHashCount(), pRecord->GetFileIdentifier().GetTheoreticalMD4PartHashCount());
 				delete pRecord;
-			} else
-				SafeAddKFile(pRecord);
+			}
 			pRecord = NULL;
 		}
 		file.Close();
@@ -151,7 +150,6 @@ bool CKnownFileList::LoadCancelledFiles()
 				file.Close();
 				return false;
 			}
-
 			m_dwCancelledFilesSeed = file.ReadUInt32();
 		}
 		if (m_dwCancelledFilesSeed == 0) {
@@ -238,15 +236,14 @@ void CKnownFileList::Save()
 			file.WriteUInt8(CANCELLED_HEADER);
 			file.WriteUInt8(CANCELLED_VERSION);
 			file.WriteUInt32(m_dwCancelledFilesSeed);
-			if (!thePrefs.IsRememberingCancelledFiles())
-				file.WriteUInt32(0);
-			else {
+			if (thePrefs.IsRememberingCancelledFiles()) {
 				file.WriteUInt32((uint32)m_mapCancelledFiles.GetCount());
 				for (const CancelledFilesMap::CPair *pair = m_mapCancelledFiles.PGetFirstAssoc(); pair != NULL; pair = m_mapCancelledFiles.PGetNextAssoc(pair)) {
 					file.WriteHash16(pair->key.m_key);
 					file.WriteUInt8(0); //number of tags
 				}
-			}
+			} else
+				file.WriteUInt32(0);
 			CommitAndClose(file);
 		} catch (CFileException *ex) {
 			LogError(LOG_STATUSBAR, _T("%s %s%s"), (LPCTSTR)GetResString(IDS_ERROR_SAVEFILE), CANCELLED_MET_FILENAME, (LPCTSTR)CExceptionStrDash(*ex));
@@ -306,7 +303,7 @@ bool CKnownFileList::SafeAddKFile(CKnownFile *toadd)
 				bRemovedDuplicateSharedFile = theApp.sharedfiles->RemoveFile(pFileInMap);
 			ASSERT(!theApp.sharedfiles->IsFilePtrInList(pFileInMap));
 		}
-		//Double check to make sure this is the same file as it's possible that a two files have
+		//Double check to make sure this is the same file as it's possible that two files have
 		//the same hash. Maybe in the future we can change the client to not just use Hash as a key
 		//throughout the entire client.
 		ASSERT(toadd->GetFileSize() == pFileInMap->GetFileSize());
@@ -319,11 +316,17 @@ bool CKnownFileList::SafeAddKFile(CKnownFile *toadd)
 
 		// Quick fix: If we downloaded already downloaded files again, and if those files had the same
 		// file names, and were renamed during file completion, we have a pending ptr in transfer window.
-		if (theApp.emuledlg->transferwnd && theApp.emuledlg->transferwnd->GetDownloadList()->m_hWnd)
-			theApp.emuledlg->transferwnd->GetDownloadList()->RemoveFile(reinterpret_cast<CPartFile*>(pFileInMap));
+		if (theApp.emuledlg->transferwnd->GetSafeHwnd()) {
+			CDownloadListCtrl &downlist(theApp.emuledlg->transferwnd->GetDownloadList());
+			if (downlist.m_hWnd)
+				downlist.RemoveFile(reinterpret_cast<CPartFile*>(pFileInMap));
+		}
 		// Make sure the file is not used in our sharedfilesctrl any more
-		if (theApp.emuledlg->sharedfileswnd && theApp.emuledlg->sharedfileswnd->sharedfilesctrl.m_hWnd)
-			theApp.emuledlg->sharedfileswnd->sharedfilesctrl.RemoveFile(pFileInMap, true);
+		if (theApp.emuledlg->sharedfileswnd->GetSafeHwnd()) {
+			CSharedFilesCtrl &sharedctrl(theApp.emuledlg->sharedfileswnd->sharedfilesctrl);
+			if (sharedctrl.m_hWnd)
+				sharedctrl.RemoveFile(pFileInMap, true);
+		}
 		delete pFileInMap;
 	}
 	m_Files_map[key] = toadd;
@@ -338,7 +341,7 @@ bool CKnownFileList::SafeAddKFile(CKnownFile *toadd)
 CKnownFile* CKnownFileList::FindKnownFile(LPCTSTR filename, time_t date, uint64 size) const
 {
 	for (const CKnownFilesMap::CPair *pair = m_Files_map.PGetFirstAssoc(); pair != NULL; pair = m_Files_map.PGetNextAssoc(pair))
-		if (pair->value->GetUtcFileDate() == date && (uint64)pair->value->GetFileSize() == size && pair->value->GetFileName() == filename)
+		if (pair->value->GetUtcFileDate() == date && pair->value->GetFileSize() == size && pair->value->GetFileName() == filename)
 			return pair->value;
 
 	return NULL;

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( merkur-@users.sourceforge.net / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( merkur-@users.sourceforge.net / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,10 +15,11 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
+#include "emule.h"
+#include "emuledlg.h"
 #include "CommentListCtrl.h"
 #include "MenuCmds.h"
-#include "TitleMenu.h"
-#include "emule.h"
+#include "TitledMenu.h"
 #include "UpDownClient.h"
 #include "kademlia/kademlia/Entry.h"
 
@@ -61,6 +62,7 @@ void CCommentListCtrl::Init()
 	if (pimlOld)
 		pimlOld->DeleteImageList();
 
+	Localize();
 	LoadSettings();
 	SetSortArrow();
 	SortItems(SortProc, MAKELONG(GetSortItem(), !GetSortAscending()));
@@ -124,7 +126,7 @@ void CCommentListCtrl::OnContextMenu(CWnd*, CPoint point)
 	if (GetNextItem(-1, LVIS_SELECTED | LVIS_FOCUSED) == -1)
 		flag = MF_GRAYED;
 
-	CTitleMenu popupMenu;
+	CTitledMenu popupMenu;
 	popupMenu.CreatePopupMenu();
 	popupMenu.AppendMenu(MF_STRING | flag, MP_COPYSELECTED, GetResString(IDS_COPY));
 
@@ -148,7 +150,7 @@ BOOL CCommentListCtrl::OnCommand(WPARAM wParam, LPARAM lParam)
 						strText.AppendFormat(_T("\r\n%s"), (LPCTSTR)strComment);
 			}
 		}
-		theApp.CopyTextToClipboard(strText);
+		theApp.emuledlg->CopyTextToClipboard(strText);
 	}
 	return CMuleListCtrl::OnCommand(wParam, lParam);
 }
@@ -191,9 +193,19 @@ void CCommentListCtrl::AddItem(const Kademlia::CEntry *entry)
 	if (FindClientComment(pClientCookie) >= 0)
 		return;
 	int iRating = (int)entry->GetIntTagValue(Kademlia::CKadTagNameString(TAG_FILERATING));
-	SComment *pComment = new SComment(pClientCookie, iRating, entry->GetStrTagValue(Kademlia::CKadTagNameString(TAG_DESCRIPTION))
-		, entry->GetCommonFileName(), _T(""), 1/*Kad*/);
+	SComment *pComment = new SComment(pClientCookie, iRating, (CString)entry->GetStrTagValue(Kademlia::CKadTagNameString(TAG_DESCRIPTION))
+		, (CString)entry->GetCommonFileName(), _T(""), 1/*Kad*/);
 	AddComment(pComment);
+}
+
+void CCommentListCtrl::Localize()
+{
+	static const UINT uids[] =
+	{
+		IDS_QL_RATING, IDS_COMMENT, IDS_DL_FILENAME, IDS_QL_USERNAME, IDS_NETWORK
+		, 0
+	};
+	LocaliseHeader(uids);
 }
 
 void CCommentListCtrl::OnLvnDeleteItem(LPNMHDR pNMHDR, LRESULT *pResult)

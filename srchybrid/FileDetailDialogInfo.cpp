@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -34,7 +34,7 @@ static char THIS_FILE[] = __FILE__;
 ///////////////////////////////////////////////////////////////////////////////
 // CFileDetailDialogInfo dialog
 
-LPCTSTR CFileDetailDialogInfo::sm_pszNotAvail = _T("-");
+static LPCTSTR const szNotAvailable = _T("-");
 
 IMPLEMENT_DYNAMIC(CFileDetailDialogInfo, CResizablePage)
 
@@ -72,11 +72,11 @@ BOOL CFileDetailDialogInfo::OnInitDialog()
 	CResizablePage::OnInitDialog();
 	InitWindowStyles(this);
 
+	AddAnchor(IDC_FD_X0, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_FNAME, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_METFILE, TOP_LEFT, TOP_RIGHT);
-	AddAnchor(IDC_FD_X0, TOP_LEFT, TOP_RIGHT);
-	AddAnchor(IDC_FD_X6, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_FD_X8, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(IDC_FD_X6, TOP_LEFT, TOP_RIGHT);
 
 	AddAllOtherAnchors();
 	Localize();
@@ -134,9 +134,9 @@ void CFileDetailDialogInfo::RefreshData()
 
 		// date created
 		if (file->GetCrFileDate() != 0) {
-			str.Format(_T("%s   ") + GetResString(IDS_TIMEBEFORE),
-				(LPCTSTR)file->GetCrCFileDate().Format(thePrefs.GetDateTimeFormat()),
-				(LPCTSTR)CastSecondsToLngHM(time(NULL) - file->GetCrFileDate()));
+			str.Format(_T("%s   ") + GetResString(IDS_TIMEBEFORE)
+				, (LPCTSTR)file->GetCrCFileDate().Format(thePrefs.GetDateTimeFormat())
+				, (LPCTSTR)CastSecondsToLngHM(time(NULL) - file->GetCrFileDate()));
 		} else
 			str = GetResString(IDS_UNKNOWN);
 		SetDlgItemText(IDC_FILECREATED, str);
@@ -196,7 +196,7 @@ void CFileDetailDialogInfo::RefreshData()
 
 		// file type
 		LPCTSTR pDot = ::PathFindExtension(fname);
-		CString szExt(pDot + static_cast<int>(*pDot != _T('\0'))); //skip the dot
+		CString szExt(&pDot[static_cast<int>(*pDot != _T('\0'))]); //skip the dot
 		szExt.MakeUpper();
 
 		bool showwarning = false;
@@ -226,19 +226,19 @@ void CFileDetailDialogInfo::RefreshData()
 		m_bShowFileTypeWarning = showwarning;
 		SetDlgItemText(IDC_FD_X11, str);
 	} else {
-		SetDlgItemText(IDC_FNAME, sm_pszNotAvail);
-		SetDlgItemText(IDC_METFILE, sm_pszNotAvail);
-		SetDlgItemText(IDC_FHASH, sm_pszNotAvail);
+		SetDlgItemText(IDC_FNAME, szNotAvailable);
+		SetDlgItemText(IDC_METFILE, szNotAvailable);
+		SetDlgItemText(IDC_FHASH, szNotAvailable);
 
-		SetDlgItemText(IDC_PFSTATUS, sm_pszNotAvail);
-		SetDlgItemText(IDC_PARTCOUNT, sm_pszNotAvail);
-		SetDlgItemText(IDC_FD_X11, sm_pszNotAvail);
+		SetDlgItemText(IDC_PFSTATUS, szNotAvailable);
+		SetDlgItemText(IDC_PARTCOUNT, szNotAvailable);
+		SetDlgItemText(IDC_FD_X11, szNotAvailable);
 
-		SetDlgItemText(IDC_FILECREATED, sm_pszNotAvail);
-		SetDlgItemText(IDC_DL_ACTIVE_TIME, sm_pszNotAvail);
-		SetDlgItemText(IDC_LASTSEENCOMPL, sm_pszNotAvail);
-		SetDlgItemText(IDC_LASTRECEIVED, sm_pszNotAvail);
-		SetDlgItemText(IDC_FD_AICHHASH, sm_pszNotAvail);
+		SetDlgItemText(IDC_FILECREATED, szNotAvailable);
+		SetDlgItemText(IDC_DL_ACTIVE_TIME, szNotAvailable);
+		SetDlgItemText(IDC_LASTSEENCOMPL, szNotAvailable);
+		SetDlgItemText(IDC_LASTRECEIVED, szNotAvailable);
+		SetDlgItemText(IDC_FD_AICHHASH, szNotAvailable);
 	}
 
 	uint64 uFileSize = 0;
@@ -260,7 +260,7 @@ void CFileDetailDialogInfo::RefreshData()
 
 		uFileSize += (uint64)file->GetFileSize();
 		uRealFileSize += (uint64)file->GetRealFileSize();
-		uTransferred += (uint64)file->GetTransferred();
+		uTransferred += file->GetTransferred();
 		uCorrupted += file->GetCorruptionLoss();
 		uRecoveredParts += file->GetRecoveredPartsByICH();
 		uCompression += file->GetCompressionGain();
@@ -304,19 +304,19 @@ void CFileDetailDialogInfo::RefreshData()
 
 	SetDlgItemText(IDC_TRANSFERRED, CastItoXBytes(uTransferred));
 
-	str.Format(_T("%s (%.1f%%)"), (LPCTSTR)CastItoXBytes(uCompleted), (uFileSize != 0 ? uCompleted * 100.0 / uFileSize : 0.0));
+	str.Format(_T("%s (%.1f%%)"), (LPCTSTR)CastItoXBytes(uCompleted), (uFileSize > 0 ? (float)(100 * uCompleted) / (float)uFileSize : 0.0f));
 	SetDlgItemText(IDC_COMPLSIZE, str);
 
-	str.Format(_T("%s (%.1f%%)"), (LPCTSTR)CastItoXBytes(uCorrupted), (uTransferred != 0 ? uCorrupted * 100.0 / uTransferred : 0.0));
+	str.Format(_T("%s (%.1f%%)"), (LPCTSTR)CastItoXBytes(uCorrupted), (uTransferred > 0 ? (float)(100 * uCorrupted) / (float)uTransferred : 0.0f));
 	SetDlgItemText(IDC_CORRUPTED, str);
 
-	str.Format(_T("%s (%.1f%%)"), (LPCTSTR)CastItoXBytes(uFileSize - uCompleted), (uFileSize != 0 ? (uFileSize - uCompleted) * 100.0 / uFileSize : 0.0));
+	str.Format(_T("%s (%.1f%%)"), (LPCTSTR)CastItoXBytes(uFileSize - uCompleted), (uFileSize > 0 ? (float)(100 * (uFileSize - uCompleted)) / (float)uFileSize : 0.0f));
 	SetDlgItemText(IDC_REMAINING, str);
 
 	str.Format(_T("%u %s"), uRecoveredParts, (LPCTSTR)GetResString(IDS_FD_PARTS));
 	SetDlgItemText(IDC_RECOVERED, str);
 
-	str.Format(_T("%s (%.1f%%)"), (LPCTSTR)CastItoXBytes(uCompression), (uTransferred ? uCompression * 100.0 / uTransferred : 0.0));
+	str.Format(_T("%s (%.1f%%)"), (LPCTSTR)CastItoXBytes(uCompression), (uTransferred ? (float)(100 * uCompression) / (float)uTransferred : 0.0f));
 	SetDlgItemText(IDC_COMPRESSION, str);
 }
 

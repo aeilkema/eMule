@@ -34,7 +34,7 @@ class CFileInfoDialog : public CResizablePage
 	void InitDisplay(LPCTSTR pStr);
 	CSimpleArray<CObject*> m_pFiles;
 public:
-	CFileInfoDialog();   // standard constructor
+	CFileInfoDialog();	// standard constructor
 	virtual BOOL OnInitDialog();
 
 	void SetFiles(const CSimpleArray<CObject*> *paFiles)	{ m_paFiles = paFiles; m_bDataChanged = true; }
@@ -47,7 +47,7 @@ protected:
 	CRichEditCtrlX m_fi;
 	bool m_bReducedDlg;
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnSetActive();
 
 	DECLARE_MESSAGE_MAP()

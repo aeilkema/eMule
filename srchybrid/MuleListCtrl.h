@@ -2,7 +2,6 @@
 #include "Preferences.h"
 #include "resource.h"
 
-class CIni;
 class CMemoryDC;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -31,15 +30,23 @@ class CMuleListCtrl : public CListCtrl
 {
 	DECLARE_DYNAMIC(CMuleListCtrl)
 
+	enum ArrowType
+	{
+		arrowDown = IDB_DOWN,
+		arrowUp = IDB_UP,
+		arrowDoubleDown = IDB_DOWN2X,
+		arrowDoubleUp = IDB_UP2X
+	};
+
 public:
 	CMuleListCtrl(PFNLVCOMPARE pfnCompare = SortProc, LPARAM iParamSort = 0);
-	virtual	~CMuleListCtrl()					{ delete[] m_aColumns; };
+	virtual	~CMuleListCtrl()					{ delete[] m_aColumns; }
 
 	// Default sort proc, this does nothing
 	static int CALLBACK SortProc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort);
 
 	// Sets the list name, used for settings in "preferences.ini"
-	void SetPrefsKey(LPCTSTR lpszName)			{ m_Name = lpszName; };
+	void SetPrefsKey(LPCTSTR lpszName)			{ m_Name = lpszName; }
 
 	// Save to preferences
 	void SaveSettings();
@@ -47,7 +54,7 @@ public:
 	// Load from preferences
 	void LoadSettings();
 
-	DWORD SetExtendedStyle(DWORD dwNewStyle)	{ return CListCtrl::SetExtendedStyle(dwNewStyle | LVS_EX_HEADERDRAGDROP); };
+	DWORD SetExtendedStyle(DWORD dwNewStyle)	{ return CListCtrl::SetExtendedStyle(dwNewStyle | LVS_EX_HEADERDRAGDROP); }
 
 	// Hide the column
 	void HideColumn(int iColumn);
@@ -102,64 +109,27 @@ public:
 		if (bRedraw) {
 			if (m_iRedrawCount > 0 && --m_iRedrawCount == 0)
 				CListCtrl::SetRedraw(TRUE);
-		} else {
-			if (m_iRedrawCount++ == 0)
-				CListCtrl::SetRedraw(FALSE);
-		}
+		} else if (m_iRedrawCount++ == 0)
+			CListCtrl::SetRedraw(FALSE);
 	}
 
 	// Sorts the list
-	BOOL SortItems(PFNLVCOMPARE pfnCompare, DWORD dwData)
-	{
-		return CListCtrl::SortItems(pfnCompare, dwData);
-	}
+	BOOL SortItems(PFNLVCOMPARE pfnCompare, DWORD dwData)	{ return CListCtrl::SortItems(pfnCompare, dwData); }
 
 	// Sorts the list
-	BOOL SortItems(DWORD dwData)
-	{
-		return CListCtrl::SortItems(m_SortProc, dwData);
-	}
+	BOOL SortItems(DWORD dwData)				{ return CListCtrl::SortItems(m_SortProc, dwData); }
 
 	// Sets the sorting procedure
-	void SetSortProcedure(PFNLVCOMPARE funcSortProcedure)
-	{
-		m_SortProc = funcSortProcedure;
-	}
+	void SetSortProcedure(PFNLVCOMPARE funcSortProcedure)	{ m_SortProc = funcSortProcedure; }
 
 	// Gets the sorting procedure
-	PFNLVCOMPARE GetSortProcedure()
-	{
-		return m_SortProc;
-	}
+	PFNLVCOMPARE GetSortProcedure() const		{ return m_SortProc; }
 
 	// Retrieves the data (lParam) associated with a particular item.
 	DWORD_PTR GetItemData(int iItem);
 
 	// Retrieves the number of items in the control.
-	int GetItemCount() const
-	{
-		return static_cast<int>(m_Params.GetCount());
-	};
-
-	enum ArrowType
-	{
-		arrowDown = IDB_DOWN,
-		arrowUp = IDB_UP,
-		arrowDoubleDown = IDB_DOWN2X,
-		arrowDoubleUp = IDB_UP2X
-	};
-
-	int	GetSortType(ArrowType at);
-	ArrowType GetArrowType(int iat);
-	int GetSortItem() const						{ return m_iCurrentSortItem; }
-	bool GetSortAscending() const				{ return m_atSortArrow == arrowUp || m_atSortArrow == arrowDoubleUp; }
-	bool GetSortSecondValue() const				{ return m_atSortArrow == arrowDoubleDown || m_atSortArrow == arrowDoubleUp; }
-	// Places a sort arrow in a column
-	void SetSortArrow(int iColumn, ArrowType atType);
-	void SetSortArrow()							{ SetSortArrow(m_iCurrentSortItem, m_atSortArrow); }
-	void SetSortArrow(int iColumn, bool bAscending) { SetSortArrow(iColumn, bAscending ? arrowUp : arrowDown); }
-	LPARAM GetNextSortOrder(LPARAM iCurrentSortOrder) const;
-	void UpdateSortHistory(LPARAM dwNewOrder);
+	int GetItemCount() const					{ return static_cast<int>(m_Params.GetCount()); }
 
 	// General purpose listview find dialog+functions (optional)
 	void	SetGeneralPurposeFind(bool bEnable, bool bCanSearchInAllColumns = true)
@@ -177,7 +147,7 @@ public:
 		none
 	};
 	EUpdateMode SetUpdateMode(EUpdateMode eUpdateMode);
-	void SetAutoSizeWidth(int iAutoSizeWidth)	{ m_iAutoSizeWidth = iAutoSizeWidth; };
+	void SetAutoSizeWidth(int iAutoSizeWidth)	{ m_iAutoSizeWidth = iAutoSizeWidth; }
 
 	int InsertColumn(int nCol, LPCTSTR lpszColumnHeading, int nFormat = LVCFMT_LEFT, int nWidth = -1, int nSubItem = -1, bool bHiddenByDefault = false);
 
@@ -186,6 +156,12 @@ public:
 	void SetSkinKey(LPCTSTR pszKey)				{ m_strSkinKey = pszKey; }
 	const CString& GetSkinKey() const			{ return m_strSkinKey; }
 
+	int GetSortItem() const						{ return m_iCurrentSortItem; }
+	bool GetSortAscending() const				{ return m_atSortArrow == arrowUp || m_atSortArrow == arrowDoubleUp; }
+	// Places a sort arrow in a column
+	void SetSortArrow(int iColumn, ArrowType atType);
+	void SetSortArrow()							{ SetSortArrow(m_iCurrentSortItem, m_atSortArrow); }
+	void SetSortArrow(int iColumn, bool bAscending) { SetSortArrow(iColumn, bAscending ? arrowUp : arrowDown); }
 protected:
 	virtual void PreSubclassWindow();
 	virtual BOOL OnWndMsg(UINT message, WPARAM wParam, LPARAM lParam, LRESULT *pResult);
@@ -205,8 +181,14 @@ protected:
 	int MoveItem(int iOldIndex, int iNewIndex);
 	void SetColors();
 	void DrawFocusRect(CDC *pDC, LPCRECT rcItem, BOOL bItemFocused, BOOL bCtrlFocused, BOOL bItemSelected);
-	void InitItemMemDC(CMemoryDC *dc, LPDRAWITEMSTRUCT lpDrawItemStruct, BOOL &bCtrlFocused);
-	void LocaliseHeaderCtrl(const UINT *const uids, size_t cnt);
+	void InitItemMemDC(CMemoryDC &dc, LPDRAWITEMSTRUCT lpDrawItemStruct, BOOL &bCtrlFocused);
+	void LocaliseHeader(const UINT *const uids);
+
+	int	GetSortType(ArrowType at);
+	ArrowType GetArrowType(int iat);
+	bool GetSortSecondValue() const				{ return m_atSortArrow == arrowDoubleDown || m_atSortArrow == arrowDoubleUp; }
+	LPARAM GetNextSortOrder(LPARAM iCurrentSortOrder) const;
+	void UpdateSortHistory(LPARAM dwNewOrder);
 
 	static inline bool HaveIntersection(const RECT &rc1, const RECT &rc2)
 	{
@@ -229,12 +211,12 @@ protected:
 	COLORREF        m_crFocusLine;
 	COLORREF        m_crNoHighlight;
 	COLORREF        m_crNoFocusLine;
-	NMLVCUSTOMDRAW  m_lvcd;
 	BOOL            m_bCustomDraw;
+	NMLVCUSTOMDRAW  m_lvcd;
 	CImageList		m_imlHeaderCtrl;
 	CList<LONG>		m_liSortHistory;
-	UINT			m_uIDAccel;
 	HACCEL			m_hAccel;
+	UINT			m_uIDAccel;
 	EUpdateMode		m_eUpdateMode;
 	int				m_iAutoSizeWidth;
 	static const int sm_iIconOffset;
@@ -243,28 +225,18 @@ protected:
 
 
 	// General purpose listview find dialog+functions (optional)
-	CString m_strFindText;
 	int m_iFindDirection;
 	int m_iFindColumn;
 	bool m_bGeneralPurposeFind;
 	bool m_bCanSearchInAllColumns;
 	bool m_bFindMatchCase;
+	CString m_strFindText;
 	void OnFindStart();
 	void OnFindNext();
 	void OnFindPrev();
 
 private:
 	static int	IndexToOrder(CHeaderCtrl *pHeader, int iIndex);
-
-	struct MULE_COLUMN
-	{
-		int iWidth;
-		int iLocation;
-		bool bHidden;
-	};
-
-	MULE_COLUMN *m_aColumns;
-	int          m_iColumnsTracked;
 
 	int GetHiddenColumnCount() const
 	{
@@ -273,12 +245,6 @@ private:
 			iHidden += static_cast<int>(m_aColumns[i].bHidden);
 		return iHidden;
 	}
-
-	int		  m_iCurrentSortItem;
-	ArrowType m_atSortArrow;
-
-	int		  m_iRedrawCount;
-	CList<DWORD_PTR, DWORD_PTR> m_Params;
 
 	DWORD_PTR GetParamAt(POSITION pos, int iPos)
 	{
@@ -291,6 +257,16 @@ private:
 	}
 
 	CList<int> m_liDefaultHiddenColumns;
-};
+	CList<DWORD_PTR> m_Params;
 
-//void GetContextMenuPosition(CListCtrl &lv, CPoint &point);
+	struct MULE_COLUMN
+	{
+		int iWidth;
+		int iLocation;
+		bool bHidden;
+	} *m_aColumns;
+	int m_iColumnsTracked;
+	int m_iCurrentSortItem;
+	int m_iRedrawCount;
+	ArrowType m_atSortArrow;
+};

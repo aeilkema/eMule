@@ -31,7 +31,7 @@ public:
 	void Reset();
 	void ReCreateGraph();
 
-	bool ready;
+	bool m_ready;
 	bool drawBars;
 	bool autofitYscale;
 	int m_nXGrids;
@@ -49,13 +49,13 @@ public:
 	} m_str_t;
 	m_str_t m_str;
 
-	COLORREF m_crBackColor;        // background color
-	COLORREF m_crGridColor;        // grid color
+	COLORREF m_crBackColor;	// background color
+	COLORREF m_crGridColor;	// grid color
 
 protected:
 	int m_NTrends;
 
-	struct CustShiftStruct  // when m_nTrendPoints > 0, this structure will contain needed vars
+	struct CustShiftStruct	// when m_nTrendPoints > 0, this structure will contain needed vars
 	{
 		int m_nRmndr;		// remainder after dividing m_nWidthToDo/m_nPointsToDo
 		int m_nWidthToDo;
@@ -64,16 +64,16 @@ protected:
 
 	typedef struct PlotDataStruct
 	{
-		double	dCurrentPosition;    // current position
-		double	dPreviousPosition;   // previous position
-		double	dLowerLimit;         // lower bounds
-		double	dUpperLimit;         // upper bounds
+		double	dCurrentPosition;	// current position
+		double	dPreviousPosition;	// previous position
+		double	dLowerLimit;		// lower bounds
+		double	dUpperLimit;		// upper bounds
 		double	dRange;				// = UpperLimit - LowerLimit
 		double	dVerticalFactor;
 		CList<double> lstPoints;
 		CPen	penPlot;
 		CString	LegendLabel;
-		COLORREF crPlotColor;       // data plot color
+		COLORREF crPlotColor;		// data plot color
 		int		nPrevY;
 		// Optional variable to set a ratio for a given "trend".
 		// The purpose here is to better implement the customizable

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -17,7 +17,7 @@
 #pragma once
 #include "MeterIcon.h"
 #include "TaskbarNotifier.h"
-#include "TitleMenu.h"
+#include "TitledMenu.h"
 #include "TrayDialog.h"
 
 namespace Kademlia
@@ -69,21 +69,25 @@ class CemuleDlg : public CTrayDialog
 	CReBarCtrl m_ctlMainTopReBar;
 	CTaskbarNotifier m_wndTaskbarNotifier;
 	void SetClientIconList();
+	CString	m_strLastClipboardContents;
+	HWND	m_hNextViewer;
 public:
 	explicit CemuleDlg(CWnd *pParent = NULL);
 	~CemuleDlg();
 
-	CImageList& GetClientIconList();
+	CImageList& GetClientIconList()				{ return m_IconList; }
 	void ShowConnectionState();
 	void ShowNotifier(LPCTSTR pszText, TbnMsg nMsgType, LPCTSTR pszLink = NULL, bool bForceSoundOFF = false);
 	void SendNotificationMail(TbnMsg nMsgType, LPCTSTR pszText);
 	void ShowUserCount();
 	void ShowMessageState(UINT nIcon);
 	void SetActiveDialog(CWnd *dlg);
-	CWnd* GetActiveDialog() const			{ return activewnd; }
+	CWnd* GetActiveDialog() const				{ return activewnd; }
 	void ShowTransferRate(bool bForceAll = false);
 	void ShowPing();
 	void Localize();
+	bool CopyTextToClipboard(const CString &strText);
+	void WatchClipboard(bool bWatch);
 
 #ifdef HAVE_WIN7_SDK_H
 	void UpdateStatusBarProgress();
@@ -109,15 +113,15 @@ public:
 	void ResetLog();
 	void ResetDebugLog();
 	void ResetServerInfo();
-	CString GetLastLogEntry();
-	CString	GetLastDebugLogEntry();
-	CString	GetAllLogEntries();
-	CString	GetAllDebugLogEntries();
-	CString GetServerInfoText();
+	CString GetLastLogEntry() const;
+	CString	GetLastDebugLogEntry() const;
+	CString	GetAllLogEntries() const;
+	CString	GetAllDebugLogEntries() const;
+	CString GetServerInfoText() const;
 
-	CString	GetConnectionStateString();
-	UINT GetConnectionStateIconIndex() const;
-	CString	GetTransferRateString();
+	CString	GetConnectionStateString() const;
+	HICON GetConnectionStateIcon() const;
+	CString	GetTransferRateString() const;
 	CString	GetUpDatarateString(UINT uUpDatarate = UINT_MAX);
 	CString	GetDownDatarateString(UINT uDownDatarate = UINT_MAX);
 
@@ -125,11 +129,11 @@ public:
 	void DoVersioncheck(bool manual);
 	void ApplyHyperTextFont(LPLOGFONT pFont);
 	void ApplyLogFont(LPLOGFONT pFont);
-	void ProcessED2KLink(LPCTSTR pszData);
+	void ProcessED2KLink(LPCWSTR pszData);
 	void SetStatusBarPartsSize();
 	INT_PTR	ShowPreferences(UINT uStartPageID = UINT_MAX);
 	bool IsPreferencesDlgOpen() const;
-	bool IsTrayIconToFlash()				{ return m_iMsgIcon != 0; }
+	bool IsTrayIconToFlash() const				{ return m_iMsgIcon != 0; }
 	void SetToolTipsDelay(UINT uMilliseconds);
 	void StartUPnP(bool bReset = true, uint16 nForceTCPPort = 0, uint16 nForceUDPPort = 0);
 	void RefreshUPnP(bool bRequestAnswer = false);
@@ -154,6 +158,7 @@ public:
 	CKademliaWnd	*kademliawnd;
 	CSplashScreen	*m_pSplashWnd;
 	CWnd			*activewnd;
+	CWnd			*toolbarWnds[8]; //for Refresh()
 	uint8			status;
 
 protected:
@@ -169,7 +174,7 @@ protected:
 	HICON			m_icoSysTrayDisconnected;	// do not use this icon for anything but the system tray!!!
 	HICON			m_icoSysTrayLowID;			// do not use this icon for anything but the system tray!!!
 	CImageList		imagelist;
-	CTitleMenu		trayPopup;
+	CTitledMenu		trayPopup;
 	CMuleSystrayDlg	*m_pSystrayDlg;
 	CMainFrameDropTarget *m_pDropTarget;
 	CMenu			m_SysMenuOptions;
@@ -180,6 +185,7 @@ protected:
 	uint32			m_uUpDatarate;
 	uint32			m_uDownDatarate;
 	char			m_acVCDNSBuffer[MAXGETHOSTSTRUCT];
+	CHAR			m_bMiniUpdate;
 	bool			m_bStartMinimizedChecked;
 	bool			m_bStartMinimized;
 	bool			m_bMsgBlinkState;
@@ -268,6 +274,8 @@ protected:
 	afx_msg BOOL OnChevronPushed(UINT id, LPNMHDR pNMHDR, LRESULT *plResult);
 	afx_msg LRESULT OnPowerBroadcast(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnDisplayChange(WPARAM, LPARAM);
+	afx_msg void OnChangeCbChain(HWND hWndRemove, HWND hWndAfter);
+	afx_msg void OnDrawClipboard();
 
 	// quick-speed changer -- based on xrmb
 	afx_msg void QuickSpeedUpload(UINT nID);
@@ -300,10 +308,8 @@ protected:
 	afx_msg LRESULT OnWebAddDownloads(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnWebSetCatPrio(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnAddRemoveFriend(WPARAM wParam, LPARAM lParam);
-	// VersionCheck DNS
+	// Version Check DNS
 	afx_msg LRESULT OnVersionCheckResponse(WPARAM, LPARAM lParam);
-	// MiniMule
-	afx_msg LRESULT OnCloseMiniMule(WPARAM wParam, LPARAM);
 	// Terminal Services
 	afx_msg LRESULT OnConsoleThreadEvent(WPARAM wParam, LPARAM lParam);
 	// UPnP

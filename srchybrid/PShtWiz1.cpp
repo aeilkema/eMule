@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,13 +15,11 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
-#include <afxinet.h>
 #include "emule.h"
 #include "enbitmap.h"
 #include "OtherFunctions.h"
 #include "Preferences.h"
 #include "emuledlg.h"
-#include "Statistics.h"
 #include "ListenSocket.h"
 #include "ClientUDPSocket.h"
 #include "UPnPImpl.h"
@@ -67,7 +65,7 @@ public:
 protected:
 
 	virtual BOOL OnSetActive();
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 };
@@ -131,7 +129,6 @@ public:
 
 protected:
 	CFont m_FontTitle;
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 };
@@ -144,11 +141,6 @@ END_MESSAGE_MAP()
 CPPgWiz1Welcome::CPPgWiz1Welcome()
 	: CDlgPageWizard(CPPgWiz1Welcome::IDD)
 {
-}
-
-void CPPgWiz1Welcome::DoDataExchange(CDataExchange *pDX)
-{
-	CDlgPageWizard::DoDataExchange(pDX);
 }
 
 BOOL CPPgWiz1Welcome::OnInitDialog()
@@ -196,7 +188,7 @@ public:
 	int m_iAutoStart;
 
 protected:
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 };
@@ -282,7 +274,7 @@ public:
 	bool	*m_pbUDPDisabled;
 
 protected:
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	void	ResetUPnPProgress();
 	int		m_nUPnPTicks;
 
@@ -504,7 +496,7 @@ public:
 	int m_iDAP;
 
 protected:
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 };
@@ -562,7 +554,7 @@ public:
 	int m_iObfuscation;
 
 protected:
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 };
@@ -621,7 +613,7 @@ public:
 	bool *m_pbUDPDisabled;
 
 protected:
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnSetActive();
 
 	DECLARE_MESSAGE_MAP()
@@ -692,7 +684,6 @@ public:
 
 protected:
 	CFont m_FontTitle;
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 };
@@ -705,11 +696,6 @@ END_MESSAGE_MAP()
 CPPgWiz1End::CPPgWiz1End()
 	: CDlgPageWizard(CPPgWiz1End::IDD)
 {
-}
-
-void CPPgWiz1End::DoDataExchange(CDataExchange *pDX)
-{
-	CDlgPageWizard::DoDataExchange(pDX);
 }
 
 BOOL CPPgWiz1End::OnInitDialog()
@@ -856,12 +842,11 @@ BOOL FirstTimeWizard()
 	if (thePrefs.udpport == 0 + 10)
 		thePrefs.udpport = thePrefs.GetRandomUDPPort();
 	if ((thePrefs.port != theApp.listensocket->GetConnectedPort()) || (thePrefs.udpport != theApp.clientudp->GetConnectedPort()))
-		if (!theApp.IsPortchangeAllowed())
-			LocMessageBox(IDS_NOPORTCHANGEPOSSIBLE, MB_OK, 0);
-		else {
+		if (theApp.IsPortchangeAllowed()) {
 			theApp.listensocket->Rebind();
 			theApp.clientudp->Rebind();
-		}
+		} else
+			LocMessageBox(IDS_NOPORTCHANGEPOSSIBLE, MB_OK, 0);
 
 	return TRUE;
 }

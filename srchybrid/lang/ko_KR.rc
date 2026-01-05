@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "ko_KR.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)
 #ifdef _WIN32
 LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -534,7 +534,7 @@ BEGIN
     IDS_PW_INCOMING         "받은 파일"
     IDS_PW_TEMP             "임시 파일"
     IDS_PW_BROWSE           "찾아보기..."
-    IDS_PW_SHARED           "공유된 디렉토리 (Ctrl-클릭은 하위 디렉토리 포함)"
+    IDS_PW_SHARED           "공유된 디렉토리 (Ctrl+클릭은 하위 디렉토리 포함)"
     IDS_CONNECTION          "접속"
     IDS_PW_DOWNL            "다운로드 제한 속도"
     IDS_PW_UPL              "업로드 제한 속도"
@@ -852,7 +852,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "비공개 메시지"
     IDS_WEB_REMOTE_LINK_ADDED "추가된 링크: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED "링크가 추가되지 않음. 잘못된 비밀번호."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "미리 보기에 필요한 부분부터 다운로드"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "미리 보기에 필요한 부분부터 다운로드"
     IDS_IRC_KICK            "추방"
     IDS_IRC_SLAP            "Slap"
     IDS_IRC_JOIN            "입장"
@@ -906,7 +906,6 @@ BEGIN
     IDS_NEWMSG              "'%s'님으로부터의 새로운 메시지 (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "같은 카테고리에서만"
     IDS_LOG_ULDL_EVENTS     "업/다운 이벤트 기록"
-//    IDS_PEERCACHE_ENABLED   "ISP가 PeerCache 기술을 지원하므로 캐시 다운로드를 활성화 함!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "다른 사용자가 친구로 추가할 수 있게 허용"
     IDS_SOURCESWAPBLOCKED   "스왑 차단됨"
     IDS_TRICKLING           "대기"
@@ -1617,9 +1616,6 @@ BEGIN
                             "Windows 시작 시 실행하려면 이 부분을 선택하십시오. (기본값: 사용하지 않음)"
     IDS_KAD_WAITCBK         "콜백 Kad 대기"
     IDS_KAD_TOOMANDYKADLKPS "Kad 찾기가 너무 많음"
-//    IDS_PCDS_CLIENTWAIT     "ClientWait"
-//    IDS_PCDS_CACHEWAIT      "CacheWait"
-//    IDS_CACHE               "캐시"
     IDS_INDEXED             "인덱스 됨"
     IDS_KADINFO_SRC         "\t소스: %u\r\n"
     IDS_KADINFO_KEYW        "\t검색어: %u\r\n"
@@ -1702,8 +1698,6 @@ BEGIN
     IDS_EXTRACT_META_DATA   "메타 데이터 추출"
     IDS_META_DATA_MEDIADET  "DirectShow (모든 다른 오디오/비디오 파일용)"
     IDS_META_DATA_ID3LIB    "ID3 라이브러리 (단지 MPEG 오디오 파일용)"
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Windows Common Controls 라이브러리 파일 (COMCTL32.DLL)이 구버전입니다!\r\n\r\n""Windows Common Controls library (COMCTL32.DLL)"" 파일이 구버전입니다. eMule이 정상적으로 실행되려면 최소한 버전 5.8 이상의 ""Windows Common Controls library (COMCTL32.DLL)""가 필요합니다.\r\n\r\n마이크로소프트 다운로드센터에서 ""Windows Common Controls library (COMCTL32.DLL)"" 파일을 다운로드하여 설치하십시오. URL 주소를 방문하시겠습니까?"
     IDS_ASREGEXPR           "정규 표현식"
     IDS_STATIC_REGEXP       "보기 필터의 정규 표현식:"
     IDS_CARE4ALL            "모든 파일 평가"
@@ -1887,10 +1881,10 @@ BEGIN
     IDS_MARKNOTSPAM         "스팸 아님으로 표시"
     IDS_SEARCHSPAMFILTER    "검색 결과에 스팸 필터 사용"
     IDS_SHOWSMILEYS         "이모티콘 보이기"
-    IDS_CAPTCHAREQUEST      "스팸 메시지를 피하기 위하여, 메시지를 보내기 전에 captcha를 풀어야 합니다. 그림에서 보이는 문자를 입력하십시오:"
-    IDS_CAPTCHAFAILED       "captcha에 대한 응답이 잘못되어 메시지가 무시됩니다. 새 메시지를 보냄으로써 새로운 captcha를 요청할 수 있습니다."
-    IDS_CAPTCHASOLVED       "captcha 확인을 통과하여 메시지가 수신되었습니다."
-    IDS_USECAPTCHAS         "captcha 인증이 필요함"
+    IDS_CAPTCHAREQUEST      "스팸 메시지를 피하기 위하여, 메시지를 보내기 전에 CAPTCHA를 풀어야 합니다. 그림에서 보이는 문자를 입력하십시오:"
+    IDS_CAPTCHAFAILED       "CAPTCHA에 대한 응답이 잘못되어 메시지가 무시됩니다. 새 메시지를 보냄으로써 새로운 CAPTCHA를 요청할 수 있습니다."
+    IDS_CAPTCHASOLVED       "CAPTCHA 확인을 통과하여 메시지가 수신되었습니다."
+    IDS_USECAPTCHAS         "CAPTCHA 인증이 필요함"
     IDS_BOOTSRAPNODESDAT    "URL에서 Nodes.dat:"
     IDS_DOWNLOADING_NODESDAT_FROM "%s에서 nodes.dat  파일 다운로드 중"
     IDS_DOWNLOADING_NODESDAT "nodes.dat 파일 다운로드 중..."

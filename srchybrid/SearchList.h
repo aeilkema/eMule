@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,15 +15,14 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #pragma once
-#include "KnownFile.h"
-#include "SearchFile.h"
-#include "QArray.h"
 #include "Mapkey.h"
+#include "QArray.h"
+#include "SearchFile.h"
 #include "SearchParams.h"
 
 enum ESearchType : uint8;
 
-typedef struct
+struct SearchFileStruct
 {
 	CString	m_strFileName;
 	CString	m_strFileType;
@@ -32,22 +31,21 @@ typedef struct
 	uint64	m_uFileSize;
 	uint32	m_uSourceCount;
 	uint32	m_dwCompleteSourceCount;
-} SearchFileStruct;
+};
 
 typedef CTypedPtrList<CPtrList, CSearchFile*> SearchList;
 
-typedef struct
+struct SearchListsStruct
 {
 	uint32 m_nSearchID;
 	SearchList m_listSearchFiles;
-} SearchListsStruct;
+};
 
-typedef struct
+struct UDPServerRecord
 {
 	uint32	m_nResults;
 	uint32	m_nSpamResults;
-} UDPServerRecord;
-
+};
 
 
 class CFileDataIO;
@@ -71,7 +69,7 @@ public:
 	UINT	GetResultCount(uint32 nSearchID) const;
 	void	AddResultCount(uint32 nSearchID, const uchar *hash, UINT nCount, bool bSpam);
 
-	void	SetOutputWnd(CSearchListCtrl *in_wnd)		{ outputwnd = in_wnd; }
+	void	SetOutputWnd(CSearchListCtrl *in_wnd)		{ m_outputwnd = in_wnd; }
 	void	RemoveResults(uint32 nSearchID);
 	void	RemoveResult(CSearchFile *todel);
 	void	ShowResults(uint32 nSearchID);
@@ -81,7 +79,10 @@ public:
 	void	AddFileToDownloadByHash(const uchar *hash, int cat);
 	bool	AddToList(CSearchFile *toadd, bool bClientResponse = false, uint32 dwFromUDPServerIP = 0);
 	CSearchFile* GetSearchFileByHash(const uchar *hash) const;
-	void	KademliaSearchKeyword(uint32 nSearchID, const Kademlia::CUInt128 *pFileID, LPCTSTR name, uint64 size, LPCTSTR type, UINT uKadPublishInfo, CArray<CAICHHash> &raAICHHashes, CArray<uint8, uint8> &raAICHHashPopularity, SSearchTerm *pQueriedSearchTerm, UINT numProperties, ...);
+	void	KademliaSearchKeyword(uint32 nSearchID, const Kademlia::CUInt128 *pFileID
+				, LPCWSTR name, uint64 size, LPCWSTR type, UINT uKadPublishInfo
+				, CArray<CAICHHash>& raAICHHashes, CArray<uint8> &raAICHHashPopularity
+				, SSearchTerm *pQueriedSearchTerm, UINT numProperties, ...);
 	bool	AddNotes(const Kademlia::CEntry &cEntry, const uchar *hash);
 	void	SetNotesSearchStatus(const uchar *pFileHash, bool bSearchRunning);
 	void	SentUDPRequestNotification(uint32 nSearchID, uint32 dwServerIP);
@@ -89,7 +90,8 @@ public:
 	void	StoreSearches();
 	void	LoadSearches();
 
-	void	DoSpamRating(CSearchFile *pSearchFile, bool bIsClientFile = false, bool bMarkAsNoSpam = false, bool bRecalculateAll = false, bool bUpdate = false, uint32 dwFromUDPServerIP = 0);
+	void	DoSpamRating(CSearchFile *pSearchFile, bool bIsClientFile = false, bool bMarkAsNoSpam = false
+				, bool bRecalculateAll = false, bool bUpdate = false, uint32 dwFromUDPServerIP = 0);
 	void	MarkFileAsSpam(CSearchFile *pSpamFile, bool bRecalculateAll = false, bool bUpdate = false);
 	void	MarkFileAsNotSpam(CSearchFile *pSpamFile, bool bRecalculateAll = false, bool bUpdate = false)
 	{
@@ -115,22 +117,22 @@ private:
 	CMap<uint32, uint32, UINT, UINT> m_foundSourcesCount;
 	CMap<uint32, uint32, UINT, UINT> m_ReceivedUDPAnswersCount;
 	CMap<uint32, uint32, UINT, UINT> m_RequestedUDPAnswersCount;
-	CSearchListCtrl *outputwnd;
+	CSearchListCtrl *m_outputwnd;
 	CString	m_strResultFileType;
 
 	// spam filter
 	typedef CMap<uint32, uint32, bool, bool> CSpammerIPMap;
 	typedef CMap<uint32, uint32, UDPServerRecord*, UDPServerRecord*> CUDPServerRecordMap;
 	CMap<CSKey, const CSKey&, bool, bool> m_mapKnownSpamHashes;
-	CSpammerIPMap			m_mapKnownSpamServerIPs;
-	CSpammerIPMap			m_mapKnownSpamSourcesIPs;
-	CUDPServerRecordMap		m_mUDPServerRecords;
-	CStringArray			m_astrSpamCheckCurSearchExp;
-	CStringArray			m_astrKnownSpamNames;
-	CStringArray			m_astrKnownSimilarSpamNames;
-	CArray<uint64>			m_aui64KnownSpamSizes;
-	CArray<uint32, uint32>	m_aCurED2KSentRequestsIPs;
-	CArray<uint32, uint32>	m_aCurED2KSentReceivedIPs;
+	CSpammerIPMap		m_mapKnownSpamServerIPs;
+	CSpammerIPMap		m_mapKnownSpamSourcesIPs;
+	CUDPServerRecordMap	m_mUDPServerRecords;
+	CStringArray		m_astrSpamCheckCurSearchExp;
+	CStringArray		m_astrKnownSpamNames;
+	CStringArray		m_astrKnownSimilarSpamNames;
+	CArray<uint64>		m_aui64KnownSpamSizes;
+	CArray<uint32>		m_aCurED2KSentRequestsIPs;
+	CArray<uint32>		m_aCurED2KSentReceivedIPs;
 
 	uint32	m_nCurED2KSearchID;
 	bool	m_bSpamFilterLoaded;

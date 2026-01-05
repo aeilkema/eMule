@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -22,8 +22,6 @@ namespace Kademlia
 	class CLookupHistory;
 }
 
-class CIni;
-
 class CKadSearchListCtrl : public CMuleListCtrl
 {
 	DECLARE_DYNAMIC(CKadSearchListCtrl)
@@ -37,8 +35,6 @@ public:
 
 	void	Init();
 	void	Localize();
-	//void	Hide()		{ ShowWindow(SW_HIDE); }
-	//void	Visible()	{ ShowWindow(SW_SHOW); }
 	void	UpdateKadSearchCount();
 
 	Kademlia::CLookupHistory* FetchAndSelectActiveSearch(bool bMark);
@@ -66,6 +62,5 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnLvnColumnClick(LPNMHDR pNMHDR, LRESULT *pResult);
-//	afx_msg void OnNmDblClk(LPNMHDR pNMHDR, LRESULT *pResult);
 	afx_msg void OnSysColorChange();
 };

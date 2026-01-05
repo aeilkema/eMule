@@ -16,7 +16,7 @@ static char THIS_FILE[] = __FILE__;
 //////////////////////////////////////////////////////////////////////
 
 CMeterIcon::CMeterIcon()
-	: m_sDimensions{ 16, 16 }
+	: m_sDimensions{16, 16}
 	, m_hFrame()
 	, m_pLimits()
 	, m_pColors()
@@ -206,8 +206,7 @@ SIZE CMeterIcon::SetDimensions(int nWidth, int nHeight)
 // return the previous dimension
 {// begin SetDimensions
 	SIZE sOld = m_sDimensions;
-	m_sDimensions.cx = nWidth;
-	m_sDimensions.cy = nHeight;
+	m_sDimensions = SIZE{nWidth, nHeight};
 	return sOld;
 }// end SetDimensions
 

@@ -102,7 +102,7 @@ void CTrayMenuBtn::OnPaint()
 
 	int iLeftOffset = 0;
 	if (m_bUseIcon) {
-		MemDC.DrawState(CPoint(2, rClient.Height() / 2 - m_sIcon.cy / 2), CSize(16, 16), m_hIcon, DST_ICON | DSS_NORMAL, (CBrush*)NULL);
+		MemDC.DrawState(CPoint(2, rClient.Height() / 2 - m_sIcon.cy / 2), CSize(16, 16), m_hIcon, DST_ICON | DSS_NORMAL, (HBRUSH)NULL);
 		iLeftOffset = m_sIcon.cx + 4;
 	}
 
@@ -111,8 +111,7 @@ void CTrayMenuBtn::OnPaint()
 	MemDC.DrawText(m_strText, rText, DT_CALCRECT | DT_SINGLELINE | DT_LEFT);
 	CPoint pt(rClient.left + 2 + iLeftOffset, rClient.Height() / 2 - rText.Height() / 2);
 	CPoint sz(rText.Width(), rText.Height());
-	MemDC.DrawState(pt, sz, m_strText, DST_TEXT | (bEnabled ? DSS_NORMAL : DSS_DISABLED),
-		FALSE, m_strText.GetLength(), (CBrush*)NULL);
+	MemDC.DrawState(pt, sz, m_strText, DST_TEXT | (bEnabled ? DSS_NORMAL : DSS_DISABLED), FALSE, m_strText.GetLength(), (HBRUSH)NULL);
 	dc.BitBlt(0, 0, rClient.Width(), rClient.Height(), &MemDC, 0, 0, SRCCOPY);
 	MemDC.SelectObject(pOldBMP);
 	if (pOldFONT)

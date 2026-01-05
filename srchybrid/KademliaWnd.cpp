@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -16,26 +16,21 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
 #include "emule.h"
+#include "emuledlg.h"
 #include "KademliaWnd.h"
 #include "KadContactListCtrl.h"
 #include "KadContactHistogramCtrl.h"
 #include "KadLookupGraph.h"
 #include "KadSearchListCtrl.h"
 #include "Kademlia/Kademlia/kademlia.h"
-#include "Kademlia/Kademlia/prefs.h"
-#include "kademlia/utils/LookupHistory.h"
-#include "Kademlia/net/kademliaudplistener.h"
 #include "kademlia/kademlia/search.h"
-#include "Ini2.h"
-#include "CustomAutoComplete.h"
-#include "OtherFunctions.h"
-#include "emuledlg.h"
-#include "clientlist.h"
-#include "log.h"
-#include "HttpDownloadDlg.h"
 #include "Kademlia/routing/RoutingZone.h"
+#include "kademlia/utils/LookupHistory.h"
+#include "log.h"
+#include "CustomAutoComplete.h"
+#include "HttpDownloadDlg.h"
+#include "OtherFunctions.h"
 #include "HelpIDs.h"
-#include "kademliawnd.h"
 #include "DropDownButton.h"
 #include "MenuCmds.h"
 
@@ -230,7 +225,7 @@ BOOL CKademliaWnd::PreTranslateMessage(MSG *pMsg)
 		return FALSE;
 	if (m_btnsetsize) {
 		m_btnsetsize = false;
-		if (m_pbtnWnd && m_pbtnWnd->m_hWnd && m_pbtnWnd->GetBtnWidth(IDC_KADICO1) != WND1_BUTTON_WIDTH)
+		if (m_pbtnWnd->GetSafeHwnd() && m_pbtnWnd->GetBtnWidth(IDC_KADICO1) != WND1_BUTTON_WIDTH)
 			m_pbtnWnd->SetBtnWidth(IDC_KADICO1, WND1_BUTTON_WIDTH);
 	}
 	if (pMsg->message == WM_KEYDOWN) {

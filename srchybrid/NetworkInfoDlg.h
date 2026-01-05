@@ -15,13 +15,13 @@ class CNetworkInfoDlg : public CResizableDialog
 	};
 
 public:
-	explicit CNetworkInfoDlg(CWnd *pParent = NULL);   // standard constructor
+	explicit CNetworkInfoDlg(CWnd *pParent = NULL);	// standard constructor
 
 protected:
 	CRichEditCtrlX m_info;
 
 	virtual BOOL OnInitDialog();
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 };

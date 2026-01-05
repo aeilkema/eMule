@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( merkur-@users.sourceforge.net / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( merkur-@users.sourceforge.net / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -17,9 +17,7 @@
 #pragma once
 #include "MapKey.h"
 #include "cryptopp/rsa.h"
-#include "cryptopp/base64.h"
 #include "cryptopp/osrng.h"
-#include "cryptopp/files.h"
 
 #define COLLECTION_FILEEXTENSION	_T(".emulecollection")
 
@@ -40,11 +38,12 @@ public:
 	CCollection& operator=(const CCollection&) = delete;
 	bool	InitCollectionFromFile(const CString &sFilePath, const CString &sFileName);
 	CCollectionFile* AddFileToCollection(CAbstractFile *pAbstractFile, bool bCreateClone);
-	void	RemoveFileFromCollection(CAbstractFile *pAbstractFile);
+	void	RemoveFileFromCollection(const CAbstractFile *pAbstractFile);
 	void	WriteToFileAddShared(CryptoPP::RSASSA_PKCS1v15_SHA_Signer *pSignKey = NULL);
 	void	SetCollectionAuthorKey(const byte *abyCollectionAuthorKey, uint32 nSize);
 	CString	GetCollectionAuthorKeyString();
 	CString	GetAuthorKeyHashString() const;
+	bool	HasAuthorKey()					{ return m_nKeySize > 0; }
 	static bool HasCollectionExtention(const CString &sFileName);
 
 	CString m_sCollectionName;

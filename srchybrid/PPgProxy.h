@@ -20,7 +20,7 @@ protected:
 
 	void LoadSettings();
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnInitDialog();
 	virtual BOOL OnApply();
 	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);

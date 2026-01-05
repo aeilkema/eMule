@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -30,7 +30,7 @@ struct SIPFilter
 	uint32		start;
 	uint32		end;
 	uint32		level;
-	UINT		hits;
+	uint32		hits;
 	CStringA	desc;
 };
 
@@ -38,7 +38,7 @@ struct SIPFilter
 
 // 'CArray' would give us more cache hits, but would also be slow in array element creation
 // (because of the implicit ctor in 'SIPFilter'
-//typedef CArray<SIPFilter, SIPFilter> CIPFilterArray;
+//typedef CArray<SIPFilter> CIPFilterArray;
 typedef CTypedPtrArray<CPtrArray, SIPFilter*> CIPFilterArray;
 
 class CIPFilter
@@ -61,13 +61,14 @@ public:
 	}
 
 	INT_PTR AddFromFile(LPCTSTR pszFilePath, bool bShowResponse = true);
+	INT_PTR AppendFromFile(LPCTSTR pszFilePath, bool bShowResponse = true);
 	INT_PTR	LoadFromDefaultFile(bool bShowResponse = true);
 	void SaveToDefaultFile();
 
 	bool IsFiltered(uint32 ip) /*const*/;
 	bool IsFiltered(uint32 ip, uint32 level) /*const*/;
 	CString GetLastHit() const;
-	const CIPFilterArray& GetIPFilter() const;
+	const CIPFilterArray& GetIPFilter() const			{ return m_iplist; }
 
 private:
 	const SIPFilter *m_pLastHit;

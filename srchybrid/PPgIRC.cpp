@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -199,8 +199,8 @@ void CPPgIRC::LoadSettings()
 
 BOOL CPPgIRC::OnApply()
 {
-	// if prop page is closed by pressing ENTER we have to explicitly commit any possibly pending
-	// data from an open edit control
+	// if prop page is closed by pressing ENTER, we have to explicitly commit
+	// any pending data from the open edit control
 	m_ctrlTreeOptions.HandleChildControlLosingFocus();
 
 	if (!UpdateData())
@@ -233,8 +233,9 @@ BOOL CPPgIRC::OnApply()
 
 	CString input;
 	GetDlgItemText(IDC_IRC_NICK_BOX, input);
-	if (input.Trim() != thePrefs.m_strIRCNick) {
-		input = input.SpanExcluding(CIrcWnd::sBadCharsIRC);
+	input = CStringA(input).Trim();
+	input = input.SpanExcluding(CIrcWnd::sBadCharsIRC);
+	if (input != thePrefs.m_strIRCNick) {
 		if (input[0] < _T('A')) { //names cannot begin with '-' or digit
 			if (!theApp.emuledlg->ircwnd->IsConnected())
 				thePrefs.m_strIRCNick.Empty();

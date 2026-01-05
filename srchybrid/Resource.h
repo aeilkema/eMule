@@ -1,4 +1,3 @@
-#pragma once
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by emule.rc
@@ -506,7 +505,7 @@
 #define IDS_IRC_PRIVMESSAGE             585
 #define IDS_WEB_REMOTE_LINK_ADDED       586
 #define IDS_WEB_REMOTE_LINK_NOT_ADDED   587
-#define IDS_DL_TRY_TO_GET_PREVIEW_PARTS 588
+#define IDS_DL_PRIO_FOR_PREVIEW_CHUNKS  588
 #define IDS_IRC_KICK                    589
 #define IDS_IRC_SLAP                    590
 #define IDS_IRC_JOIN                    591
@@ -1024,8 +1023,8 @@
 #define IDS_WRN_INCFILE_RESERVED        1080
 #define IDS_WRN_TEMPFILES_RESERVED      1081
 #define IDS_WRN_INCTEMP_SAME            1082
-//***#define                            1083
-//***#define                            1084
+#define IDS_PREVIEWREQUESTED            1083
+#define IDS_CERT_CREATED                1084
 #define IDS_SHOWDWLPERCENTAGE           1085
 #define IDS_TBN_ONNEWDOWNLOAD           1086
 #define IDS_ARTIST                      1087
@@ -1107,6 +1106,8 @@
 #define IDS_ERR_FAILEDDOWNLOADLANG      1163
 #define IDS_ERR_BADFOLDER               1164
 #define IDS_AUTOREMOVEFD                1165
+#define IDS_DL_RESUMED                  1166
+//#define IDS_                   1167
 #define IDS_RADCLIENTS                  1168
 #define IDS_KADUDPPORTERR               1169
 #define IDD_META_DATA                   1170
@@ -1208,7 +1209,6 @@
 #define IDS_NEWMSG                      1266
 #define IDS_PREF_STARTNEXTFILECATONLY   1267
 #define IDS_LOG_ULDL_EVENTS             1268
-//#define IDS_PEERCACHE_ENABLED           1269
 #define IDS_IRC_EMULEPROTO_ALLOWADDFRIEND 1270
 #define IDS_SOURCESWAPBLOCKED           1271
 #define IDS_TRICKLING                   1272
@@ -1240,9 +1240,6 @@
 #define IDS_WIZ_STARTWITHWINDOWS        1298
 #define IDS_KAD_WAITCBK                 1299
 #define IDS_KAD_TOOMANDYKADLKPS         1300
-//#define IDS_PCDS_CLIENTWAIT             1301
-//#define IDS_PCDS_CACHEWAIT              1302
-//#define IDS_CACHE                       1303
 #define IDS_INDEXED                     1304
 #define IDS_KADINFO_SRC                 1305
 #define IDS_KADINFO_KEYW                1306
@@ -1314,7 +1311,6 @@
 #define IDS_EXTRACT_META_DATA           1367
 #define IDS_META_DATA_MEDIADET          1368
 #define IDS_META_DATA_ID3LIB            1369
-#define IDS_COMCTRL32_DLL_TOOOLD        1370
 #define IDS_ASREGEXPR                   1371
 #define IDS_STATIC_REGEXP               1372
 #define IDS_CARE4ALL                    1373
@@ -1426,7 +1422,7 @@
 #define IDS_ARCHTYPE                    1478
 #define IDS_ATTRIBUTES                  1479
 #define IDS_LASTMODIFIED                1480
-#define IDR_HTML_MINIMULE               1481
+#define IDR_MINIMULE                    1481
 #define IDR_LISTVIEW                    1481
 #define IDS_RARFULLENCR                 1481
 #define IDS_ARCPARSED                   1482
@@ -1542,9 +1538,10 @@
 #define IDS_POPULARITY                  1589
 #define IDS_SHOWWIN7TASKBARGOODIES      1590
 #define IDS_WEB_HTTPS                   1591
-#define IDS_CERTIFICATE                 1592
+#define IDS_WEB_CERT                    1592
 #define IDS_CERT_NOT_FOUND              1593
 #define IDS_KEY_NOT_FOUND               1594
+#define IDS_UNCADD                      1595
 #define IDS_IRC_IGNOREPINGPONGMESSAGE   1596
 #define IDS_IRC_ENABLEUTF8              1597
 #define IDS_ITALIC                      1598
@@ -1656,7 +1653,6 @@
 #define IDC_TEMPFILES                   2144
 #define IDC_WIZ_APPLY_BUTTON            2149
 #define IDC_WIZ_CANCEL_BUTTON           2153
-//#define IDC_UNCLIST                     2155
 #define IDC_PORT                        2162
 #define IDC_APPLY                       2164
 #define IDC_UPLOAD_CAP                  2166
@@ -2121,7 +2117,6 @@
 #define IDC_STATIC133x                  2743
 #define IDC_CDIDENT                     2744
 #define IDC_UNCADD                      2745
-//#define IDC_UNCREM                      2746
 #define IDC_SEC_MISC                    2747
 #define IDC_SEC_OBFUSCATIONBOX          2748
 #define IDC_MMPASSWORDFIELD             2749
@@ -2228,8 +2223,8 @@
 #define IDC_FRIENDS_USERHASH_EDIT       2870
 #define IDC_FRIENDS_CLIENTE_EDIT        2871
 #define IDC_FRIENDS_IDENTIFICACION_EDIT 2872
-#define IDC_FRIENDS_SUBIDO_EDIT         2873
-#define IDC_FRIENDS_DESCARGADO_EDIT     2874
+#define IDC_FRIENDS_UPLOADED_EDIT       2873
+#define IDC_FRIENDS_DOWNLOADED_EDIT     2874
 #define IDC_SPLITTER_FRIEND             2875
 #define IDC_CLIENTDETAIL_KAD            2876
 #define IDC_LD_LINKEDI                  2877
@@ -2375,6 +2370,15 @@
 #define IDC_SMTPPASS                    3036
 #define IDC_SF_FICON                    3037
 #define IDC_SF_FNAME                    3038
+#define IDC_CONNECTED                   3039
+#define IDC_INFO_ICO                    3040
+#define IDC_HDD_ICO                     3041
+#define IDC_COMPLLBL                    3042
+#define IDC_SPACELBL                    3043
+#define IDC_CONNECTEDLBL                3044
+#define IDC_CONNECTEDTXT                3045
+#define IDC_COMPLTXT                    3046
+#define IDC_SPACETXT                    3047
 #define IDA_ENTER                       32771
 
 // Next default values for new objects
@@ -2383,7 +2387,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        1568
 #define _APS_NEXT_COMMAND_VALUE         32773
-#define _APS_NEXT_CONTROL_VALUE         3037
+#define _APS_NEXT_CONTROL_VALUE         3048
 #define _APS_NEXT_SYMED_VALUE           1610
 #endif
 #endif

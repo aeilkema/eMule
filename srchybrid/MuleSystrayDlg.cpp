@@ -107,6 +107,8 @@ void CMuleSystrayDlg::OnMouseMove(UINT nFlags, CPoint point)
 	CDialog::OnMouseMove(nFlags, point);
 }
 
+#pragma warning(push)
+#pragma warning(disable:4701) //local variable 'lfStaticFont'
 BOOL CMuleSystrayDlg::OnInitDialog()
 {
 	CDialog::OnInitDialog();
@@ -132,14 +134,13 @@ BOOL CMuleSystrayDlg::OnInitDialog()
 		m_ctrlSpeed.m_strText = GetResNoAmp(IDS_TRAYDLG_SPEED);
 
 		m_ctrlSpeed.m_bUseIcon = true;
-		m_ctrlSpeed.m_sIcon.cx = 16;
-		m_ctrlSpeed.m_sIcon.cy = 16;
+		m_ctrlSpeed.m_sIcon.SetSize(16, 16);
 		m_ctrlSpeed.m_hIcon = theApp.LoadIcon(_T("SPEED"), m_ctrlSpeed.m_sIcon.cx, m_ctrlSpeed.m_sIcon.cy);
 		m_ctrlSpeed.m_bParentCapture = true;
 		m_ctrlSpeed.m_bNoHover = true;
 		if (bValidFont) {
 			LOGFONT lfFont = lfStaticFont;
-			lfFont.lfWeight += 200;		// make it bold
+			lfFont.lfWeight += 200;		// make it fatter
 			m_ctrlSpeed.m_cfFont.CreateFontIndirect(&lfFont);
 		}
 	}
@@ -153,8 +154,7 @@ BOOL CMuleSystrayDlg::OnInitDialog()
 		m_ctrlAllToMax.m_strText = GetResNoAmp(IDS_PW_UA);
 
 		m_ctrlAllToMax.m_bUseIcon = true;
-		m_ctrlAllToMax.m_sIcon.cx = 16;
-		m_ctrlAllToMax.m_sIcon.cy = 16;
+		m_ctrlAllToMax.m_sIcon.SetSize(16, 16);
 		m_ctrlAllToMax.m_hIcon = theApp.LoadIcon(_T("SPEEDMAX"), m_ctrlAllToMax.m_sIcon.cx, m_ctrlAllToMax.m_sIcon.cy);
 		m_ctrlAllToMax.m_bParentCapture = true;
 		if (bValidFont)
@@ -170,8 +170,7 @@ BOOL CMuleSystrayDlg::OnInitDialog()
 		m_ctrlAllToMin.m_strText = GetResNoAmp(IDS_PW_PA);
 
 		m_ctrlAllToMin.m_bUseIcon = true;
-		m_ctrlAllToMin.m_sIcon.cx = 16;
-		m_ctrlAllToMin.m_sIcon.cy = 16;
+		m_ctrlAllToMin.m_sIcon.SetSize(16, 16);
 		m_ctrlAllToMin.m_hIcon = theApp.LoadIcon(_T("SPEEDMIN"), m_ctrlAllToMin.m_sIcon.cx, m_ctrlAllToMin.m_sIcon.cy);
 		m_ctrlAllToMin.m_bParentCapture = true;
 		if (bValidFont)
@@ -187,13 +186,12 @@ BOOL CMuleSystrayDlg::OnInitDialog()
 		m_ctrlRestore.m_strText = GetResNoAmp(IDS_MAIN_POPUP_RESTORE);
 
 		m_ctrlRestore.m_bUseIcon = true;
-		m_ctrlRestore.m_sIcon.cx = 16;
-		m_ctrlRestore.m_sIcon.cy = 16;
+		m_ctrlRestore.m_sIcon.SetSize(16, 16);
 		m_ctrlRestore.m_hIcon = theApp.LoadIcon(_T("RESTOREWINDOW"), m_ctrlRestore.m_sIcon.cx, m_ctrlRestore.m_sIcon.cy);
 		m_ctrlRestore.m_bParentCapture = true;
 		if (bValidFont) {
 			LOGFONT lfFont = lfStaticFont;
-			lfFont.lfWeight += 200;		// make it bold
+			lfFont.lfWeight += 200;		// make it fatter
 			m_ctrlRestore.m_cfFont.CreateFontIndirect(&lfFont);
 		}
 	}
@@ -207,8 +205,7 @@ BOOL CMuleSystrayDlg::OnInitDialog()
 		m_ctrlConnect.m_strText = GetResNoAmp(IDS_MAIN_BTN_CONNECT);
 
 		m_ctrlConnect.m_bUseIcon = true;
-		m_ctrlConnect.m_sIcon.cx = 16;
-		m_ctrlConnect.m_sIcon.cy = 16;
+		m_ctrlConnect.m_sIcon.SetSize(16, 16);
 		m_ctrlConnect.m_hIcon = theApp.LoadIcon(_T("CONNECT"), m_ctrlConnect.m_sIcon.cx, m_ctrlConnect.m_sIcon.cy);
 		m_ctrlConnect.m_bParentCapture = true;
 		if (bValidFont)
@@ -224,8 +221,7 @@ BOOL CMuleSystrayDlg::OnInitDialog()
 		m_ctrlDisconnect.m_strText = GetResNoAmp(IDS_MAIN_BTN_DISCONNECT);
 
 		m_ctrlDisconnect.m_bUseIcon = true;
-		m_ctrlDisconnect.m_sIcon.cx = 16;
-		m_ctrlDisconnect.m_sIcon.cy = 16;
+		m_ctrlDisconnect.m_sIcon.SetSize(16, 16);
 		m_ctrlDisconnect.m_hIcon = theApp.LoadIcon(_T("DISCONNECT"), m_ctrlDisconnect.m_sIcon.cx, m_ctrlDisconnect.m_sIcon.cy);
 		m_ctrlDisconnect.m_bParentCapture = true;
 		if (bValidFont)
@@ -241,8 +237,7 @@ BOOL CMuleSystrayDlg::OnInitDialog()
 		m_ctrlPreferences.m_strText = GetResNoAmp(IDS_EM_PREFS);
 
 		m_ctrlPreferences.m_bUseIcon = true;
-		m_ctrlPreferences.m_sIcon.cx = 16;
-		m_ctrlPreferences.m_sIcon.cy = 16;
+		m_ctrlPreferences.m_sIcon.SetSize(16, 16);
 		m_ctrlPreferences.m_hIcon = theApp.LoadIcon(_T("Preferences"), m_ctrlPreferences.m_sIcon.cx, m_ctrlPreferences.m_sIcon.cy);
 		m_ctrlPreferences.m_bParentCapture = true;
 		if (bValidFont)
@@ -258,8 +253,7 @@ BOOL CMuleSystrayDlg::OnInitDialog()
 		m_ctrlExit.m_strText = GetResNoAmp(IDS_EXIT);
 
 		m_ctrlExit.m_bUseIcon = true;
-		m_ctrlExit.m_sIcon.cx = 16;
-		m_ctrlExit.m_sIcon.cy = 16;
+		m_ctrlExit.m_sIcon.SetSize(16, 16);
 		m_ctrlExit.m_hIcon = theApp.LoadIcon(_T("EXIT"), m_ctrlExit.m_sIcon.cx, m_ctrlExit.m_sIcon.cy);
 		m_ctrlExit.m_bParentCapture = true;
 		if (bValidFont)
@@ -310,6 +304,7 @@ BOOL CMuleSystrayDlg::OnInitDialog()
 	return TRUE;  // return TRUE unless you set the focus to the control
 				  // EXCEPTION: OCX Property Pages should return FALSE
 }
+#pragma warning(pop)
 
 void CMuleSystrayDlg::OnChangeDowntxt()
 {

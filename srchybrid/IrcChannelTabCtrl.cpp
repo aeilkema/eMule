@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -32,7 +32,6 @@
 #include "IrcWnd.h"
 #include "IrcMain.h"
 #include "otherfunctions.h"
-#include "MenuCmds.h"
 #include "HTRichEditCtrl.h"
 #include "UserMsgs.h"
 
@@ -473,7 +472,7 @@ void CIrcChannelTabCtrl::OnTcnSelChanging(LPNMHDR, LRESULT *pResult)
 		ti.mask = TCIF_PARAM;
 		if (GetItem(iCurSel, &ti)) {
 			Channel *pCh = reinterpret_cast<Channel*>(ti.lParam);
-			if (pCh->m_wndLog.m_hWnd != NULL)
+			if (pCh->m_wndLog.m_hWnd)
 				pCh->Hide();
 		}
 	}
@@ -534,7 +533,7 @@ void CIrcChannelTabCtrl::ChatSend(CString sSend)
 		return;
 	m_pCurrentChannel->m_sTabd.Empty();
 	m_pCurrentChannel->m_sTyped.Empty();
-	if (m_pCurrentChannel->m_astrHistory.GetCount() == thePrefs.GetMaxChatHistoryLines())
+	if (m_pCurrentChannel->m_astrHistory.GetCount() >= thePrefs.GetMaxChatHistoryLines())
 		m_pCurrentChannel->m_astrHistory.RemoveAt(0);
 	m_pCurrentChannel->m_astrHistory.Add(sSend);
 	m_pCurrentChannel->m_iHistoryPos = (int)m_pCurrentChannel->m_astrHistory.GetCount();

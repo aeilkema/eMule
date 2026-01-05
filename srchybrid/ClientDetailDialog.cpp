@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -65,8 +65,8 @@ BOOL CClientDetailPage::OnInitDialog()
 	InitWindowStyles(this);
 
 	AddAnchor(IDC_STATIC30, TOP_LEFT, TOP_RIGHT);
-	AddAnchor(IDC_STATIC40, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_STATIC50, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(IDC_STATIC40, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_DNAME, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_DSNAME, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_DDOWNLOADING, TOP_LEFT, TOP_RIGHT);
@@ -91,14 +91,14 @@ BOOL CClientDetailPage::OnSetActive()
 		SetDlgItemText(IDC_DSOFT, client->GetClientSoftVer());
 
 		UINT uid;
-		if (!client->SupportsCryptLayer())
-			uid = IDS_IDENTNOSUPPORT;
-		else
+		if (client->SupportsCryptLayer()) {
 			uid = (	   thePrefs.IsCryptLayerEnabled()
 					&& (client->RequestsCryptLayer() || thePrefs.IsCryptLayerPreferred())
-					&& (client->IsObfuscatedConnectionEstablished() || client->socket == NULL || !client->socket->IsConnected())
+					&& (client->IsObfuscatedConnectionEstablished() || !client->socket || !client->socket->IsConnected())
 				  )
 				? IDS_ENABLED : IDS_SUPPORTED;
+		} else
+			uid = IDS_IDENTNOSUPPORT;
 		CString buffer(GetResString(uid));
 #if defined(_DEBUG)
 		if (client->IsObfuscatedConnectionEstablished())
@@ -162,10 +162,11 @@ BOOL CClientDetailPage::OnSetActive()
 			SetDlgItemText(IDC_DRATING, _T("?"));
 
 		if (client->GetUploadState() != US_NONE && clcredits != NULL) {
-			if (!client->GetFriendSlot())
-				SetDlgItemInt(IDC_DSCORE, client->GetScore(false, client->IsDownloading(), false));
-			else
+			if (client->GetFriendSlot())
 				SetDlgItemText(IDC_DSCORE, GetResString(IDS_FRIENDDETAIL));
+			else
+				SetDlgItemInt(IDC_DSCORE, client->GetScore(false, client->IsDownloading(), false));
+
 		} else
 			SetDlgItemText(IDC_DSCORE, _T("-"));
 

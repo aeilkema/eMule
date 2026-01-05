@@ -26,13 +26,13 @@ public:
 
 	// Implementation
 public:
-	bool Bind(HWND p_hWndEdit, DWORD p_dwOptions = 0, LPCTSTR p_lpszFormatString = NULL);
+	bool Bind(HWND p_hWndEdit, DWORD p_dwOptions = 0, LPCWSTR p_lpszFormatString = NULL);
 	void Unbind();
 	bool IsBound() const				{ return m_bBound; }
 
 	bool SetList(const CStringArray &p_sItemList);
-	const CStringArray& GetList() const;
-	int GetItemCount();
+	const CStringArray& GetList() const	{ return m_asList; }
+	int GetItemCount() const			{ return (int)m_asList.GetCount(); }
 
 	bool AddItem(const CString &p_sItem, int iPos);
 	bool RemoveItem(const CString &p_sItem);

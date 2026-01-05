@@ -34,16 +34,16 @@ public:
 	void Fill(COLORREF color);
 
 	//draws the bar
-	void Draw(CDC *dc, int iLeft, int iTop, bool bFlat);
-	void DrawPreview(CDC *dc, int iLeft, int iTop, UINT previewLevel);		//Cax2 aqua bar
+	void Draw(CDC &dc, int iLeft, int iTop, bool bFlat);
+	void DrawPreview(CDC &dc, int iLeft, int iTop, UINT previewLevel);		//Cax2 aqua bar
 
 protected:
 	void BuildModifiers();
-	void FillBarRect(CDC *dc, LPRECT rectSpan, float fRed, float fGreen, float fBlue, bool bFlat);
-	void FillBarRect(CDC *dc, LPRECT rectSpan, COLORREF color, bool bFlat);
+	void FillBarRect(CDC &dc, LPRECT rectSpan, float fRed, float fGreen, float fBlue, bool bFlat);
+	void FillBarRect(CDC &dc, LPRECT rectSpan, COLORREF color, bool bFlat);
 
-	double	m_dPixelsPerByte;
-	double	m_dBytesPerPixel;
+	float	m_fPixelsPerByte;
+	float	m_fBytesPerPixel;
 	EMFileSize	m_uFileSize;
 	int		m_iWidth;
 	int		m_iHeight;

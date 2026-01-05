@@ -15,7 +15,7 @@
 //
 //
 //  Updates:        09-Mai-2003 [bluecow]:
-//						- changed original string list code to deal with a LRU list
+//						- changed original string list code to deal with an LRU list
 //						  and auto cleanup of list entries according 'iMaxItemCount'.
 //						- split original code into cpp/h file
 //						- removed registry stuff
@@ -62,7 +62,7 @@ CCustomAutoComplete::~CCustomAutoComplete()
 		m_pac.Release();
 }
 
-bool CCustomAutoComplete::Bind(HWND p_hWndEdit, DWORD p_dwOptions, LPCTSTR p_lpszFormatString)
+bool CCustomAutoComplete::Bind(HWND p_hWndEdit, DWORD p_dwOptions, LPCWSTR p_lpszFormatString)
 {
 	ATLASSERT(::IsWindow(p_hWndEdit));
 	if (m_bBound || m_pac)
@@ -118,7 +118,7 @@ bool CCustomAutoComplete::AddItem(const CString &p_sItem, int iPos)
 				m_asList.Add(p_sItem);
 			else
 				m_asList.InsertAt(iPos, p_sItem);
-			// use a LRU list
+			// use an LRU list
 			if (m_asList.GetCount() > m_iMaxItemCount)
 				m_asList.SetSize(m_iMaxItemCount);
 			return true;
@@ -131,11 +131,6 @@ bool CCustomAutoComplete::AddItem(const CString &p_sItem, int iPos)
 		}
 	}
 	return false;
-}
-
-int CCustomAutoComplete::GetItemCount()
-{
-	return (int)m_asList.GetCount();
 }
 
 bool CCustomAutoComplete::RemoveItem(const CString &p_sItem)
@@ -182,11 +177,6 @@ bool CCustomAutoComplete::Disable()
 bool CCustomAutoComplete::Enable()
 {
 	return !m_bBound && m_pac && SUCCEEDED(EnDisable(true));
-}
-
-const CStringArray& CCustomAutoComplete::GetList() const
-{
-	return m_asList;
 }
 
 //

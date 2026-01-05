@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -47,23 +47,16 @@ BOOL CEnBitmap::LoadImage(LPCTSTR lpszResourceName, LPCTSTR szResourceType, HMOD
 
 	// first call is to get buffer size
 	int nSize;
-	if (GetResource(lpszResourceName, szResourceType, hInst, 0, nSize)) {
-		if (nSize > 0) {
-			BYTE *pBuff = new BYTE[nSize];
-			// this loads it
-			if (GetResource(lpszResourceName, szResourceType, hInst, pBuff, nSize)) {
-				IPicture *pPicture = LoadFromBuffer(pBuff, nSize);
+	BYTE *pBuff = NULL;
+	if (GetResource(lpszResourceName, szResourceType, hInst, (void**)&pBuff, nSize)) {
+		IPicture *pPicture = LoadFromBuffer(pBuff, nSize);
 
-				if (pPicture) {
-					bResult = Attach(pPicture, crBack);
-					pPicture->Release();
-				}
-			}
-
-			delete[] pBuff;
+		if (pPicture) {
+			bResult = Attach(pPicture, crBack);
+			pPicture->Release();
 		}
 	}
-
+	delete[] pBuff;
 	return bResult;
 }
 
@@ -100,68 +93,39 @@ IPicture* CEnBitmap::LoadFromBuffer(BYTE *pBuff, int nSize)
 {
 	IPicture *pPicture = NULL;
 
-	HGLOBAL hGlobal = ::GlobalAlloc(GMEM_MOVEABLE, nSize);
-	if (hGlobal != NULL) {
-		void *pData = ::GlobalLock(hGlobal);
-		if (pData != NULL) {
-			memcpy(pData, pBuff, nSize);
-			::GlobalUnlock(hGlobal);
-
-			IStream *pStream = NULL;
-			if (CreateStreamOnHGlobal(hGlobal, TRUE/*fDeleteOnRelease*/, &pStream) == S_OK) {
-				// Not sure what the 'KeepOriginalFormat' property is really used for. But if 'OleLoadPicture'
-				// is invoked with 'fRunmode=FALSE' the function always creates a temporary file which even
-				// does not get deleted when all COM pointers were released. It eventually gets deleted only
-				// when process terminated. Using 'fRunmode=TRUE' does prevent this behaviour and does not
-				// seem to have any other side effects.
-				VERIFY(OleLoadPicture(pStream, nSize, TRUE/*FALSE*/, IID_IPicture, (LPVOID*)&pPicture) == S_OK);
-				pStream->Release();
-			} else
-				::GlobalFree(hGlobal);
-		} else
-			::GlobalFree(hGlobal);
-	}
-
+	CComPtr<IStream> stream;
+	stream.Attach(::SHCreateMemStream(pBuff, (UINT)nSize));
+	VERIFY(OleLoadPicture(stream, nSize, TRUE/*FALSE*/, IID_IPicture, (LPVOID *)&pPicture) == S_OK);
 	return pPicture; // caller releases
 }
 
-BOOL CEnBitmap::GetResource(LPCTSTR lpName, LPCTSTR lpType, HMODULE hInst, void *pResource, int &nBufSize)
+BOOL CEnBitmap::GetResource(LPCTSTR lpName, LPCTSTR lpType, HMODULE hInst, void **pResource, int &nBufSize)
 {
 	// Find the resource
-	HRSRC hResInfo = FindResource(hInst, lpName, lpType);
+	HRSRC hResInfo = ::FindResource(hInst, lpName, lpType);
 	if (hResInfo == NULL)
 		return FALSE;
-
+	DWORD nSize = ::SizeofResource(hInst, hResInfo);
+	if (!nSize)
+		return FALSE;
 	// Load the resource
-	HANDLE hRes = LoadResource(hInst, hResInfo);
+	HGLOBAL hRes = ::LoadResource(hInst, hResInfo);
 	if (hRes == NULL)
 		return FALSE;
 
-	bool bResult = FALSE;
-
-	// Lock the resource
-	LPCSTR lpRes = (LPCSTR)LockResource(hRes);
+	LPCSTR lpRes = (LPCSTR)::LockResource(hRes);
 	if (lpRes != NULL) {
-		if (pResource == NULL) {
-			nBufSize = SizeofResource(hInst, hResInfo);
-			bResult = TRUE;
-		} else if (nBufSize >= (int)SizeofResource(hInst, hResInfo)) {
-			memcpy(pResource, lpRes, nBufSize);
-			bResult = TRUE;
-		}
-
-		UnlockResource(hRes);
+		*pResource = new BYTE[nSize];
+		memcpy(*pResource, lpRes, nSize);
+		nBufSize = (int)nSize;
 	}
-
-	// Free the resource
-	FreeResource(hRes);
-
-	return bResult;
+	::FreeResource(hRes);
+	return (lpRes != NULL);
 }
 
 BOOL CEnBitmap::Attach(IPicture *pPicture, COLORREF crBack)
 {
-	ASSERT(m_hObject == NULL);      // only attach once, detach on destroy
+	ASSERT(m_hObject == NULL);	// only attach once, detach on destroy
 
 	if (m_hObject != NULL)
 		return FALSE;

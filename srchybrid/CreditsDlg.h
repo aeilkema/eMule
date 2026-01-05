@@ -1,5 +1,4 @@
 #pragma once
-#include "GDIThread.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CCreditsDlg dialog
@@ -15,11 +14,11 @@ class CCreditsDlg : public CDialog
 public:
 	void KillThread();
 	void StartThread();
-	explicit CCreditsDlg(CWnd *pParent = NULL);   // standard constructor
+	explicit CCreditsDlg(CWnd *pParent = NULL);	// standard constructor
 	~CCreditsDlg();
 
 	CClientDC	*m_pDC;
-	CGDIThread	*m_pThread;
+	CWinThread	*m_pThread;
 
 // Implementation
 protected:

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,8 +15,6 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
-#include <share.h>
-#include <io.h>
 #include "emule.h"
 #include "ServerListCtrl.h"
 #include "OtherFunctions.h"
@@ -195,7 +193,6 @@ void CServerListCtrl::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 	const CServer *pServer = reinterpret_cast<CServer*>(lpDrawItemStruct->itemData);
 	if (!pServer || theApp.IsClosing())
 		return;
-
 	CRect rcItem(lpDrawItemStruct->rcItem);
 	CMemoryDC dc(CDC::FromHandle(lpDrawItemStruct->hDC), rcItem);
 	BOOL bCtrlFocused;
@@ -241,7 +238,7 @@ void CServerListCtrl::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 				}
 			default: //any text column
 				rcItem.left += sm_iSubItemInset;
-				dc.DrawText(sItem, -1, &rcItem, MLC_DT_TEXT | uDrawTextAlignment);
+				dc.DrawText(sItem, &rcItem, MLC_DT_TEXT | uDrawTextAlignment);
 			}
 		}
 		itemLeft += iColumnWidth;
@@ -252,14 +249,14 @@ void CServerListCtrl::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 
 void CServerListCtrl::Localize()
 {
-	static const UINT uids[15] =
+	static const UINT uids[] =
 	{
 		IDS_SL_SERVERNAME, IDS_IP, IDS_DESCRIPTION, IDS_PING, IDS_UUSERS
 		, IDS_MAXCLIENT, IDS_PW_FILES, IDS_PREFERENCE, IDS_UFAILED, IDS_STATICSERVER
 		, IDS_SOFTFILES, IDS_HARDFILES, IDS_VERSION, IDS_IDLOW, IDS_OBFUSCATION
+		, 0
 	};
-
-	LocaliseHeaderCtrl(uids, _countof(uids));
+	LocaliseHeader(uids);
 }
 
 void CServerListCtrl::RemoveServer(const CServer *pServer)
@@ -305,8 +302,8 @@ bool CServerListCtrl::AddServer(const CServer *pServer, bool bAddToList, bool bR
 	if (!theApp.serverlist->AddServer(pServer, bAddTail))
 		return false;
 	if (bAddToList) {
-		int iItem = InsertItem(LVIF_TEXT | LVIF_PARAM, bAddTail ? GetItemCount() : 0, pServer->GetListName(), 0, 0, 0, (LPARAM)pServer);
-		Update(iItem);
+		InsertItem(LVIF_TEXT | LVIF_PARAM, bAddTail ? GetItemCount() : 0, _T(""), 0, 0, 0, (LPARAM)pServer);
+		RefreshServer(pServer);
 	}
 	ShowServerCount();
 	return true;
@@ -347,7 +344,7 @@ void CServerListCtrl::OnContextMenu(CWnd*, CPoint point)
 		bFirstItem = false;
 	}
 
-	CTitleMenu ServerMenu;
+	CTitledMenu ServerMenu;
 	ServerMenu.CreatePopupMenu();
 	ServerMenu.AddMenuTitle(GetResString(IDS_EM_SERVER), true);
 
@@ -416,7 +413,7 @@ BOOL CServerListCtrl::OnCommand(WPARAM wParam, LPARAM)
 		{
 			const CString &strURLs(CreateSelectedServersURLs());
 			if (!strURLs.IsEmpty())
-				theApp.CopyTextToClipboard(strURLs);
+				theApp.emuledlg->CopyTextToClipboard(strURLs);
 			DeleteSelectedServers();
 		}
 		return TRUE;
@@ -429,7 +426,7 @@ BOOL CServerListCtrl::OnCommand(WPARAM wParam, LPARAM)
 				if (wParam == Irc_SetSendLink)
 					theApp.emuledlg->ircwnd->SetSendFileString(strURLs);
 				else
-					theApp.CopyTextToClipboard(strURLs);
+					theApp.emuledlg->CopyTextToClipboard(strURLs);
 		}
 		return TRUE;
 	case MP_PASTE:
@@ -553,8 +550,11 @@ void CServerListCtrl::RefreshServer(const CServer *pServer)
 {
 	if (pServer && !theApp.IsClosing()) {
 		int iItem = FindServer(pServer);
-		if (iItem >= 0)
+		if (iItem >= 0) {
+			for (int i = 0; i <= 14; ++i) //column autosizing requires item text
+				SetItemText(iItem, i, GetItemDisplayText(pServer, i));
 			Update(iItem);
+		}
 	}
 }
 

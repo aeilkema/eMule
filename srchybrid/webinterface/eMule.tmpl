@@ -1,4 +1,4 @@
- <-- ################################################################# -->
+<-- ################################################################# -->
 <-- ##                      eMuleXP TEMPLATE                       ## -->
 <-- ##                 MODIFIED VERSION BY eMule-Project.net       ## -->
 <-- ################################################################# -->
@@ -41,7 +41,7 @@ form
 display:inline;
 }
 </style>
-<script Language="JavaScript">
+<script>
 <!--
 var eMulePics = new Array ("add_server.gif", "arrow_down.gif", "arrow_up.gif", "arrow_up_q.gif", "black.gif", "blue1.gif", "blue2.gif",
 "blue3.gif", "blue4.gif", "blue5.gif", "blue6.gif", "checked.gif", "checked_no.gif", "ct_0.gif", "ct_1.gif", "ct_a.gif", "ct_h.gif",
@@ -131,7 +131,7 @@ function preload_images()
          <img src="./transparent.gif" alt="">
         </td>
         <td background="./login_downmain.gif" align="center">
-         <form action="" method="POST" name="login">
+         <form method="POST" name="login">
           <font face="Tahoma" style="font-size:10pt;">
            &nbsp;<br>
            [EnterPassword]<br><br>
@@ -180,7 +180,7 @@ function preload_images()
 [StyleSheet]
 
 
-<script Language="JavaScript">
+<script>
 <!--
 /*************************************************************************
 	Pop-it menu - By Dynamic Drive
@@ -207,11 +207,11 @@ function downmenu(event,admin,finfo,ed2k,downstate,isgetflc,fname,session,fileha
 	removeconfirm = '[ConfirmCancel]' + fname
 
 	if(downstate == "hashing" || downstate == "waitinghash")
-		code = '<div class="menuitems"><img class="menuimages" src="l_hasherror.gif"><img class="menuchecked" src="checked_no.gif">[FileIsHashing]&nbsp;<\/div>'
+		code = '<div class="menuitems"><img class="menuimages" src="l_hasherror.gif"><img class="menuchecked" src="checked_no.gif">[FileIsHashing]&nbsp;</div>'
 	else if(downstate == "error")
-		code = '<div class="menuitems"><img class="menuimages" src="l_hasherror.gif"><img class="menuchecked" src="checked_no.gif">[FileIsErroneous]&nbsp;<\/div>'
+		code = '<div class="menuitems"><img class="menuimages" src="l_hasherror.gif"><img class="menuchecked" src="checked_no.gif">[FileIsErroneous]&nbsp;</div>'
 	else if(downstate == "completing")
-		code = '<div class="menuitems"><img class="menuimages" src="l_hasherror.gif"><img class="menuchecked" src="checked_no.gif">[FileIsCompleting]&nbsp;<\/div>'
+		code = '<div class="menuitems"><img class="menuimages" src="l_hasherror.gif"><img class="menuchecked" src="checked_no.gif">[FileIsCompleting]&nbsp;</div>'
 	else
 	{
 		code = '';
@@ -220,31 +220,31 @@ function downmenu(event,admin,finfo,ed2k,downstate,isgetflc,fname,session,fileha
 		{
 			if(downstate == "complete") {
 				if (downloadable=="yes")
-					code += '<a href="?ses=' + session + '&amp;w=getfile&amp;filehash=' + filehash +'"><div class="menuitems"><img class="menuimages" src="downloading.gif"><img class="menuchecked" src="checked_no.gif">[RunFile]&nbsp;<\/div><\/a>'
-				code += '<a href="?ses=' + session + '&amp;w=transfer&amp;clearcompleted=' + filehash +'"><div class="menuitems"><img class="menuimages" src="l_clear.gif"><img class="menuchecked" src="checked_no.gif">[ClearCompleted]&nbsp;<\/div><\/a>'
+					code += '<a href="?ses=' + session + '&amp;w=getfile&amp;filehash=' + filehash +'"><div class="menuitems"><img class="menuimages" src="downloading.gif"><img class="menuchecked" src="checked_no.gif">[RunFile]&nbsp;</div></a>'
+				code += '<a href="?ses=' + session + '&amp;w=transfer&amp;clearcompleted=' + filehash +'"><div class="menuitems"><img class="menuimages" src="l_clear.gif"><img class="menuchecked" src="checked_no.gif">[ClearCompleted]&nbsp;</div></a>'
 			} else {
 				if(downstate == "paused" || downstate == "stopped")
-					code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=resume&amp;file=' + filehash + '"><div class="menuitems"><img class="menuimages" src="l_resume.gif"><img class="menuchecked" src="checked_no.gif">[Resume]&nbsp;<\/div><\/a>'
+					code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=resume&amp;file=' + filehash + '"><div class="menuitems"><img class="menuimages" src="l_resume.gif"><img class="menuchecked" src="checked_no.gif">[Resume]&nbsp;</div></a>'
 				if(downstate != "stopped")
-					code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=stop&amp;file=' + filehash + '"><div class="menuitems"><img class="menuimages" src="l_stop.gif"><img class="menuchecked" src="checked_no.gif">[Stop]&nbsp;<\/div><\/a>'
+					code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=stop&amp;file=' + filehash + '"><div class="menuitems"><img class="menuimages" src="l_stop.gif"><img class="menuchecked" src="checked_no.gif">[Stop]&nbsp;</div></a>'
 				if(downstate != "paused")
-					code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=pause&amp;file=' + filehash + '"><div class="menuitems"><img class="menuimages" src="l_pause.gif"><img class="menuchecked" src="checked_no.gif">[Pause]&nbsp;<\/div><\/a>'
-				code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=cancel&amp;file=' + filehash + '" onclick="return confirm(removeconfirm)"><div class="menuitems"><img class="menuimages" src="l_cancel.gif"><img class="menuchecked" src="checked_no.gif">[Cancel]&nbsp;<\/div><\/a>'
-				code += '<a href="javascript:filerename(\'' + session + '\',\'' + filehash + '\',\'' + fname + '\')"><div class="menuitems"><img class="menuimages" src="l_rename.gif"><img class="menuchecked" src="checked_no.gif">[Rename]&nbsp;<\/div><\/a>'
+					code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=pause&amp;file=' + filehash + '"><div class="menuitems"><img class="menuimages" src="l_pause.gif"><img class="menuchecked" src="checked_no.gif">[Pause]&nbsp;</div></a>'
+				code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=cancel&amp;file=' + filehash + '" onclick="return confirm(removeconfirm)"><div class="menuitems"><img class="menuimages" src="l_cancel.gif"><img class="menuchecked" src="checked_no.gif">[Cancel]&nbsp;</div></a>'
+				code += '<a href="javascript:filerename(\'' + session + '\',\'' + filehash + '\',\'' + fname + '\')"><div class="menuitems"><img class="menuimages" src="l_rename.gif"><img class="menuchecked" src="checked_no.gif">[Rename]&nbsp;</div></a>'
 
         if(isgetflc == "enabled")
-					code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=getflc&amp;file=' + filehash + '"><div class="menuitems"><img class="menuimages" src="l_getflc.gif"><img class="menuchecked" src="checked.gif">[GetFLC]&nbsp;<\/div><\/a>'
+					code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=getflc&amp;file=' + filehash + '"><div class="menuitems"><img class="menuimages" src="l_getflc.gif"><img class="menuchecked" src="checked.gif">[GetFLC]&nbsp;</div></a>'
         else if(isgetflc == "disabled")
-					code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=getflc&amp;file=' + filehash + '"><div class="menuitems"><img class="menuimages" src="l_getflc.gif"><img class="menuchecked" src="checked_no.gif">[GetFLC]&nbsp;<\/div><\/a>'
+					code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=getflc&amp;file=' + filehash + '"><div class="menuitems"><img class="menuimages" src="l_getflc.gif"><img class="menuchecked" src="checked_no.gif">[GetFLC]&nbsp;</div></a>'
 			}
 		}
 
 		if (cmts=="yes") {
-			code += '<a href="?ses=' + session + '&amp;w=commentlist&amp;filehash=' + filehash+'" target="_blank"><div class="menuitems"><img class="menuimages" src="l_comments.gif"><img class="menuchecked" src="checked_no.gif">[FileComments]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=commentlist&amp;filehash=' + filehash+'" target="_blank"><div class="menuitems"><img class="menuimages" src="l_comments.gif"><img class="menuchecked" src="checked_no.gif">[FileComments]&nbsp;</div></a>'
 		}
 
-		code += '<a href="javascript:alert(iteminfo);"><div class="menuitems"><img class="menuimages" src="l_info.gif"><img class="menuchecked" src="checked_no.gif">[FileDetails]&nbsp;<\/div><\/a>'
-		code += '<a href="javascript:ToClipboard(ed2kinfo);"><div class="menuitems"><img class="menuimages" src="l_ed2klink.gif"><img class="menuchecked" src="checked_no.gif">[Ed2klink]&nbsp;<\/div><\/a>'
+		code += '<a href="javascript:alert(iteminfo);"><div class="menuitems"><img class="menuimages" src="l_info.gif"><img class="menuchecked" src="checked_no.gif">[FileDetails]&nbsp;</div></a>'
+		code += '<a href="javascript:ToClipboard(ed2kinfo);"><div class="menuitems"><img class="menuimages" src="l_ed2klink.gif"><img class="menuchecked" src="checked_no.gif">[Ed2klink]&nbsp;</div></a>'
 	}
 
 	showmenu(event,code)
@@ -263,16 +263,16 @@ function servermenu(event,admin,ed2k,session,ip,port,isstatic)
 	var code = new Array()
 	ed2kinfo = ed2k
 
-	code = '<a href="javascript:ToClipboard(ed2kinfo);"><div class="menuitems"><img class="menuimages" src="l_ed2klink.gif"><img class="menuchecked" src="checked_no.gif">[Ed2klink]&nbsp;<\/div><\/a>'
+	code = '<a href="javascript:ToClipboard(ed2kinfo);"><div class="menuitems"><img class="menuimages" src="l_ed2klink.gif"><img class="menuchecked" src="checked_no.gif">[Ed2klink]&nbsp;</div></a>'
 
 	if(admin == "admin")
 	{
-		code += '<a href="?ses=' + session + '&amp;w=server&amp;c=connect&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuimages" src="l_connect.gif"><img class="menuchecked" src="checked_no.gif">[Connect]&nbsp;<\/div><\/a>'
-		code += '<a href="?ses=' + session + '&amp;w=server&amp;c=remove&amp;ip=' + ip + '&amp;port=' + port + '" onclick="return confirm(\'[ConfirmRemove]\')' + '"><div class="menuitems"><img class="menuimages" src="l_cancel.gif"><img class="menuchecked" src="checked_no.gif">[RemoveServer]&nbsp;<\/div><\/a>'
+		code += '<a href="?ses=' + session + '&amp;w=server&amp;c=connect&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuimages" src="l_connect.gif"><img class="menuchecked" src="checked_no.gif">[Connect]&nbsp;</div></a>'
+		code += '<a href="?ses=' + session + '&amp;w=server&amp;c=remove&amp;ip=' + ip + '&amp;port=' + port + '" onclick="return confirm(\'[ConfirmRemove]\')' + '"><div class="menuitems"><img class="menuimages" src="l_cancel.gif"><img class="menuchecked" src="checked_no.gif">[RemoveServer]&nbsp;</div></a>'
 		if(isstatic)
-			code += '<a href="?ses=' + session + '&amp;w=server&amp;c=removefromstatic&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuimages" src="l_static.gif"><img class="menuchecked" src="checked.gif">[StaticServer]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=server&amp;c=removefromstatic&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuimages" src="l_static.gif"><img class="menuchecked" src="checked.gif">[StaticServer]&nbsp;</div></a>'
 		else
-			code += '<a href="?ses=' + session + '&amp;w=server&amp;c=addtostatic&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuimages" src="l_static.gif"><img class="menuchecked" src="checked_no.gif">[StaticServer]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=server&amp;c=addtostatic&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuimages" src="l_static.gif"><img class="menuchecked" src="checked_no.gif">[StaticServer]&nbsp;</div></a>'
 	}
 
 	showmenu(event,code)
@@ -283,9 +283,9 @@ function sharedmenu(event,admin,ed2k,session,hash,fname,filestate,downloadable)
 	var code = new Array()
 	ed2kinfo = ed2k
 
-	code = '<a href="javascript:ToClipboard(ed2kinfo);"><div class="menuitems"><img class="menuimages" src="l_ed2klink.gif"><img class="menuchecked" src="checked_no.gif">[Ed2klink]&nbsp;<\/div><\/a>'
+	code = '<a href="javascript:ToClipboard(ed2kinfo);"><div class="menuitems"><img class="menuimages" src="l_ed2klink.gif"><img class="menuchecked" src="checked_no.gif">[Ed2klink]&nbsp;</div></a>'
 	if (downloadable=="yes")
-		code += '<a href="?ses=' + session + '&amp;w=getfile&amp;filehash=' + hash +'"><div class="menuitems"><img class="menuimages" src="downloading.gif"><img class="menuchecked" src="checked_no.gif">[RunFile]&nbsp;<\/div><\/a>'
+		code += '<a href="?ses=' + session + '&amp;w=getfile&amp;filehash=' + hash +'"><div class="menuitems"><img class="menuimages" src="downloading.gif"><img class="menuchecked" src="checked_no.gif">[RunFile]&nbsp;</div></a>'
 
 	showmenu(event,code)
 }
@@ -298,15 +298,15 @@ function adminmenu(event,admin)
 	confirmreboot = '[ConfirmReboot]'
 	confirmshutdown = '[ConfirmShutdown]'
 
-	code = '<a href="javascript:ShowHide(' + "'" + 'ed2k_open' + "'" + ');"><div class="menuitems"><img class="menuimages" src="l_ed2klink.gif" alt="[Ed2klink]"><img class="menuchecked" src="checked_no.gif">[Ed2klink]&nbsp;<\/div><\/a>'
-	code += '<a href="?ses=[Session]&amp;w=logout"><div class="menuitems"><img class="menuimages" src="l_logout.gif" alt="[Logout]"><img class="menuchecked" src="checked_no.gif">[Logout]&nbsp;<\/div><\/a>'
+	code = '<a href="javascript:ShowHide(' + "'" + 'ed2k_open' + "'" + ');"><div class="menuitems"><img class="menuimages" src="l_ed2klink.gif" alt="[Ed2klink]"><img class="menuchecked" src="checked_no.gif">[Ed2klink]&nbsp;</div></a>'
+	code += '<a href="?ses=[Session]&amp;w=logout"><div class="menuitems"><img class="menuimages" src="l_logout.gif" alt="[Logout]"><img class="menuchecked" src="checked_no.gif">[Logout]&nbsp;</div></a>'
 
 	if(admin == "admin")
 	{
-	  code += '<div class="menuitems">&nbsp;<\/div><\/a>'
-		code += '<a href="?ses=[Session]&amp;w=close" onclick="return confirm(confirmclose)"><div class="menuitems"><img class="menuimages" src="l_close.gif" alt="[Close]"><img class="menuchecked" src="checked_no.gif">[Close]&nbsp;<\/div><\/a>'
-		code += '<a href="?ses=[Session]&amp;w=reboot" onclick="return confirm(confirmreboot)"><div class="menuitems"><img class="menuimages" src="l_reboot.gif" alt="[Reboot]"><img class="menuchecked" src="checked_no.gif">[Reboot]&nbsp;<\/div><\/a>'
-		code += '<a href="?ses=[Session]&amp;w=shutdown" onclick="return confirm(confirmshutdown)"><div class="menuitems"><img class="menuimages" src="l_shutdown.gif" alt="[Shutdown]"><img class="menuchecked" src="checked_no.gif">[Shutdown]&nbsp;<\/div><\/a>'
+	  code += '<div class="menuitems">&nbsp;</div></a>'
+		code += '<a href="?ses=[Session]&amp;w=close" onclick="return confirm(confirmclose)"><div class="menuitems"><img class="menuimages" src="l_close.gif" alt="[Close]"><img class="menuchecked" src="checked_no.gif">[Close]&nbsp;</div></a>'
+		code += '<a href="?ses=[Session]&amp;w=reboot" onclick="return confirm(confirmreboot)"><div class="menuitems"><img class="menuimages" src="l_reboot.gif" alt="[Reboot]"><img class="menuchecked" src="checked_no.gif">[Reboot]&nbsp;</div></a>'
+		code += '<a href="?ses=[Session]&amp;w=shutdown" onclick="return confirm(confirmshutdown)"><div class="menuitems"><img class="menuimages" src="l_shutdown.gif" alt="[Shutdown]"><img class="menuchecked" src="checked_no.gif">[Shutdown]&nbsp;</div></a>'
 	}
 
 	showmenu(event,code)
@@ -317,10 +317,10 @@ function linkmenu(event)
 	var code = new Array()
 
 
-	code = '<a href="[VersionCheck]" target="_blank"><div class="menuitems"><img class="menuimages" src="l_version.gif" alt="[Version]"><img class="menuchecked" src="checked_no.gif">eMule Version Check&nbsp;<\/div><\/a>'
-	code += '<a href="https://emule-project.net" target="_blank"><div class="menuitems"><img class="menuimages" src="l_homepage.gif"><img class="menuchecked" src="checked_no.gif">eMule Homepage&nbsp;<\/div><\/a>'
-	code += '<a href="https://forum.emule-project.net" target="_blank"><div class="menuitems"><img class="menuimages" src="l_forum.gif"><img class="menuchecked" src="checked_no.gif">eMule Forum&nbsp;<\/div><\/a>'
-	code += '<a href="https://www.emule-project.net/home/perl/help.cgi" target="_blank"><div class="menuitems"><img class="menuimages" src="l_info.gif"><img class="menuchecked" src="checked_no.gif">eMule Doc,FAQ&nbsp;<\/div><\/a>'
+	code = '<a href="[VersionCheck]" target="_blank"><div class="menuitems"><img class="menuimages" src="l_version.gif" alt="[Version]"><img class="menuchecked" src="checked_no.gif">eMule Version Check&nbsp;</div></a>'
+	code += '<a href="https://emule-project.net" target="_blank"><div class="menuitems"><img class="menuimages" src="l_homepage.gif"><img class="menuchecked" src="checked_no.gif">eMule Homepage&nbsp;</div></a>'
+	code += '<a href="https://forum.emule-project.net" target="_blank"><div class="menuitems"><img class="menuimages" src="l_forum.gif"><img class="menuchecked" src="checked_no.gif">eMule Forum&nbsp;</div></a>'
+	code += '<a href="https://www.emule-project.net/home/perl/help.cgi" target="_blank"><div class="menuitems"><img class="menuimages" src="l_info.gif"><img class="menuchecked" src="checked_no.gif">eMule Doc,FAQ&nbsp;</div></a>'
 
 	showmenu(event,code)
 }
@@ -332,9 +332,9 @@ function upmenu(event,admin,clientextra,userhash)
 	if(admin == "admin")
 	{
 		if(clientextra == "friend")
-			code = '<a href="?ses=[Session]&amp;w=transfer&amp;op=removefriend&amp;userhash=' + userhash + '"><div class="menuitems"><img class="menuimages" src="l_friend.gif" alt="[Friend]"><img class="menuchecked" src="checked.gif">[Friend]&nbsp;<\/div><\/a>'
+			code = '<a href="?ses=[Session]&amp;w=transfer&amp;op=removefriend&amp;userhash=' + userhash + '"><div class="menuitems"><img class="menuimages" src="l_friend.gif" alt="[Friend]"><img class="menuchecked" src="checked.gif">[Friend]&nbsp;</div></a>'
 		else
-			code = '<a href="?ses=[Session]&amp;w=transfer&amp;op=addfriend&amp;userhash=' + userhash + '"><div class="menuitems"><img class="menuimages" src="l_friend.gif" alt="[Friend]"><img class="menuchecked" src="checked_no.gif">[Friend]&nbsp;<\/div><\/a>'
+			code = '<a href="?ses=[Session]&amp;w=transfer&amp;op=addfriend&amp;userhash=' + userhash + '"><div class="menuitems"><img class="menuimages" src="l_friend.gif" alt="[Friend]"><img class="menuchecked" src="checked_no.gif">[Friend]&nbsp;</div></a>'
 
 		showmenu(event,code)
 	}
@@ -344,7 +344,7 @@ function searchmenu(event,ed2k)
 {
 	var code = new Array()
 
-	code = '<a href="' + ed2k + '"><div class="menuitems"><img class="menuimages" src="l_ed2klink.gif" alt="[Ed2klink]"><img class="menuchecked" src="checked_no.gif">[Ed2klink]&nbsp;<\/div><\/a>'
+	code = '<a href="' + ed2k + '"><div class="menuitems"><img class="menuimages" src="l_ed2klink.gif" alt="[Ed2klink]"><img class="menuchecked" src="checked_no.gif">[Ed2klink]&nbsp;</div></a>'
 
 	showmenu(event,code)
 }
@@ -362,8 +362,8 @@ function columnmenu(event,tab,menu, m1,e1,m2,e2,m3,e3,m4,e4,m5,e5,m6,e6,m7,e7,m8
 			var m = eval('m'+i);
 			var j = i - 1;
 
-			if(e != "") { code += '<a href="?ses=[Session]&amp;w='+tab+'&amp;c='+menu+'&amp;m='+j+'&amp;v=1"><div class="menuitems"><img class="menuchecked" src="checked.gif">'+m+'&nbsp;<\/div><\/a>' }
-			else if(m != "") { code += '<a href="?ses=[Session]&amp;w='+tab+'&amp;c='+menu+'&amp;m='+j+'&amp;v=0"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">'+m+'&nbsp;<\/div><\/a>' }
+			if(e != "") { code += '<a href="?ses=[Session]&amp;w='+tab+'&amp;c='+menu+'&amp;m='+j+'&amp;v=1"><div class="menuitems"><img class="menuchecked" src="checked.gif">'+m+'&nbsp;</div></a>' }
+			else if(m != "") { code += '<a href="?ses=[Session]&amp;w='+tab+'&amp;c='+menu+'&amp;m='+j+'&amp;v=0"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">'+m+'&nbsp;</div></a>' }
 		}
 		catch(e)
 		{
@@ -380,10 +380,10 @@ function catpriomenu(event,admin,session)
 
 	if(admin == "admin")
 	{
-		code = '<a href="?ses=' + session + '&amp;w=transfer&amp;c=menuprio&amp;p=low"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityLow]&nbsp;<\/div><\/a>'
-		code += '<a href="?ses=' + session + '&amp;w=transfer&amp;c=menuprio&amp;p=normal"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityNormal]&nbsp;<\/div><\/a>'
-		code += '<a href="?ses=' + session + '&amp;w=transfer&amp;c=menuprio&amp;p=high"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityHigh]&nbsp;<\/div><\/a>'
-		code += '<a href="?ses=' + session + '&amp;w=transfer&amp;c=menuprio&amp;p=auto"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityAuto]&nbsp;<\/div><\/a>'
+		code = '<a href="?ses=' + session + '&amp;w=transfer&amp;c=menuprio&amp;p=low"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityLow]&nbsp;</div></a>'
+		code += '<a href="?ses=' + session + '&amp;w=transfer&amp;c=menuprio&amp;p=normal"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityNormal]&nbsp;</div></a>'
+		code += '<a href="?ses=' + session + '&amp;w=transfer&amp;c=menuprio&amp;p=high"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityHigh]&nbsp;</div></a>'
+		code += '<a href="?ses=' + session + '&amp;w=transfer&amp;c=menuprio&amp;p=auto"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityAuto]&nbsp;</div></a>'
 
 		showmenu(event,code)
 	}
@@ -396,17 +396,17 @@ function serverpriomenu(event,admin,session,ip,port,priority)
 	if(admin == "admin")
 	{
 		if(priority == "Low")
-			code = '<a href="?ses=' + session + '&amp;w=server&amp;c=priolow&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityLow]&nbsp;<\/div><\/a>'
+			code = '<a href="?ses=' + session + '&amp;w=server&amp;c=priolow&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityLow]&nbsp;</div></a>'
 		else
-			code = '<a href="?ses=' + session + '&amp;w=server&amp;c=priolow&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityLow]&nbsp;<\/div><\/a>'
+			code = '<a href="?ses=' + session + '&amp;w=server&amp;c=priolow&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityLow]&nbsp;</div></a>'
 		if(priority == "Normal")
-			code += '<a href="?ses=' + session + '&amp;w=server&amp;c=prionormal&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityNormal]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=server&amp;c=prionormal&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityNormal]&nbsp;</div></a>'
 		else
-			code += '<a href="?ses=' + session + '&amp;w=server&amp;c=prionormal&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityNormal]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=server&amp;c=prionormal&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityNormal]&nbsp;</div></a>'
 		if(priority == "High")
-			code += '<a href="?ses=' + session + '&amp;w=server&amp;c=priohigh&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityHigh]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=server&amp;c=priohigh&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityHigh]&nbsp;</div></a>'
 		else
-			code += '<a href="?ses=' + session + '&amp;w=server&amp;c=priohigh&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityHigh]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=server&amp;c=priohigh&amp;ip=' + ip + '&amp;port=' + port + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityHigh]&nbsp;</div></a>'
 
 		showmenu(event,code)
 	}
@@ -422,21 +422,21 @@ function downpriomenu(event,admin,session,filehash,priority,downstate)
 	if(admin == "admin")
 	{
 		if(priority == "Low")
-			code = '<a href="?ses=' + session + '&amp;w=transfer&amp;op=priolow&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityLow]&nbsp;<\/div><\/a>'
+			code = '<a href="?ses=' + session + '&amp;w=transfer&amp;op=priolow&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityLow]&nbsp;</div></a>'
 		else
-			code = '<a href="?ses=' + session + '&amp;w=transfer&amp;op=priolow&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityLow]&nbsp;<\/div><\/a>'
+			code = '<a href="?ses=' + session + '&amp;w=transfer&amp;op=priolow&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityLow]&nbsp;</div></a>'
 		if(priority == "Normal")
-			code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=prionormal&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityNormal]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=prionormal&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityNormal]&nbsp;</div></a>'
 		else
-			code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=prionormal&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityNormal]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=prionormal&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityNormal]&nbsp;</div></a>'
 		if(priority == "High")
-			code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=priohigh&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityHigh]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=priohigh&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityHigh]&nbsp;</div></a>'
 		else
-			code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=priohigh&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityHigh]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=priohigh&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityHigh]&nbsp;</div></a>'
 		if(priority == "Auto")
-			code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=prioauto&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityAuto]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=prioauto&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityAuto]&nbsp;</div></a>'
 		else
-			code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=prioauto&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityAuto]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=transfer&amp;op=prioauto&amp;file=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityAuto]&nbsp;</div></a>'
 
 		showmenu(event,code)
 	}
@@ -449,29 +449,29 @@ function sharedpriomenu(event,admin,session,filehash,priority)
 	if(admin == "admin")
 	{
 		if(priority == "VeryLow")
-			code = '<a href="?ses=' + session + '&amp;w=shared&amp;prio=verylow&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityVeryLow]&nbsp;<\/div><\/a>'
+			code = '<a href="?ses=' + session + '&amp;w=shared&amp;prio=verylow&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityVeryLow]&nbsp;</div></a>'
 		else
-			code = '<a href="?ses=' + session + '&amp;w=shared&amp;prio=verylow&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityVeryLow]&nbsp;<\/div><\/a>'
+			code = '<a href="?ses=' + session + '&amp;w=shared&amp;prio=verylow&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityVeryLow]&nbsp;</div></a>'
 		if(priority == "Low")
-			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=low&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityLow]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=low&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityLow]&nbsp;</div></a>'
 		else
-			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=low&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityLow]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=low&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityLow]&nbsp;</div></a>'
 		if(priority == "Normal")
-			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=normal&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityNormal]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=normal&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityNormal]&nbsp;</div></a>'
 		else
-			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=normal&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityNormal]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=normal&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityNormal]&nbsp;</div></a>'
 		if(priority == "High")
-			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=high&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityHigh]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=high&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityHigh]&nbsp;</div></a>'
 		else
-			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=high&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityHigh]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=high&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityHigh]&nbsp;</div></a>'
 		if(priority == "Release")
-			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=release&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityRelease]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=release&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityRelease]&nbsp;</div></a>'
 		else
-			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=release&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityRelease]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=release&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityRelease]&nbsp;</div></a>'
 		if(priority == "Auto")
-			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=auto&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityAuto]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=auto&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked.gif">[PriorityAuto]&nbsp;</div></a>'
 		else
-			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=auto&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityAuto]&nbsp;<\/div><\/a>'
+			code += '<a href="?ses=' + session + '&amp;w=shared&amp;prio=auto&amp;hash=' + filehash + '"><div class="menuitems"><img class="menuchecked" src="checked_no.gif">[PriorityAuto]&nbsp;</div></a>'
 
 		showmenu(event,code)
 	}
@@ -494,7 +494,7 @@ function showmenu(e,code,downstate)
 		menuobj.innerHTML=code
 	else
 	{
-		menuobj.document.write('<layer name=gui bgColor=#E6E6E6 onMouseover="clearhidemenu()" onMouseout="hidemenu()">' + code + '<\/layer>')
+		menuobj.document.write('<layer name=gui bgColor=#E6E6E6 onMouseover="clearhidemenu()" onMouseout="hidemenu()">' + code + '</layer>')
 		menuobj.document.close()
 	}
 
@@ -751,20 +751,20 @@ else
      <td><img src="[ConState].gif" align="left"> [ConText] &nbsp;&nbsp;(<img src="l_users.gif" align="middle"> [CurUsers]&nbsp;&nbsp;<img src="filetype_other.gif" align="middle"> [CurFiles])</td>
      <td width="25%" nowrap><img src="h_kad.gif" width="16" height="16" align="left"> [KadConText]</td>
      <td width="1%"></td>
-     <td width="14%" nowrap><img src="l_calendar.gif" align="middle">
-      <script language="javascript">
-       <!--
-        var d = new Date();
-        s = (d.getDate() < 10 ? "0" : "") + d.getDate() + "." + ((d.getMonth() + 1) < 10 ? "0" : "") + (d.getMonth() + 1) + "." + d.getFullYear()
-          + '<td width="14%" nowrap><img src="l_clock.gif" align="middle"> ' + d.getHours() + ":" + (d.getMinutes() < 10 ? "0" : "") + d.getMinutes() + ":" + (d.getSeconds() < 10 ? "0" : "") + d.getSeconds() + "<\/td>";
-        document.write(s);
-       //-->
-      </script>
-     </td>
+	  <script>
+	   <!--
+		var d = new Date();
+		s = '<td width="14%" nowrap><img src="l_calendar.gif" align="left"> '
+		  + (d.getDate() < 10 ? "0" : "") + d.getDate() + "." + ((d.getMonth() + 1) < 10 ? "0" : "") + (d.getMonth() + 1) + "." + d.getFullYear() + "</td>"
+		  + '<td width="14%" nowrap><img src="l_clock.gif" align="left"> '
+		  + d.getHours() + ":" + (d.getMinutes() < 10 ? "0" : "") + d.getMinutes() + ":" + (d.getSeconds() < 10 ? "0" : "") + d.getSeconds() + "</td>";
+		document.write(s);
+	   //-->
+	  </script>
      <td></td>
 
      <td width="17" align="right">
-      <script language="javascript">
+      <script>
 	   <!--
 	    if (timeoutID && timeout != 0)
 	      document.write('<img id="ImgToggleTimer" class="link" align="middle" src="l_timer.gif" onclick="ToggleTimer();">');
@@ -802,7 +802,7 @@ else
  </tr>
 </table>
 
-<script language="javascript">
+<script>
 <!--
 /*************************************************************************
 	dw_tooltip.js
@@ -971,7 +971,7 @@ viewport = {
 //-->
 </script>
 
-<script language="javascript">
+<script>
 /*************************************************************************
 	This code is from Dynamic Web Coding at http://www.dyn-web.com/
 	Copyright 2003 by Sharon Paine
@@ -990,7 +990,7 @@ function hideTip() {
 }
 </script>
 
-<script language="javascript">
+<script>
 <!--
 function ShowHide(id)
 {
@@ -1028,12 +1028,13 @@ function ShowHide(id)
  <tr>
   <td align=center valign=top class=tabs>
    <br>
-   <form action="" method="GET">
+   <form method="GET">
      <input type="hidden" name="ses" value="[Session]">
      <input type="hidden" name="w" value="transfer">
      <textarea name="ed2k" cols="94" rows="7" class="dinput"></textarea>
-     <br><br><input type="submit" value="[Start]">[CATBOXED2K]
+     <br><br><input type="submit" value="[Start]">
    </form>
+   [CATBOXED2K]
    <br><br>
   </td>
  </tr>
@@ -1388,7 +1389,15 @@ color:#FFFFFF; font-size:8pt; line-height:1.2;
 
 <--TMPL_SERVER_LINE-->
 <tr>
- <td valign=middle class="server-line-[ServerState]-left"><table cellspacing="0" cellpadding="0" border="0" valign=middle class="server-line-[ServerState]-left"><tr><td background="[ServerState].gif" width="16" height="16" style="background-position:center;background-repeat:no-repeat"><a href="#" onMouseover="servermenu(event,'[admin]','[ed2k]','[session]','[ip]','[port]','[isstatic]')" onMouseout="delayhidemenu()"><img src="is_[ServerType].gif"></a></td><td>&nbsp;</td><td>[Servername]</td></tr></table></td>
+ <td valign=middle class="server-line-[ServerState]-left">
+  <table cellspacing="0" cellpadding="0" border="0" valign=middle class="server-line-[ServerState]-left">
+   <tr>
+    <td background="[ServerState].gif" width="16" height="16" style="background-position:center;background-repeat:no-repeat"><a href="#" onMouseover="servermenu(event,'[admin]','[ed2k]','[session]','[ip]','[port]','[isstatic]')" onMouseout="delayhidemenu()"><img src="is_[ServerType].gif"></a></td>
+    <td>&nbsp;</td>
+    <td>[Servername]</td>
+   </tr>
+  </table>
+ </td>
  <td valign=middle class="server-line-[ServerState]">[Address]</td>
  <td valign=middle class="server-line-[ServerState]" style="font-size:7.5pt">[Description]</td>
  <td valign=middle class="server-line-[ServerState]">[Ping]</td>
@@ -1410,7 +1419,7 @@ color:#FFFFFF; font-size:8pt; line-height:1.2;
 
 
 <--TMPL_ADDSERVERBOX-->
-<script Language="JavaScript">
+<script>
 function obj(menu) {
 	return (navigator.appName == "Microsoft Internet Explorer")?this[menu]:document.getElementById(menu);
 }
@@ -1451,7 +1460,7 @@ function searchange3() {
  </tr>
  <tr>
   <td class="search-line" colspan="4">
-   <form ID="prefs" action="" method="GET" style="display:;">
+   <form ID="prefs" method="GET" style="display:;">
     <table border=0 cellpadding=4 cellspacing=0 align="left" width="50%">
      <tr>
       <td>
@@ -1463,7 +1472,7 @@ function searchange3() {
      </tr>
     </table>
    </form>
-   <form ID="manual" action="" method="GET" style="display:none;">
+   <form ID="manual" method="GET" style="display:none;">
     <table border=0 cellpadding=4 cellspacing=0 align="left" width="50%">
      <tr>
       <td class="tabs">[IP]</td>
@@ -1507,7 +1516,7 @@ function searchange3() {
      </tr>
     </table>
    </form>
-   <form ID="server" action="" method="GET" style="display:none;">
+   <form ID="server" method="GET" style="display:none;">
     <table border=0 cellpadding=4 cellspacing=0>
      <tr>
       <td class="tabs">[IP]&nbsp;&nbsp;&nbsp;
@@ -1602,7 +1611,7 @@ function searchange3() {
 
 
 <--TMPL_TRANSFER_DOWN_HEADER-->
-<script language="JavaScript">
+<script>
 <!--
 function GotoCat(cat) {
 	var loc= window.location.href;
@@ -1625,14 +1634,24 @@ function GotoCat(cat) {
 
 <table border=0 align=center cellpadding=2 cellspacing=0 width="100%" bgcolor="#99CCFF">
  <tr>
-  <td class="smallheader" colspan="5" style="background-color:#000000"><img src="arrow_down.gif" align="middle">&nbsp;<b><a href="#" onMouseover="columnmenu(event,'transfer','menudown','[DFilenameM]','[DFilename]','[DSizeM]','[DSize]','[DTransferredM]','[DTransferred]','[DProgressM]','[DProgress]','[DSpeedM]','[DSpeed]','[DSourcesM]','[DSources]','[DPriorityM]','[DPriority]','[DCategoryM]','[DCategory]','','','','','','')" onMouseout="delayhidemenu()">[DownloadList]</a>
+  <td class="smallheader" colspan="5" style="background-color:#000000"><img src="arrow_down.gif" align="middle">&nbsp;<b><a href="#" onMouseover="columnmenu(event,'transfer','menudown','[DFilenameM]','[DFilename]','[DSizeM]','[DSize]','[DTransferredM]','[DTransferred]','[DProgressM]','[DProgress]','[DSpeedM]','[DSpeed]','[DSourcesM]','[DSources]','[DPriorityM]','[DPriority]','[DCategoryM]','[DCategory]','','','','','','')" onMouseout="delayhidemenu()">[DownloadList]</a></b>
    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="l_showcat.gif" align="bottom">&nbsp;
-   <a href="#" onMouseover="showmenu(event,'[CatBox]')" onMouseout="delayhidemenu()"><img src="m_category.gif" align="middle">&nbsp;&nbsp;&nbsp;[Category]</b></a>
+   <a href="#" onMouseover="showmenu(event,'[CatBox]')" onMouseout="delayhidemenu()"><img src="m_category.gif" align="middle">&nbsp;&nbsp;&nbsp;[Category]</a>
   </td>
   <td class="smallheader" colspan="5" style="background-color:#000000" align="right"><a href="?ses=[Session]&amp;w=transfer&amp;clearcompleted=all"><img src="m_clearcompleted.gif" align="middle"></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#" onMouseover="catpriomenu(event,'[admin]','[Session]')" onMouseout="delayhidemenu()"><img src="m_catprio.gif" align="middle"></a></td>
  </tr>
  <tr>
-  <td valign=middle class="down-header-left"><table cellspacing="0" cellpadding="0" border="0" valign=top class="down-header-left"><tr><td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=dstate[SortDState]"><b>&times;</b></a></td><td>&nbsp;</td><td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=dtype[SortDType]"><b>&times;</b></a></td><td>&nbsp;</td><td><a href="?ses=[Session]&amp;w=transfer&amp;sort=dname[SortDName]"><b>[DFilename][DFilenameI]</b></a></td></tr></table></td>
+  <td valign=middle class="down-header-left">
+   <table cellspacing="0" cellpadding="0" border="0" valign=top class="down-header-left">
+	<tr>
+	 <td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=dstate[SortDState]"><b>&times;</b></a></td>
+	 <td>&nbsp;</td>
+	 <td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=dtype[SortDType]"><b>&times;</b></a></td>
+	 <td>&nbsp;</td>
+	 <td><a href="?ses=[Session]&amp;w=transfer&amp;sort=dname[SortDName]"><b>[DFilename][DFilenameI]</b></a></td>
+	</tr>
+   </table>
+  </td>
   <td valign=middle class="down-header" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=dsize[SortDSize]"><b>[DSize][DSizeI]</b></a></td>
   <td valign=middle class="down-header" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=dtransferred[SortDTransferred]"><b>[DTransferred][DTransferredI]</b></a></td>
   <td valign=middle class="down-header"><a href="?ses=[Session]&amp;w=transfer&amp;sort=dprogress[SortDProgress]"><b>[DProgress][DProgressI]</b></a></td>
@@ -1659,17 +1678,30 @@ function GotoCat(cat) {
 
 <--TMPL_TRANSFER_DOWN_LINE-->
  <tr>
-  <td valign=top class="down-line-[DownState]-left" nowrap><table cellspacing="0" cellpadding="0" border="0" valign=top class="down-line-[DownState]-left">
-  <tr><td>
-  <a href="#" onMouseover="downmenu(event,'[admin]','[finfo]','[ed2k]','[DownState]','[isgetflc]','[fname]','[session]','[filehash]','[fcomments]','[downloadable]')" onMouseout="delayhidemenu()">
-  <img src="t_[DownState].gif"></a>
+  <td valign=top class="down-line-[DownState]-left" nowrap>
+   <table cellspacing="0" cellpadding="0" border="0" valign=top class="down-line-[DownState]-left">
+    <tr>
+     <td>
+      <a href="#" onMouseover="downmenu(event,'[admin]','[finfo]','[ed2k]','[DownState]','[isgetflc]','[fname]','[session]','[filehash]','[fcomments]','[downloadable]')" onMouseout="delayhidemenu()">
+      <img src="t_[DownState].gif"></a>
+     </td>
+     <td>&nbsp;</td>
+     <td background="filetype_[FileType].gif" width="16" height="16" style="background-position:center;background-repeat:no-repeat">
+      <img src="is_half[FileCommentIcon].gif"></td><td>&nbsp;</td><td onMouseover="doTooltip(event, this.firstChild.innerHTML)" onMouseout="hideTip()">
+      <div style="display:none;">[FileInfo]</div>[ShortFileName]
+     </td>
+    </tr>
+   </table>
   </td>
-  <td>&nbsp;</td>
-  <td background="filetype_[FileType].gif" width="16" height="16" style="background-position:center;background-repeat:no-repeat">
-  <img src="is_half[FileCommentIcon].gif"></td><td>&nbsp;</td><td onMouseover="doTooltip(event, this.firstChild.innerHTML)" onMouseout="hideTip()"><div style="display:none;">[FileInfo]</div>[ShortFileName]</td></tr></table></td>
   <td valign=top class="down-line-[DownState]-right" nowrap style="font-size:7.5pt">[2]</td>
   <td valign=top class="down-line-[DownState]-right" nowrap>[3]</td>
-  <td valign=middle class="down-line-[DownState]" width=[PROGRESSBARWIDTHVAL]><table width=[PROGRESSBARWIDTHVAL] height=11 border=1 class="percent_table" cellpadding=0 cellspacing=0 bordercolor="#000000"><tr><td>[DownloadBar]</td></tr></table></td>
+  <td valign=middle class="down-line-[DownState]" width=[PROGRESSBARWIDTHVAL]>
+   <table width=[PROGRESSBARWIDTHVAL] height=11 border=1 class="percent_table" cellpadding=0 cellspacing=0 bordercolor="#000000">
+    <tr>
+     <td>[DownloadBar]</td>
+    </tr>
+   </table>
+  </td>
   <td valign=top class="down-line-[DownState]-right" nowrap>[4]</td>
   <td valign=top class="down-line-[DownState]" nowrap style="font-size:7.5pt">[5]</td>
   <td valign=top class="down-line-[DownState]" nowrap style="font-size:7.5pt"><a href="#" onMouseover="downpriomenu(event,'[admin]','[session]','[filehash]','[down-priority]','[DownState]')" onMouseout="delayhidemenu()">[PrioVal]</a></td>
@@ -1688,7 +1720,15 @@ function GotoCat(cat) {
   <td class="smallheader" colspan="6" style="background-color:#000000"><img src="arrow_up.gif" align="middle">&nbsp;<b><a href="#" onMouseover="columnmenu(event,'transfer','menuup','[UUserM]','[UUser]','[UVersionM]','[UVersion]','[UFilenameM]','[UFilename]','[UTransferredM]','[UTransferred]','[USpeedM]','[USpeed]','','','','','','','','','','','','')" onMouseout="delayhidemenu()">[UploadList]</a></b></td>
  </tr>
  <tr>
-  <td class="up-header-left"><table cellspacing="0" cellpadding="0" border="0" valign=top class="up-header-left"><tr><td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=uspeed[SortUSpeed]"><b>&times;</b></a></td><td>&nbsp;</td><td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=uclient[SortUClient]"><b>&times;</b></a></td><td>&nbsp;</td><td><a href="?ses=[Session]&amp;w=transfer&amp;sort=uuser[SortUUser]"><b>[UUser][UUserI]</b></a></td></tr></table></td>
+  <td class="up-header-left">
+   <table cellspacing="0" cellpadding="0" border="0" valign=top class="up-header-left">
+    <tr>
+     <td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=uspeed[SortUSpeed]"><b>&times;</b></a></td>
+     <td>&nbsp;</td><td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=uclient[SortUClient]"><b>&times;</b></a></td>
+     <td>&nbsp;</td><td><a href="?ses=[Session]&amp;w=transfer&amp;sort=uuser[SortUUser]"><b>[UUser][UUserI]</b></a></td>
+    </tr>
+   </table>
+  </td>
   <td class="up-header-left" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=uversion[SortUVersion]"><b>[UVersion][UVersionI]</b></a></td>
   <td class="up-header-left" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=ufilename[SortUFilename]"><b>[UFilename][UFilenameI]</b></a></td>
   <td class="up-header" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=utransferred[SortUTransferred]"><b>[UTransferred][UTransferredI]</b></a></td>
@@ -1711,8 +1751,19 @@ function GotoCat(cat) {
 
 <--TMPL_TRANSFER_UP_LINE-->
  <tr>
-  <td valign=top class="up-line-[ClientState]-left"><table cellspacing="0" cellpadding="0" border="0" valign=top class="up-line-[ClientState]-left"><tr><td><img src="t_[ClientState].gif"></td><td>&nbsp;</td>
-  <td background="ct_[ClientSoft].gif" style="background-position:center;background-repeat:no-repeat"><a href="#" onMouseover="upmenu(event,'[admin]','[ClientExtra]','[UserHash]')" onMouseout="delayhidemenu()"><img src="is_[ClientExtra].gif"></a></td><td>&nbsp;</td><td onMouseover="doTooltip(event, this.firstChild.innerHTML)" onMouseout="hideTip()"><div style="display:none;">[FileInfo]</div><acronym>[1]</acronym></td></tr></table></td>
+  <td valign=top class="up-line-[ClientState]-left">
+   <table cellspacing="0" cellpadding="0" border="0" valign=top class="up-line-[ClientState]-left">
+    <tr>
+     <td><img src="t_[ClientState].gif"></td>
+     <td>&nbsp;</td>
+     <td background="ct_[ClientSoft].gif" style="background-position:center;background-repeat:no-repeat">
+      <a href="#" onMouseover="upmenu(event,'[admin]','[ClientExtra]','[UserHash]')" onMouseout="delayhidemenu()"><img src="is_[ClientExtra].gif"></a>
+     </td>
+     <td>&nbsp;</td>
+     <td onMouseover="doTooltip(event, this.firstChild.innerHTML)" onMouseout="hideTip()"><div style="display:none;">[FileInfo]</div><acronym>[1]</acronym></td>
+    </tr>
+   </table>
+  </td>
   <td valign=top class="up-line-[ClientState]-left" style="font-size:7.5pt" onMouseover="doTooltip(event, this.firstChild.innerHTML)" onMouseout="hideTip()"><div style="display:none;">[FileInfo]</div><acronym>[ClientSoftV]</acronym></td>
   <td valign=top class="up-line-[ClientState]-left" style="font-size:7.5pt" onMouseover="doTooltip(event, this.firstChild.innerHTML)" onMouseout="hideTip()"><div style="display:none;">[FileInfo]</div><acronym>[2]</acronym></td>
   <td valign=top class="up-line-[ClientState]" style="font-size:7.5pt">[3]</td>
@@ -1732,7 +1783,15 @@ function GotoCat(cat) {
   <td class="smallheader" colspan="4" align="right"><b>[CounterQueue] ([CounterQueueSecure])</b></td>
  </tr>
  <tr>
-  <td class="upqueue-header-left"><table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-header-left"><tr><td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qscore[SortQScore]"><b>&times;</b></a></td><td>&nbsp;</td><td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qclient[SortQClient]"><b>&times;</b></a></td><td>&nbsp;</td><td><a href="?ses=[Session]&amp;w=transfer&amp;sort=quser[SortQUser]"><b>[UserNameTitle][UserNameTitleI]</b></a></td></tr></table></td>
+  <td class="upqueue-header-left">
+   <table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-header-left">
+    <tr>
+     <td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qscore[SortQScore]"><b>&times;</b></a></td>
+     <td>&nbsp;</td><td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qclient[SortQClient]"><b>&times;</b></a></td>
+     <td>&nbsp;</td><td><a href="?ses=[Session]&amp;w=transfer&amp;sort=quser[SortQUser]"><b>[UserNameTitle][UserNameTitleI]</b></a></td>
+    </tr>
+   </table>
+  </td>
   <td class="upqueue-header-left" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qversion[SortQVersion]"><b>[Version][VersionI]</b></a></td>
   <td class="upqueue-header-left" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qfilename[SortQFilename]"><b>[FileNameTitle][FileNameTitleI]</b></a></td>
   <td class="upqueue-header" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qscore[SortQScore]"><b>[ScoreTitle][ScoreTitleI]</b></a></td>
@@ -1748,7 +1807,17 @@ function GotoCat(cat) {
   <td class="smallheader" colspan="4" align="right"><b>[CounterQueueFriend] ([CounterQueueFriendSecure])</b></td>
  </tr>
  <tr>
-  <td class="upqueue-header-left"><table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-header-left"><tr><td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qscoret[SortQScore]"><b>&times;</b></a></td><td>&nbsp;</td><td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qclient[SortQClient]"><b>&times;</b></a></td><td>&nbsp;</td><td><a href="?ses=[Session]&amp;w=transfer&amp;sort=quser[SortQUser]"><b>[UserNameTitle][UserNameTitleI]</b></a></td></tr></table></td>
+  <td class="upqueue-header-left">
+   <table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-header-left">
+    <tr>
+     <td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qscoret[SortQScore]"><b>&times;</b></a></td>
+     <td>&nbsp;</td>
+     <td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qclient[SortQClient]"><b>&times;</b></a></td>
+     <td>&nbsp;</td>
+     <td><a href="?ses=[Session]&amp;w=transfer&amp;sort=quser[SortQUser]"><b>[UserNameTitle][UserNameTitleI]</b></a></td>
+    </tr>
+   </table>
+  </td>
   <td class="upqueue-header-left" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qversion[SortQVersion]"><b>[Version][VersionI]</b></a></td>
   <td class="upqueue-header-left" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qfilename[SortQFilename]"><b>[FileNameTitle][FileNameTitleI]</b></a></td>
   <td class="upqueue-header" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qscore[SortQScore]"><b>[ScoreTitle][ScoreTitleI]</b></a></td>
@@ -1764,7 +1833,17 @@ function GotoCat(cat) {
   <td class="smallheader" colspan="4" align="right"><b>[CounterQueueBanned] ([CounterQueueBannedSecure])</b></td>
  </tr>
  <tr>
-  <td class="upqueue-header-left"><table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-header-left"><tr><td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qscore[SortQScore]"><b>&times;</b></a></td><td>&nbsp;</td><td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qclient[SortQClient]"><b>&times;</b></a></td><td>&nbsp;</td><td><a href="?ses=[Session]&amp;w=transfer&amp;sort=quser[SortQUser]"><b>[UserNameTitle][UserNameTitleI]</b></a></td></tr></table></td>
+  <td class="upqueue-header-left">
+   <table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-header-left">
+    <tr>
+     <td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qscore[SortQScore]"><b>&times;</b></a></td>
+     <td>&nbsp;</td>
+     <td width="16" align="center"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qclient[SortQClient]"><b>&times;</b></a></td>
+     <td>&nbsp;</td>
+     <td><a href="?ses=[Session]&amp;w=transfer&amp;sort=quser[SortQUser]"><b>[UserNameTitle][UserNameTitleI]</b></a></td>
+    </tr>
+   </table>
+  </td>
   <td class="upqueue-header-left" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qversion[SortQVersion]"><b>[Version][VersionI]</b></a></td>
   <td class="upqueue-header-left" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qfilename[SortQFilename]"><b>[FileNameTitle][FileNameTitleI]</b></a></td>
   <td class="upqueue-header" style="font-size:7.5pt"><a href="?ses=[Session]&amp;w=transfer&amp;sort=qscore[SortQScore]"><b>[ScoreTitle][ScoreTitleI]</b></a></td>
@@ -1776,7 +1855,18 @@ function GotoCat(cat) {
 
 <--TMPL_TRANSFER_UP_QUEUE_LINE-->
  <tr>
-  <td valign=top class="upqueue-[ClientState]-line-left"><table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-[ClientState]-line-left"><tr><td><img src="t_[ClientStateSpecial].gif"></td><td>&nbsp;</td><td background="ct_[ClientSoft].gif" style="background-position:center;background-repeat:no-repeat"><a href="#" onMouseover="upmenu(event,'[admin]','[ClientExtra]','[UserHash]')" onMouseout="delayhidemenu()"><img src="is_[ClientExtra].gif"></a></td><td>&nbsp;</td><td>[UserName]</td></tr></table>
+  <td valign=top class="upqueue-[ClientState]-line-left">
+   <table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-[ClientState]-line-left">
+    <tr>
+     <td><img src="t_[ClientStateSpecial].gif"></td><td>&nbsp;</td>
+     <td background="ct_[ClientSoft].gif" style="background-position:center;background-repeat:no-repeat">
+      <a href="#" onMouseover="upmenu(event,'[admin]','[ClientExtra]','[UserHash]')" onMouseout="delayhidemenu()"><img src="is_[ClientExtra].gif"></a>
+     </td>
+     <td>&nbsp;</td>
+     <td>[UserName]</td>
+    </tr>
+   </table>
+  </td>
   <td valign=top class="upqueue-[ClientState]-line-left" style="font-size:7.5pt">[ClientSoftV]</td>
   <td valign=top class="upqueue-[ClientState]-line-left" style="font-size:7.5pt">[FileName]</td>
   <td valign=top class="upqueue-[ClientState]-line" style="font-size:7.5pt">[Score]</td>
@@ -1787,7 +1877,18 @@ function GotoCat(cat) {
 
 <--TMPL_TRANSFER_UP_QUEUE_BANNED_LINE-->
  <tr>
-  <td valign=top class="upqueue-[ClientState]-line-left"><table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-[ClientState]-line-left"><tr><td><img src="t_[ClientStateSpecial].gif"></td><td>&nbsp;</td><td background="ct_[ClientSoft].gif" style="background-position:center;background-repeat:no-repeat"><a href="#" onMouseover="upmenu(event,'[admin]','[ClientExtra]','[UserHash]')" onMouseout="delayhidemenu()"><img src="is_[ClientExtra].gif"></a></td><td>&nbsp;</td><td>[UserName]</td></tr></table>
+  <td valign=top class="upqueue-[ClientState]-line-left">
+   <table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-[ClientState]-line-left">
+    <tr>
+     <td><img src="t_[ClientStateSpecial].gif"></td>
+     <td>&nbsp;</td>
+     <td background="ct_[ClientSoft].gif" style="background-position:center;background-repeat:no-repeat">
+      <a href="#" onMouseover="upmenu(event,'[admin]','[ClientExtra]','[UserHash]')" onMouseout="delayhidemenu()"><img src="is_[ClientExtra].gif"></a>
+     </td>
+     <td>&nbsp;</td>
+     <td>[UserName]</td>
+    </tr>
+   </table>
   <td valign=top class="upqueue-[ClientState]-line-left" style="font-size:7.5pt">[ClientSoftV]</td>
   <td valign=top class="upqueue-[ClientState]-line-left" style="font-size:7.5pt">[FileName]</td>
   <td valign=top class="upqueue-[ClientState]-line" style="font-size:7.5pt">[Score]</td>
@@ -1798,7 +1899,19 @@ function GotoCat(cat) {
 
 <--TMPL_TRANSFER_UP_QUEUE_FRIEND_LINE-->
  <tr>
-  <td valign=top class="upqueue-[ClientState]-line-left"><table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-[ClientState]-line-left"><tr><td><img src="t_[ClientStateSpecial].gif"></td><td>&nbsp;</td><td background="ct_[ClientSoft].gif" style="background-position:center;background-repeat:no-repeat"><a href="#" onMouseover="upmenu(event,'[admin]','[ClientExtra]','[UserHash]')" onMouseout="delayhidemenu()"><img src="is_[ClientExtra].gif"></a></td><td>&nbsp;</td><td>[UserName]</td></tr></table>
+  <td valign=top class="upqueue-[ClientState]-line-left">
+   <table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-[ClientState]-line-left">
+    <tr>
+     <td><img src="t_[ClientStateSpecial].gif"></td>
+     <td>&nbsp;</td>
+     <td background="ct_[ClientSoft].gif" style="background-position:center;background-repeat:no-repeat">
+      <a href="#" onMouseover="upmenu(event,'[admin]','[ClientExtra]','[UserHash]')" onMouseout="delayhidemenu()"><img src="is_[ClientExtra].gif"></a>
+     </td>
+     <td>&nbsp;</td>
+     <td>[UserName]</td>
+    </tr>
+   </table>
+  </td>
   <td valign=top class="upqueue-[ClientState]-line-left" style="font-size:7.5pt">[ClientSoftV]</td>
   <td valign=top class="upqueue-[ClientState]-line-left" style="font-size:7.5pt">[FileName]</td>
   <td valign=top class="upqueue-[ClientState]-line" style="font-size:7.5pt">[Score]</td>
@@ -1809,7 +1922,19 @@ function GotoCat(cat) {
 
 <--TMPL_TRANSFER_UP_QUEUE_CREDIT_LINE-->
  <tr>
-  <td valign=top class="upqueue-[ClientState]-line-left"><table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-[ClientState]-line-left"><tr><td><img src="t_[ClientStateSpecial].gif"></td><td>&nbsp;</td><td background="ct_[ClientSoft].gif" style="background-position:center;background-repeat:no-repeat"><a href="#" onMouseover="upmenu(event,'[admin]','[ClientExtra]','[UserHash]')" onMouseout="delayhidemenu()"><img src="is_[ClientExtra].gif"></a></td><td>&nbsp;</td><td>[UserName]</td></tr></table>
+  <td valign=top class="upqueue-[ClientState]-line-left">
+   <table cellspacing="0" cellpadding="0" border="0" valign=top class="upqueue-[ClientState]-line-left">
+    <tr>
+     <td><img src="t_[ClientStateSpecial].gif"></td>
+     <td>&nbsp;</td>
+     <td background="ct_[ClientSoft].gif" style="background-position:center;background-repeat:no-repeat">
+      <a href="#" onMouseover="upmenu(event,'[admin]','[ClientExtra]','[UserHash]')" onMouseout="delayhidemenu()"><img src="is_[ClientExtra].gif"></a>
+     </td>
+     <td>&nbsp;</td>
+     <td>[UserName]</td>
+    </tr>
+   </table>
+  </td>
   <td valign=top class="upqueue-[ClientState]-line-left" style="font-size:7.5pt">[ClientSoftV]</td>
   <td valign=top class="upqueue-[ClientState]-line-left" style="font-size:7.5pt">[FileName]</td>
   <td valign=top class="upqueue-[ClientState]-line" style="font-size:7.5pt">[Score]</td>
@@ -1826,9 +1951,9 @@ function GotoCat(cat) {
  </tr>
  <tr>
   <td class="smallheader">
-   <script language="JavaScript">
-    if ([CounterQueue]!=0) { document.write('<a href="?ses=[Session]&amp;w=transfer&amp;showuploadqueue=true"><img src="l_add.gif" align="middle"><\/a>&nbsp;&nbsp;<b>[ShowUploadQueueList]<\/b>'); }
-    else { document.write('<img src="l_none.gif" align="middle">&nbsp;&nbsp;<b>[ShowUploadQueueList]<\/b>'); }
+   <script>
+    if ([CounterQueue]!=0) { document.write('<a href="?ses=[Session]&amp;w=transfer&amp;showuploadqueue=true"><img src="l_add.gif" align="middle"></a>&nbsp;&nbsp;<b>[ShowUploadQueueList]</b>'); }
+    else { document.write('<img src="l_none.gif" align="middle">&nbsp;&nbsp;<b>[ShowUploadQueueList]</b>'); }
    </script>
   </td>
   <td class="smallheader" colspan="4" align="right"><b>[CounterQueue] ([CounterQueueSecure])</b></td>
@@ -1839,9 +1964,9 @@ function GotoCat(cat) {
 <--TMPL_TRANSFER_UP_QUEUE_BANNED_HIDE-->
  <tr>
   <td class="smallheader">
-   <script language="JavaScript">
-    if ([CounterQueueBanned]!=0) { document.write('<a href="?ses=[Session]&amp;w=transfer&amp;showuploadqueuebanned=true"><img src="l_add.gif" align="middle"><\/a>&nbsp;&nbsp;<b>[ShowUploadQueueListBanned]<\/b>'); }
-    else { document.write('<img src="l_none.gif" align="middle">&nbsp;&nbsp;<b>[ShowUploadQueueListBanned]<\/b>'); }
+   <script>
+    if ([CounterQueueBanned]!=0) { document.write('<a href="?ses=[Session]&amp;w=transfer&amp;showuploadqueuebanned=true"><img src="l_add.gif" align="middle"></a>&nbsp;&nbsp;<b>[ShowUploadQueueListBanned]</b>'); }
+    else { document.write('<img src="l_none.gif" align="middle">&nbsp;&nbsp;<b>[ShowUploadQueueListBanned]</b>'); }
    </script>
   </td>
   <td class="smallheader" colspan="4" align="right"><b>[CounterQueueBanned] ([CounterQueueBannedSecure])</b></td>
@@ -1852,9 +1977,9 @@ function GotoCat(cat) {
 <--TMPL_TRANSFER_UP_QUEUE_FRIEND_HIDE-->
  <tr>
   <td class="smallheader">
-   <script language="JavaScript">
-    if ([CounterQueueFriend]!=0) { document.write('<a href="?ses=[Session]&amp;w=transfer&amp;showuploadqueuefriend=true"><img src="l_add.gif" align="middle"><\/a>&nbsp;&nbsp;<b>[ShowUploadQueueListFriend]<\/b>'); }
-    else { document.write('<img src="l_none.gif" align="middle">&nbsp;&nbsp;<b>[ShowUploadQueueListFriend]<\/b>'); }
+   <script>
+    if ([CounterQueueFriend]!=0) { document.write('<a href="?ses=[Session]&amp;w=transfer&amp;showuploadqueuefriend=true"><img src="l_add.gif" align="middle"></a>&nbsp;&nbsp;<b>[ShowUploadQueueListFriend]</b>'); }
+    else { document.write('<img src="l_none.gif" align="middle">&nbsp;&nbsp;<b>[ShowUploadQueueListFriend]</b>'); }
    </SCRIPT>
   </td>
   <td class="smallheader" colspan="4" align="right"><b>[CounterQueueFriend] ([CounterQueueFriendSecure])</b></td>
@@ -1869,7 +1994,7 @@ function GotoCat(cat) {
 
 
 <--TMPL_SEARCH-->
-<script language="JavaScript">
+<script>
 function obj(menu) {
 	return (navigator.appName == "Microsoft Internet Explorer")?this[menu]:document.getElementById(menu);
 }
@@ -1896,12 +2021,12 @@ function searchange2() {
     <tr>
      <td class="search-main" ID="searchtag" align="center" style="background:#005784" nowrap><img src="l_search.gif" align="middle">&nbsp;<b><a href="javascript:searchange1()">[Search]</a></b>&nbsp;</td>
      <td class="search-main" ID="contentdbtag" align="center" nowrap><img src="l_contentdb.gif" align="middle">&nbsp;<b><a href="javascript:searchange2()">ContentDB [Search]</a></b>&nbsp;</td>
-     <td class="search-main" align="right" nowrap><img src="l_ed2klink.gif" align="middle">&nbsp;<b><a href="javascript:ShowHide('ed2k_open');">[Ed2klink]</a></b>&nbsp;</td>  
+     <td class="search-main" align="right" nowrap><img src="l_ed2klink.gif" align="middle">&nbsp;<b><a href="javascript:ShowHide('ed2k_open');">[Ed2klink]</a></b>&nbsp;</td>
      <td class="search-main" width="100%">&nbsp;</td>
     </tr>
     <tr>
      <td class="search-line" colspan="5">
-      <form ID="search" action="" method="GET" style="display:">
+      <form ID="search" method="GET" style="display:">
        <table border=0 cellpadding=4 cellspacing=0 align="left">
         <tr>
          <td class="tabs" width=150>[Name]</td>
@@ -1945,7 +2070,7 @@ function searchange2() {
            <input value="server" type="radio" name="method" checked>[USESSERVER]<br>
            <input value="global" type="radio" name="method">[Global]<br>
            <input value="kademlia" type="radio" name="method">[USEKADEMLIA]
-         </td> 
+         </td>
     	</tr>
         <tr>
          <td></td>
@@ -1991,7 +2116,7 @@ function searchange2() {
     </tr>
    </table>
    <br>
-   <form action="" method="GET">
+   <form method="GET">
     <input type="hidden" name="ses" value="[Session]">
     <input type="hidden" name="w" value="search">
     <table border=0 cellpadding=4 cellspacing=0 width="100%">
@@ -2014,7 +2139,17 @@ function searchange2() {
 
 <--TMPL_SEARCH_RESULT_HEADER-->
 <tr>
- <td class="search-header-left"><table cellspacing="0" cellpadding="0" border="0" valign=middle class="search-header"><tr><td width="16"><a href="?ses=[Session]&amp;w=search&amp;sort=3&amp;sortAsc=[SORTASCVALUE3]">&times;</a></td><td>&nbsp;</td><td width="16"><a href="?ses=[Session]&amp;w=search&amp;sort=5&amp;sortAsc=[SORTASCVALUE5]">&times;</a></td><td>&nbsp;</td><td align="left"><b><a href="?ses=[Session]&amp;w=search&amp;sort=0&amp;sortAsc=[SORTASCVALUE0]">[FilenameH][FilenameI]</a></b></td></tr></table></td>
+ <td class="search-header-left">
+  <table cellspacing="0" cellpadding="0" border="0" valign=middle class="search-header">
+   <tr>
+    <td width="16"><a href="?ses=[Session]&amp;w=search&amp;sort=3&amp;sortAsc=[SORTASCVALUE3]">&times;</a></td>
+    <td>&nbsp;</td>
+    <td width="16"><a href="?ses=[Session]&amp;w=search&amp;sort=5&amp;sortAsc=[SORTASCVALUE5]">&times;</a></td>
+    <td>&nbsp;</td>
+    <td align="left"><b><a href="?ses=[Session]&amp;w=search&amp;sort=0&amp;sortAsc=[SORTASCVALUE0]">[FilenameH][FilenameI]</a></b></td>
+   </tr>
+  </table>
+ </td>
  <td class="search-header-right" style="font-size:7.5pt"><b><a href="?ses=[Session]&amp;w=search&amp;sort=1&amp;sortAsc=[SORTASCVALUE1]">[FilesizeH][FilesizeI]</a></b></td>
  <td class="search-header" style="font-size:7.5pt"><b><a href="?ses=[Session]&amp;w=search&amp;sort=2&amp;sortAsc=[SORTASCVALUE2]">[FilehashH][FilehashI]</a></b></td>
  <td class="search-header" style="font-size:7.5pt"><b><a href="?ses=[Session]&amp;w=search&amp;sort=3&amp;sortAsc=[SORTASCVALUE3]">[SourcesH][SourcesI]</a></b></td>
@@ -2024,11 +2159,18 @@ function searchange2() {
 
 
 <--TMPL_SEARCH_RESULT_LINE-->
-   <tr>
-    <td class="search-line-left"><table cellspacing="0" cellpadding="0" border="0" valign=middle class="search-line"><tr><td background="l_sources_%s.gif" width="16" height="16" style="background-position:center;background-repeat:no-repeat"><a href="#" onMouseover="searchmenu(event,'%s')" onMouseout="delayhidemenu()"><img src="is_%s.gif"></a></td><td>&nbsp;<img src="filetype_%s.gif" align="middle"></td><td>&nbsp;</td>
-    <td>%s</td>
-   </tr>
-  </table>
+<tr>
+ <td class="search-line-left">
+   <table cellspacing="0" cellpadding="0" border="0" valign=middle class="search-line">
+    <tr>
+     <td background="l_sources_%s.gif" width="16" height="16" style="background-position:center;background-repeat:no-repeat">
+      <a href="#" onMouseover="searchmenu(event,'%s')" onMouseout="delayhidemenu()"><img src="is_%s.gif"></a>
+     </td>
+     <td>&nbsp;<img src="filetype_%s.gif" align="middle"></td>
+     <td>&nbsp;</td>
+     <td>%s</td>
+    </tr>
+   </table>
  </td>
  <td class="search-line-right">%s</td>
  <td class="search-line" style="font-size:7.5pt">%s</td>
@@ -2058,7 +2200,16 @@ function searchange2() {
   <td class="smallheader" colspan=8 style="background-color:#000000"><b><img src="l_shared.gif" align="middle">&nbsp;<a href="#" onMouseover="columnmenu(event,'shared','menu','[FilenameM]','[Filename]','[FileTransferredM]','[FileTransferred]','[FileRequestsM]','[FileRequests]','[FileAcceptsM]','[FileAccepts]','[SizeM]','[Size]','[CompletesM]','[Completes]','[PriorityM]','[Priority]','','','','','','','','','','')" onMouseout="delayhidemenu()">[SharedList]</a>&nbsp;[Message]</b></td>
  </tr>
  <tr>
-  <td valign=middle class="shared-header-left"><table cellspacing="0" cellpadding="0" border="0" valign=top class="shared-header-left"><tr><td width="16" align="center"><a href="?ses=[Session]&amp;w=shared&amp;[SortState]"><b>&times;</b></a></td><td>&nbsp;</td><td width="16" align="center"><a href="?ses=[Session]&amp;w=shared&amp;[SortType]"><b>&times;</b></a></td><td><a href="?ses=[Session]&amp;w=shared&amp;[SortName]"><b>[Filename][FilenameI]</b></a></td></tr></table></td>
+  <td valign=middle class="shared-header-left">
+   <table cellspacing="0" cellpadding="0" border="0" valign=top class="shared-header-left">
+    <tr>
+     <td width="16" align="center"><a href="?ses=[Session]&amp;w=shared&amp;[SortState]"><b>&times;</b></a></td>
+     <td>&nbsp;</td>
+     <td width="16" align="center"><a href="?ses=[Session]&amp;w=shared&amp;[SortType]"><b>&times;</b></a></td>
+     <td><a href="?ses=[Session]&amp;w=shared&amp;[SortName]"><b>[Filename][FilenameI]</b></a></td>
+    </tr>
+   </table>
+  </td>
   <td valign=middle class="shared-header"><a href="?ses=[Session]&amp;w=shared&amp;[SortTransferred]"><b>[FileTransferred][FileTransferredI]</b></a></td>
   <td valign=middle class="shared-header"><a href="?ses=[Session]&amp;w=shared&amp;[SortRequests]"><b>[FileRequests][FileRequestsI]</b></a></td>
   <td valign=middle class="shared-header"><a href="?ses=[Session]&amp;w=shared&amp;[SortAccepts]"><b>[FileAccepts][FileAcceptsI]</b></a></td>
@@ -2071,7 +2222,7 @@ function searchange2() {
 </table>
 <div align="center">
  <br>
- <form action=""><input type="button" name="queue" value="[Reload]" onClick="self.location.href='/?ses=[Session]&amp;w=shared&amp;reload=true'"></form>
+ <form><input type="button" name="queue" value="[Reload]" onClick="self.location.href='/?ses=[Session]&amp;w=shared&amp;reload=true'"></form>
  <br>
 </div>
 <--TMPL_SHARED_LIST_END-->
@@ -2079,7 +2230,18 @@ function searchange2() {
 
 <--TMPL_SHARED_LINE-->
 <tr>
- <td valign=top class="shared-line-[FileState]-left"><table cellspacing="0" cellpadding="0" border="0" valign=top class="shared-line-[FileState]-left"><tr><td background="[FileState].gif" width="16" height="16" style="background-position:center;background-repeat:no-repeat"><a href="#" onMouseover="sharedmenu(event,'[admin]','[ed2k]','[session]','[hash]','[fname]','[FileState]','[Downloadable]')" onMouseout="delayhidemenu()"><img src="is_[FileIsPriority].gif"></a></td><td>&nbsp;</td><td><img src="filetype_[FileType].gif" align="middle"></td><td>&nbsp;</td><td><acronym title="[FileName]&#013;Hash: [FileHash]">[ShortFileName]</acronym></td></tr></table></td>
+ <td valign=top class="shared-line-[FileState]-left">
+  <table cellspacing="0" cellpadding="0" border="0" valign=top class="shared-line-[FileState]-left">
+   <tr>
+    <td background="[FileState].gif" width="16" height="16" style="background-position:center;background-repeat:no-repeat">
+     <a href="#" onMouseover="sharedmenu(event,'[admin]','[ed2k]','[session]','[hash]','[fname]','[FileState]','[Downloadable]')" onMouseout="delayhidemenu()"><img src="is_[FileIsPriority].gif"></a>
+    </td><td>&nbsp;</td>
+    <td><img src="filetype_[FileType].gif" align="middle"></td>
+    <td>&nbsp;</td>
+    <td><acronym title="[FileName]&#013;Hash: [FileHash]">[ShortFileName]</acronym></td>
+   </tr>
+  </table>
+ </td>
  <td valign=top class="shared-line-[FileState]">[FileTransferred][FileAllTimeTransferred]</td>
  <td valign=top class="shared-line-[FileState]">[FileRequests][FileAllTimeRequests]</td>
  <td valign=top class="shared-line-[FileState]">[FileAccepts][FileAllTimeAccepts]</td>
@@ -2098,7 +2260,7 @@ function searchange2() {
 
 <--TMPL_STATS-->
 &nbsp;
-<script Language="JavaScript">
+<script>
 function obj(menu)
 {
 	return (navigator.appName == "Microsoft Internet Explorer")?this[menu]:document.getElementById(menu);
@@ -2138,9 +2300,9 @@ function togglevisible(treepart)
 
 
 <--TMPL_GRAPHS-->
-<script language="JavaScript">
+<script>
 function traceGraph(SpeedString,imageURL,MaxSpeed) {
-	document.write('<table cellspacing=0 border=0 cellpadding=0 width="500px"><tr><td valign="bottom" height="150" width="100%"><\/td>');
+	document.write('<table cellspacing=0 border=0 cellpadding=0 width="500px"><tr><td valign="bottom" height="150" width="100%"></td>');
 	var speed = SpeedString.split(",");
 	if(MaxSpeed==0) MaxSpeed = 1; //No divide by 0 !
 	for(i=0;i<speed.length;i++)
@@ -2149,16 +2311,16 @@ function traceGraph(SpeedString,imageURL,MaxSpeed) {
 		if (speed[i]>MaxSpeed)
 			speed[i]=MaxSpeed;
 		size=Math.round(speed[i]*150/MaxSpeed);
-		document.write('<td valign="bottom"><table height="'+ size +'px" width="1px" border=0 cellpadding=0 cellspacing=0><td background="' + imageURL + '" height="100%" width="100%"><\/td><\/table><\/td>');
+		document.write('<td valign="bottom"><table height="'+ size +'px" width="1px" border=0 cellpadding=0 cellspacing=0><td background="' + imageURL + '" height="100%" width="100%"></td></table></td>');
 	}
-	document.write('<\/tr><\/table>');
+	document.write('</tr></table>');
 }
 </script>
 &nbsp;
 <table border=0 align=center cellpadding=0 cellspacing=0>
  <tr>
   <td style="border-width:1px; border-color:green; border-style:solid;" valign="bottom" height="150px" background="stats_back.gif">
-   <script language="JavaScript">
+   <script>
    var dlstring="[GraphDownload]";
    traceGraph(dlstring,"stats_down.gif",[MaxDownload]*1024);
    </script>
@@ -2169,7 +2331,7 @@ function traceGraph(SpeedString,imageURL,MaxSpeed) {
  </tr>
  <tr>
   <td style="border-width:1px; border-color:red; border-style:solid;" valign="bottom" height="150px" background="stats_back.gif">
-   <script language="JavaScript">
+   <script>
    var ulstring="[GraphUpload]";
    traceGraph(ulstring,"stats_up.gif",[MaxUpload]*1024);
    </SCRIPT>
@@ -2180,7 +2342,7 @@ function traceGraph(SpeedString,imageURL,MaxSpeed) {
  </tr>
  <tr>
  <td style="border-width:1px; border-color:blue; border-style:solid;" valign="bottom" height="150px" background="stats_back.gif">
-  <script language="JavaScript">
+  <script>
   var ulstring="[GraphConnections]";
   traceGraph(ulstring,"stats_con.gif",[MaxConnections]);
   </script>
@@ -2204,7 +2366,7 @@ function traceGraph(SpeedString,imageURL,MaxSpeed) {
 
 <--TMPL_PREFERENCES-->
 <br>
-<form action="" method="GET">
+<form method="GET">
  <input type="hidden" name="ses" value="[Session]">
  <input type="hidden" name="w" value="options">
  <input type="hidden" name="saveprefs" value="true">
@@ -2302,7 +2464,7 @@ function traceGraph(SpeedString,imageURL,MaxSpeed) {
 
 <br>
 <center>
- <form action="">
+ <form>
   <input type="button" onClick="window.open('[CONNECTIONTESTLINK]');" value="[CONNECTIONTESTLABEL]">
  </form>
 </center>
@@ -2327,7 +2489,7 @@ function traceGraph(SpeedString,imageURL,MaxSpeed) {
  </tr>
  <tr>
   <td align=left valign=middle>
-   <form action="" method="GET">
+   <form method="GET">
     <input type="hidden" name="ses" value="[Session]">
     <input type="hidden" name="w" value=sinfo>
     <input type="hidden" name="clear" value=yes>
@@ -2356,7 +2518,7 @@ function traceGraph(SpeedString,imageURL,MaxSpeed) {
  </tr>
  <tr>
   <td align=left valign=middle>
-   <form action="" method="GET">
+   <form method="GET">
     <input type="hidden" name="ses" value="[Session]">
     <input type="hidden" name="w" value=log>
     <input type="hidden" name="clear" value=yes>
@@ -2383,7 +2545,7 @@ function traceGraph(SpeedString,imageURL,MaxSpeed) {
  </tr>
  <tr>
   <td align=left valign=middle>
-   <form action="" method="GET">
+   <form method="GET">
     <input type="hidden" name="ses" value="[Session]">
     <input type="hidden" name="w" value=debuglog>
     <input type="hidden" name="clear" value=yes>
@@ -2419,7 +2581,7 @@ function traceGraph(SpeedString,imageURL,MaxSpeed) {
 <--TMPL_BOOTSTRAPLINE-->
 
 <br>
-<form action="" method="GET">
+<form method="GET">
  <table border=0 align=center cellpadding=4 cellspacing=0 width="30%">
   <tr>
    <td align=left class="search-main" colspan="2"><b>[BOOTSTRAP]</b></td>
@@ -2485,12 +2647,12 @@ function traceGraph(SpeedString,imageURL,MaxSpeed) {
  <tr>
   <td bgcolor="#2184B5">
    <font face="Tahoma" style="font-size:8pt;">
- 	[KADSTATSLABELS]
+	[KADSTATSLABELS]
    </font>
   </td>
   <td colspan="2" bgcolor="#2184B5">
    <font face="Tahoma" style="font-size:8pt;">
- 	[KADSTATSDATA]
+	[KADSTATSDATA]
    </font>
   </td>
  </tr>
@@ -2529,7 +2691,7 @@ function traceGraph(SpeedString,imageURL,MaxSpeed) {
       <td align=left valign=middle bgcolor="#005784" width="10%"><font face="Tahoma" style="font-size:8pt;"><b>[RATING]</b></font></td>
      </tr>
 
-  	[COMMENTLINES]
+	[COMMENTLINES]
 
     </table>
    </center>

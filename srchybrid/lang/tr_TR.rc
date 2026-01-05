@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "tr_TR.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_TRK)
 #ifdef _WIN32
 LANGUAGE LANG_TURKISH, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -746,7 +746,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "Özel Mesaj"
     IDS_WEB_REMOTE_LINK_ADDED "Bağlantı eklendi: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED "Bağlantı Eklenemedi! Yanlış Parola."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS
                             "İlk Önizlemek için Gerekli Parçaları İndir"
     IDS_IRC_KICK            "Tekmele"
     IDS_IRC_SLAP            "Tokatla"
@@ -1566,7 +1566,6 @@ BEGIN
     IDS_NEWMSG              "'%s' kullanıcısından Yeni Mesaj (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "Sadece aynı kategori içindeki"
     IDS_LOG_ULDL_EVENTS     "Gönderme/İndirme olaylarını günlükle"
-//    IDS_PEERCACHE_ENABLED   "ISS'niz PeerCache teknolojisini destekliyor, önbellek indirmeler etkinleştiriliyor!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND
                             "Sizi arkadaş olarak eklemesi için kullanıcıya izin ver."
     IDS_SOURCESWAPBLOCKED   "Geçiş Engellendi!"
@@ -1609,9 +1608,6 @@ BEGIN
                             "Bunu etkinleştirdiğiniz takdirde Windows'u başlattığınızda eMule çalışacak."
     IDS_KAD_WAITCBK         "Kad geri aramayı beklemede"
     IDS_KAD_TOOMANDYKADLKPS "Çok fazla Kad Araması"
-//    IDS_PCDS_CLIENTWAIT     "İstemci Beklemede"
-//    IDS_PCDS_CACHEWAIT      "Önbellek Beklemede"
-//    IDS_CACHE               "Önbellek"
     IDS_INDEXED             "İndekslendi"
     IDS_KADINFO_SRC         "\tKaynak: %u\r\n"
     IDS_KADINFO_KEYW        "\tAnahtar Kelime: %u\r\n"
@@ -1698,8 +1694,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Windows Genel Denetimler kütüphane dosyası (COMCTL32.DLL) çok eski!\r\n\r\neMule tarafından tamamen kullanılan bu çok eski ""Windows Genel Denetimler kütüphane dosyası (COMCTL32.DLL)"" sürümü saptandı. eMule'un işlevselliğini tam ve kusursuz sağlamak için ""Windows Genel Denetimler kütüphane dosyasının (COMCTL32.DLL)"" en az 5.8 sürümüne güncellenmesini ısrarla öneririz.\r\n\r\n""Windows Genel Denetimler kütüphane dosyasının (COMCTL32.DLL)"" güncellemesini Microsoft (R) İndirme Merkezinden indirin ve kurun. İlgili URL'yi ziyaret etmek istiyor musunuz?"
     IDS_ASREGEXPR           "Kurallı İfadeler Olarak"
     IDS_STATIC_REGEXP       "Görünüm süzgeci için kurallı ifade:"
     IDS_CARE4ALL            "Tüm Dosyaları Değerlendir"
@@ -1923,8 +1917,8 @@ BEGIN
     IDS_MARKNOTSPAM         "İstenmeyen Mesaj olarak İşaretleme"
     IDS_SEARCHSPAMFILTER    "Arama sonuçları için İstenmeyen Mesaj Süzgeci etkin"
     IDS_SHOWSMILEYS         "Yüz ifadelerini göster"
-    IDS_CAPTCHAREQUEST      "İstenmeyen mesajlardan korunmak amacıyla, bu kullanıcıya mesaj gönderebilmeniz için önce captcha resminde yazılanı çözmeniz gerekmektedir. Lütfen cevap olarak bu resimde gördüğünüz harfleri girin:"
-    IDS_CAPTCHAFAILED       "Captcha resmine verdiğiniz cevap yanlıştı ve mesajınız yoksayıldı. Yeni mesaj göndererek yeni captcha resmi isteyebilirsiniz."
+    IDS_CAPTCHAREQUEST      "İstenmeyen mesajlardan korunmak amacıyla, bu kullanıcıya mesaj gönderebilmeniz için önce CAPTCHA resminde yazılanı çözmeniz gerekmektedir. Lütfen cevap olarak bu resimde gördüğünüz harfleri girin:"
+    IDS_CAPTCHAFAILED       "Captcha resmine verdiğiniz cevap yanlıştı ve mesajınız yoksayıldı. Yeni mesaj göndererek yeni CAPTCHA resmi isteyebilirsiniz."
     IDS_CAPTCHASOLVED       "Captcha kontrolünü geçtiniz ve kullanıcı mesajınızı aldı."
     IDS_USECAPTCHAS         "Captcha doğrulaması gerektirir"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat URL'si:"

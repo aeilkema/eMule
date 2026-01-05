@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -23,7 +23,6 @@
 #include "emuledlg.h"
 #include "Preferences.h"
 #include "HelpIDs.h"
-#include "ppgfiles.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -120,7 +119,7 @@ BOOL CPPgFiles::OnApply()
 	bool bOldPreviewPrio = thePrefs.m_bpreviewprio;
 	thePrefs.m_bpreviewprio = IsDlgButtonChecked(IDC_PREVIEWPRIO) != 0;
 	if (bOldPreviewPrio != thePrefs.m_bpreviewprio)
-		theApp.emuledlg->transferwnd->GetDownloadList()->CreateMenus();
+		theApp.emuledlg->transferwnd->GetDownloadList().CreateMenus();
 
 	thePrefs.m_bDAP = IsDlgButtonChecked(IDC_DAP) != 0;
 
@@ -137,7 +136,10 @@ BOOL CPPgFiles::OnApply()
 
 	thePrefs.m_btransferfullchunks = IsDlgButtonChecked(IDC_FULLCHUNKTRANS) != 0;
 
+	bool bOldWatch = thePrefs.watchclipboard;
 	thePrefs.watchclipboard = IsDlgButtonChecked(IDC_WATCHCB) != 0;
+	if (bOldWatch != thePrefs.watchclipboard)
+		theApp.emuledlg->WatchClipboard(thePrefs.watchclipboard);
 
 	thePrefs.SetRememberDownloadedFiles(IsDlgButtonChecked(IDC_REMEMBERDOWNLOADED) != 0);
 

@@ -1,6 +1,5 @@
-
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -16,9 +15,9 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
+#include <uxtheme.h>
 #include "emule.h"
 #include "SmileySelector.h"
-#include "VisualStylesXP.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -27,10 +26,11 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 
-typedef struct {
+struct SSmiley
+{
 	LPCTSTR	pszResource;
 	LPCTSTR pszSmileys;
-} SSmiley;
+};
 
 SSmiley g_aSmileys[] =
 {
@@ -93,36 +93,32 @@ BOOL CSmileySelector::CreateWnd(CWnd *pWndParent, LPCRECT pRect, CEdit *pwndEdit
 	//////////////////////////////////////////////////////////////////////////
 	// Create the popup window
 	//
-	COLORREF crBackground = (g_xpStyle.IsAppThemed() && g_xpStyle.IsThemeActive()) ? COLOR_WINDOW : COLOR_BTNFACE;
-	static const CString &strClassName = AfxRegisterWndClass(
-			CS_CLASSDC | CS_SAVEBITS | CS_HREDRAW | CS_VREDRAW,
-			AfxGetApp()->LoadStandardCursor(IDC_ARROW), (HBRUSH)(crBackground + 1), 0);
-	if (!CWnd::CreateEx(0, strClassName, _T(""),
-						WS_POPUP
-						| WS_BORDER
-						| WS_CLIPCHILDREN
-						| WS_CLIPSIBLINGS,
-						CRect(pRect->left, pRect->top, pRect->left, pRect->top),
-						pWndParent, 0, NULL))
+	COLORREF crBackground = (::IsAppThemed() && ::IsThemeActive()) ? COLOR_WINDOW : COLOR_BTNFACE;
+	static const CString &strClassName(AfxRegisterWndClass(
+		CS_CLASSDC | CS_SAVEBITS | CS_HREDRAW | CS_VREDRAW
+		, AfxGetApp()->LoadStandardCursor(IDC_ARROW), (HBRUSH)(crBackground + 1)
+		, 0));
+	if (!CWnd::CreateEx(0
+				, strClassName
+				, _T("")
+				, WS_POPUP | WS_BORDER | WS_CLIPCHILDREN | WS_CLIPSIBLINGS
+				, RECT{pRect->left, pRect->top, pRect->left, pRect->top}
+				, pWndParent, 0, NULL))
 	{
 		return FALSE;
 	}
 	//////////////////////////////////////////////////////////////////////////
 	// Create the toolbar window
 	//
-	if (!m_tb.Create(WS_CHILD
-					| WS_VISIBLE
-					| WS_CLIPCHILDREN
-					| WS_CLIPSIBLINGS
-					| TBSTYLE_FLAT
-					| TBSTYLE_TRANSPARENT
-					| TBSTYLE_WRAPABLE
+	if (!m_tb.Create(WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS
+					| TBSTYLE_FLAT | TBSTYLE_TRANSPARENT | TBSTYLE_WRAPABLE
 #ifndef SHOW_SMILEY_SHORTCUTS
 					| TBSTYLE_TOOLTIPS
 #endif
-					| CCS_NOPARENTALIGN
-					| CCS_NODIVIDER
-					, CRect(), this, IDC_SMILEY_TOOLBAR))
+					| CCS_NOPARENTALIGN | CCS_NODIVIDER
+					, RECT{}
+					, this
+					, IDC_SMILEY_TOOLBAR))
 	{
 		return FALSE;
 	}
@@ -152,7 +148,7 @@ BOOL CSmileySelector::CreateWnd(CWnd *pWndParent, LPCRECT pRect, CEdit *pwndEdit
 	CString strStrings;
 	for (int i = 0; i < _countof(g_aSmileys); ++i)
 		strStrings.AppendFormat(_T("%s\001"), g_aSmileys[i].pszSmileys);
-	strStrings += _T('\001');
+	strStrings += _T("\001");
 	strStrings.Replace('\001', '\000');
 	m_tb.AddStrings(strStrings);
 #endif
@@ -177,7 +173,8 @@ BOOL CSmileySelector::CreateWnd(CWnd *pWndParent, LPCRECT pRect, CEdit *pwndEdit
 	delete[] tb;
 
 	// Set toolbar rows
-	m_tb.SetRows(3, TRUE, CRect());
+	RECT r = {};
+	m_tb.SetRows(3, TRUE, &r);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Get toolbar size and adjust for borders and some strange offset at bottom
@@ -235,12 +232,12 @@ BOOL CSmileySelector::OnCommand(WPARAM wParam, LPARAM lParam)
 		if ((iStart > 0 && iStart < iEditLen - 1 && strEdit[iStart] != _T(' '))
 			|| (iStart == iEnd && iEnd >= iEditLen && iEditLen > 0 && strEdit[iEditLen - 1] != _T(' ')))
 		{
-			strInsert += _T(' ');
+			strInsert += _T(" ");
 		}
 		strInsert += g_aSmileys[iCmd - SMSEL_CMD_START].pszSmileys;
 
 		if (iEnd >= 0 && iEnd < iEditLen - 1 && strEdit[iEnd] != _T(' '))
-			strInsert += _T(' ');
+			strInsert += _T(" ");
 		m_pwndEdit->ReplaceSel(strInsert);
 	} else
 		ASSERT(0);

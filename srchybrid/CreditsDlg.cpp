@@ -76,7 +76,7 @@ void CCreditsDlg::StartThread()
 {
 	try {
 		m_pThread = new CCreditsThread(this, m_pDC->GetSafeHdc(), &m_rectScreen);
-		m_pThread->m_pThreadParams = NULL;
+		((CCreditsThread*)m_pThread)->SetRunning(true);
 	} catch (...) {
 		m_pThread = NULL;
 		return;
@@ -98,16 +98,13 @@ void CCreditsDlg::StartThread()
 
 void CCreditsDlg::KillThread()
 {
-	if (!m_pThread)
-		return;
-	// tell the thread to shutdown
-	VERIFY(SetEvent(m_pThread->m_hEventKill));
-
-	// wait for the thread to finish shutdown
-	VERIFY(::WaitForSingleObject(m_pThread->m_hThread, INFINITE) == WAIT_OBJECT_0);
-
-	delete m_pThread;
-	m_pThread = NULL;
+	if (m_pThread) {
+		// tell the thread to exit
+		((CCreditsThread*)m_pThread)->SetRunning(false);
+		// wait for the thread to finish shutdown
+		VERIFY(::WaitForSingleObject(m_pThread->m_hThread, INFINITE) == WAIT_OBJECT_0);
+		m_pThread = NULL;
+	}
 }
 
 int CCreditsDlg::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -124,24 +121,22 @@ int CCreditsDlg::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CCreditsDlg::OnPaint()
 {
-	if (m_imgSplash.GetSafeHandle()) {
-		CDC dcMem;
-		CPaintDC dc(this); // device context for painting
+	if (!m_imgSplash.GetSafeHandle())
+		return;
 
-		if (dcMem.CreateCompatibleDC(&dc)) {
-			CBitmap *pOldBM = dcMem.SelectObject(&m_imgSplash);
-			BITMAP BM;
-			m_imgSplash.GetBitmap(&BM);
+	CDC dcMem;
+	CPaintDC dc(this); // device context for painting
+	if (dcMem.CreateCompatibleDC(&dc)) {
+		CBitmap *pOldBmp = dcMem.SelectObject(&m_imgSplash);
+		BITMAP bmp;
+		m_imgSplash.GetBitmap(&bmp);
 
-			WINDOWPLACEMENT wp;
-			GetWindowPlacement(&wp);
-			wp.rcNormalPosition.right = wp.rcNormalPosition.left + BM.bmWidth;
-			wp.rcNormalPosition.bottom = wp.rcNormalPosition.top + BM.bmHeight;
-			SetWindowPlacement(&wp);
+		RECT rSplash;
+		GetWindowRect(&rSplash);
+		SetWindowPos(NULL, rSplash.left, rSplash.top, bmp.bmWidth, bmp.bmHeight, SWP_NOCOPYBITS | SWP_NOREDRAW | SWP_NOZORDER | SWP_NOSENDCHANGING);
 
-			dc.BitBlt(0, 0, BM.bmWidth, BM.bmHeight, &dcMem, 0, 0, SRCCOPY);
-			dcMem.SelectObject(pOldBM);
-		}
+		dc.BitBlt(0, 0, bmp.bmWidth, bmp.bmHeight, &dcMem, 0, 0, SRCCOPY);
+		dcMem.SelectObject(pOldBmp);
 	}
 }
 

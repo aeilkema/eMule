@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "ug_CN.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) // || defined(AFX_TARG_UIG)
 #ifdef _WIN32
 LANGUAGE 0x80, 0x01
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -853,7 +853,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "شەخسىي ئۇچۇر"
     IDS_WEB_REMOTE_LINK_ADDED "ئۇلىنىش قوشۇلدى"
     IDS_WEB_REMOTE_LINK_NOT_ADDED "ئۇلىنىش قوشۇلمىدى. ئىم خاتا"
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "ئالدىن كۆزىتىشكە تېگىشلىك ھۆججەت بولىكىنى ئالدىن چۈشۈر"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "ئالدىن كۆزىتىشكە تېگىشلىك ھۆججەت بولىكىنى ئالدىن چۈشۈر"
     IDS_IRC_KICK            "تەپ"
     IDS_IRC_SLAP            "كاچاتلا"
     IDS_IRC_JOIN            "قوشۇل"
@@ -907,7 +907,6 @@ BEGIN
     IDS_NEWMSG              "‫يېڭى ئۇچۇر '%s' (IP:%s) كەلگەن‬"
     IDS_PREF_STARTNEXTFILECATONLY "پەقەت ئوخشاش تۈردىلا"
     IDS_LOG_ULDL_EVENTS     "يوللاش چۈشۈرۈش ھادىسىنى خاتىرىلە"
-//    IDS_PEERCACHE_ENABLED   "‫ISP ئىنتېرنېت ئۇلىنىش مۇلازىمىتى تەمىنلىگۈچىڭىز PeerCache تېخنىكىسىنى قوللايدۇ، PeerCache نى قوزغىتىپ چۈشۈر!‬"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "باشقىلارنىڭ سىزنى دوست قاتارىغا قوشۇشىغا يول قوي"
     IDS_SOURCESWAPBLOCKED   "ئالماشتۇرۇش چەكلەندى"
     IDS_TRICKLING           "كۈتۈش"
@@ -1618,9 +1617,6 @@ BEGIN
                             "‫بۇ تاللانما تاللانسا Windows قوزغالغاندا eMule ئۆزلۈكىدىن قوزغىلىدۇ. [ئەسلىدىكى چەكلەنگەن]‬"
     IDS_KAD_WAITCBK         "‫Kad قايتۇرۇش ئۇچۇرى كۈتۈۋاتىدۇ‬"
     IDS_KAD_TOOMANDYKADLKPS "‫Kad ئىزدەش بەك كۆپ‬"
-//    IDS_PCDS_CLIENTWAIT     "خېرىدار كۈتۈۋاتىدۇ"
-//    IDS_PCDS_CACHEWAIT      "غەملەك كۈتۈۋاتىدۇ"
-//    IDS_CACHE               "غەملەك"
     IDS_INDEXED             "ئىندېكس"
     IDS_KADINFO_SRC         "\tمەنبە: %u\r\n"
     IDS_KADINFO_KEYW        "\tھالقىلىق سۆز: %u\r\n"
@@ -1703,8 +1699,6 @@ BEGIN
     IDS_EXTRACT_META_DATA   "مېتا سانلىق مەلۇماتنى ياي"
     IDS_META_DATA_MEDIADET  "‫DirectShow (بارلىق باشقا ئاۋاز/سىن ھۆججىتى)‬"
     IDS_META_DATA_ID3LIB    "‫ھەرىكەتلىك ئۇلىنىش ئامبىرى ID3 (پەقەت MPEG ئۈن ھۆججىتى ئۈچۈنلا)‬"
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "‫Windows نىڭ (COMCTL32.DLL)نەشرى بەك كونا!\r\n\r\nWindows نىڭ (COMCTL32.DLL)نەشرى بەك كونا بولسا eMule نورمال خىزمەت قىلماسلىقى مۇمكىن. eMule نىڭ تولۇق مۇكەممەل ئىجرا بولۇشىغا كاپالەتلىك قىلىش ئۈچۈن  ""Windows Common Controls library (COMCTL32.DLL)‎"" نىڭ ئاز دېگەندە 5.8 نەشرىنى ئىشلىتىشىڭىزنى تەۋسىيە قىلىمىز.\r\n\r\nمىكروسوفت چۈشۈرۈش مەركىزىدىن يېڭىلانغان ""Windows Common Controls library (COMCTL32.DLL)‎"" نەشرىنى چۈشۈرۈشكە بولىدۇ، مۇناسىپ ئۇلانمىنى زىيارەت قىلامسىز؟"
     IDS_ASREGEXPR           "مۇنتىزىم ئىپادە ئىشلىتىپ تۈرنى بەلگىلەش"
     IDS_STATIC_REGEXP       "كۆزىتىش سۈزگۈچىدە ئىشلىتىدىغان مۇنتىزىم ئىپادە:"
     IDS_CARE4ALL            "بارلىق مۆلچەر ھۆججەت"

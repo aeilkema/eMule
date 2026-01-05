@@ -27,7 +27,7 @@ protected:
 	void ShowLimitValues();
 	void SetRateSliderTicks(CSliderCtrl &rRate);
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnInitDialog();
 	virtual BOOL OnApply();
 	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
@@ -41,7 +41,7 @@ protected:
 //	afx_msg void OnBnClickedNetworkKademlia();
 	afx_msg void OnHelp();
 	afx_msg BOOL OnHelpInfo(HELPINFO*);
-	afx_msg void OnBnClickedOpenports();
+	afx_msg void OnBnClickedOpenPorts();
 	afx_msg void OnStartPortTest();
 	afx_msg void OnEnKillFocusTCP();
 	afx_msg void OnEnKillFocusUDP();

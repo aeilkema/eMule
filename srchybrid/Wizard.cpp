@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -195,9 +195,9 @@ BOOL CConnectionWizardDlg::OnInitDialog()
 	SetDlgItemInt(IDC_WIZ_TRUEDOWNLOAD_BOX, 0, FALSE);
 	SetDlgItemInt(IDC_WIZ_TRUEUPLOAD_BOX, 0, FALSE);
 
-	m_provider.InsertColumn(0, GetResString(IDS_TYPE), LVCFMT_LEFT, 150);
-	m_provider.InsertColumn(1, GetResString(IDS_WIZ_DOWN), LVCFMT_LEFT, 85);
-	m_provider.InsertColumn(2, GetResString(IDS_WIZ_UP), LVCFMT_LEFT, 85);
+	m_provider.InsertColumn(0, _T(""), LVCFMT_LEFT, 150);	//IDS_TYPE
+	m_provider.InsertColumn(1, _T(""), LVCFMT_LEFT, 85);	//IDS_WIZ_DOWN
+	m_provider.InsertColumn(2, _T(""), LVCFMT_LEFT, 85);	//IDS_WIZ_UP
 	m_provider.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_INFOTIP);
 
 	m_provider.InsertItem(0, GetResString(IDS_UNKNOWN));
@@ -298,7 +298,13 @@ void CConnectionWizardDlg::OnNmClickProviders(LPNMHDR, LRESULT *pResult)
 
 void CConnectionWizardDlg::Localize()
 {
+	static const UINT uids[] =
+	{
+		IDS_TYPE, IDS_WIZ_DOWN, IDS_WIZ_UP, 0
+	};
 	SetWindowText(GetResString(IDS_WIZARD));
+	LocaliseHeaderCtrl(m_provider.GetHeaderCtrl(), uids);
+
 	SetDlgItemText(IDC_WIZ_OS_FRAME, GetResString(IDS_WIZ_OS_FRAME));
 	SetDlgItemText(IDC_WIZ_CONCURENTDOWN_FRAME, GetResString(IDS_CONCURDWL));
 	SetDlgItemText(IDC_WIZ_HOTBUTTON_FRAME, GetResString(IDS_WIZ_CTFRAME));

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -16,11 +16,10 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
 #include "emule.h"
+#include "emuledlg.h"
 #include "ED2kLinkDlg.h"
-#include "KnownFile.h"
 #include "partfile.h"
 #include "preferences.h"
-#include "shahashset.h"
 #include "UserMsgs.h"
 
 #ifdef _DEBUG
@@ -63,25 +62,7 @@ BOOL CED2kLinkDlg::OnInitDialog()
 	CResizablePage::OnInitDialog();
 	InitWindowStyles(this);
 
-	if (!m_bReducedDlg) {
-		AddAnchor(IDC_LD_BASICGROUP, BOTTOM_LEFT, BOTTOM_RIGHT);
-		AddAnchor(IDC_LD_SOURCECHE, BOTTOM_LEFT, BOTTOM_LEFT);
-		AddAnchor(IDC_LD_ADVANCEDGROUP, BOTTOM_LEFT, BOTTOM_RIGHT);
-		AddAnchor(IDC_LD_HTMLCHE, BOTTOM_LEFT, BOTTOM_LEFT);
-		AddAnchor(IDC_LD_HASHSETCHE, BOTTOM_LEFT, BOTTOM_LEFT);
-		AddAnchor(IDC_LD_HOSTNAMECHE, BOTTOM_LEFT, BOTTOM_LEFT);
-
-		// enabled/disable checkboxes depending on situation
-		bool b = theApp.IsConnected() && !theApp.IsFirewalled();
-		GetDlgItem(IDC_LD_SOURCECHE)->EnableWindow(b);
-		if (!b)
-			CheckDlgButton(IDC_LD_SOURCECHE, BST_UNCHECKED);
-		else
-			b = thePrefs.GetYourHostname().Find(_T('.')) >= 0;
-		GetDlgItem(IDC_LD_HOSTNAMECHE)->EnableWindow(b);
-		if (!b)
-			CheckDlgButton(IDC_LD_HOSTNAMECHE, BST_UNCHECKED);
-	} else {
+	if (m_bReducedDlg) {
 		CRect rcDefault;
 		GetDlgItem(IDC_LD_LINKGROUP)->GetWindowRect(rcDefault);
 		RECT rcNew;
@@ -100,12 +81,30 @@ BOOL CED2kLinkDlg::OnInitDialog()
 		GetDlgItem(IDC_LD_HTMLCHE)->ShowWindow(SW_HIDE);
 		GetDlgItem(IDC_LD_HASHSETCHE)->ShowWindow(SW_HIDE);
 		GetDlgItem(IDC_LD_HOSTNAMECHE)->ShowWindow(SW_HIDE);
+	} else {
+		AddAnchor(IDC_LD_ADVANCEDGROUP, BOTTOM_LEFT, BOTTOM_RIGHT);
+		AddAnchor(IDC_LD_HTMLCHE, BOTTOM_LEFT, BOTTOM_LEFT);
+		AddAnchor(IDC_LD_HOSTNAMECHE, BOTTOM_LEFT, BOTTOM_LEFT);
+		AddAnchor(IDC_LD_HASHSETCHE, BOTTOM_LEFT, BOTTOM_LEFT);
+		AddAnchor(IDC_LD_BASICGROUP, BOTTOM_LEFT, BOTTOM_RIGHT);
+		AddAnchor(IDC_LD_SOURCECHE, BOTTOM_LEFT, BOTTOM_LEFT);
+
+		// enabled/disable checkboxes depending on situation
+		bool b = theApp.IsConnected() && !theApp.IsFirewalled();
+		GetDlgItem(IDC_LD_SOURCECHE)->EnableWindow(b);
+		if (b)
+			b = thePrefs.GetYourHostname().Find(_T('.')) >= 0;
+		else
+			CheckDlgButton(IDC_LD_SOURCECHE, BST_UNCHECKED);
+		GetDlgItem(IDC_LD_HOSTNAMECHE)->EnableWindow(b);
+		if (!b)
+			CheckDlgButton(IDC_LD_HOSTNAMECHE, BST_UNCHECKED);
 	}
 	AddAnchor(IDC_LD_LINKGROUP, TOP_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_LD_LINKEDI, TOP_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_LD_CLIPBOARDBUT, BOTTOM_RIGHT);
-	Localize();
 
+	Localize();
 	return TRUE;
 }
 
@@ -193,7 +192,7 @@ void CED2kLinkDlg::UpdateLink()
 
 void CED2kLinkDlg::OnBnClickedClipboard()
 {
-	theApp.CopyTextToClipboard(m_strLinks);
+	theApp.emuledlg->CopyTextToClipboard(m_strLinks);
 }
 
 void CED2kLinkDlg::OnSettingsChange()

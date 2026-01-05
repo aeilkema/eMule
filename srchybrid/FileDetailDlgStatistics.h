@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -38,7 +38,6 @@ public:
 
 protected:
 	const CSimpleArray<CObject*> *m_paFiles;
-	bool m_bDataChanged;
 	CProgressCtrlX pop_bar;
 	CProgressCtrlX pop_baraccept;
 	CProgressCtrlX pop_bartrans;
@@ -48,7 +47,7 @@ protected:
 
 	void RefreshData();
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnSetActive();
 	virtual BOOL OnKillActive();
 
@@ -58,6 +57,7 @@ protected:
 	afx_msg void OnSysColorChange();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 
-	uint32 nLastRequestCount;
 	UINT_PTR m_hRefreshTimer;
+	uint32 nLastRequestCount;
+	bool m_bDataChanged;
 };

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -28,7 +28,9 @@ struct Header_Struct
 	uint32	packetlength;
 	uint8	command;
 };
+#pragma pack(pop)
 
+#pragma pack(push, 1)
 struct UDP_Header_Struct
 {
 	uint8	eDonkeyID;
@@ -111,7 +113,8 @@ public:
 	CTag(LPCSTR pszName, uint64 uVal, bool bInt64 = false);
 	CTag(uint8 uName, uint64 uVal, bool bInt64 = false);
 	CTag(LPCSTR pszName, LPCTSTR pszVal);
-	CTag(uint8 uName, LPCTSTR pszVal);
+	CTag(uint8 uName, LPCSTR pszVal);
+	CTag(uint8 uName, LPCWSTR pszVal);
 	CTag(LPCSTR pszName, const CString &rstrVal);
 	CTag(uint8 uName, const CString &rstrVal);
 	CTag(uint8 uName, const BYTE *pucHash);

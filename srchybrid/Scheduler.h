@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -53,7 +53,6 @@ struct Schedule_Struct
 			values[i].Empty();
 		}
 	}
-	~Schedule_Struct() = default;
 };
 
 class CScheduler
@@ -64,13 +63,13 @@ public:
 
 	INT_PTR	AddSchedule(Schedule_Struct *schedule);
 	void	UpdateSchedule(INT_PTR index, Schedule_Struct *schedule) { if (index < GetCount())schedulelist[index] = schedule; }
-	Schedule_Struct* GetSchedule(INT_PTR index)		{ return (index < GetCount()) ? schedulelist[index] : NULL; }
+	Schedule_Struct* GetSchedule(INT_PTR index) const	{ return (index < GetCount()) ? schedulelist[index] : NULL; }
 	void	RemoveSchedule(INT_PTR index);
 	void	RemoveAll();
 	int		LoadFromFile();
 	void	SaveToFile();
 	int		Check(bool forcecheck = false);
-	INT_PTR	GetCount()								{ return schedulelist.GetCount(); }
+	INT_PTR	GetCount() const							{ return schedulelist.GetCount(); }
 	void	SaveOriginals();
 	void	RestoreOriginals();
 	void	ActivateSchedule(INT_PTR index, bool makedefault = false);
@@ -83,5 +82,5 @@ public:
 
 private:
 	int		m_iLastCheckedMinute;
-	CArray<Schedule_Struct*, Schedule_Struct*> schedulelist;
+	CArray<Schedule_Struct*> schedulelist;
 };

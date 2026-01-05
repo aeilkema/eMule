@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "he_IL.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_HEB)
 #ifdef _WIN32
 LANGUAGE LANG_HEBREW, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -1541,9 +1541,8 @@ BEGIN
     IDS_NEWMSG              "הודעה חדשה מ-'%s' (איי פי:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "רק מאותה קטגוריה"
     IDS_LOG_ULDL_EVENTS     "שמור ביומן אירועי העלאה/הורדה"
-//    IDS_PEERCACHE_ENABLED   "ספק האינטרנט שלך תומך בטכנולוגיית PeerCache, מפעיל הורדות מטמון!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "אפשר למשתמש להוסיף אותך כחבר"
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "הורד ראשונים חלקים המשמשים לתצוגה מקדימה"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "הורד ראשונים חלקים המשמשים לתצוגה מקדימה"
 END
 
 STRINGTABLE
@@ -1583,9 +1582,6 @@ BEGIN
                             "הפעל אפשרות זו אם ברצונך שאימיול יפעל בעת הפעלת ""חלונות"". (ברירת מחדל: מופסק)"
     IDS_KAD_WAITCBK         "המתנת אימות קדמליה"
     IDS_KAD_TOOMANDYKADLKPS "יותר מידיי חיפושים בקדמליה"
-//    IDS_PCDS_CLIENTWAIT     "המתנת קליינט"
-//    IDS_PCDS_CACHEWAIT      "המתנת מטמון"
-//    IDS_CACHE               "מטמון"
     IDS_INDEXED             "אינדקס"
     IDS_KADINFO_SRC         "\tמקור: %u\r\n"
     IDS_KADINFO_KEYW        "\tמילת מפתח: %u\r\n"
@@ -1681,8 +1677,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "ספריית Windows Common Controls (COMCTL32.DLL) יותר מידיי ישנה!\r\n\r\nאימיול איתר גירסה של ""ספריית Windows Common Controls (COMCTL32.DLL)"" שישנה מידיי לשימוש תקין באימיול. לוידוי שימוש מלא ותקין של אימיול אנו ממליצים לעדכן את ""ספרייתWindows Common Controls (COMCTL32.DLL)"" לפחות לגירסה 5.8.\r\n\r\nהורד והתקן את העדכון של ""ספריית Windows Common Controls (COMCTL32.DLL)"" במרכז ההורדות של מיקרוסופט (R). האם ברצונך לבקר בכתובת המתאימה?"
     IDS_ASREGEXPR           "כביטוי רגולרי"
     IDS_STATIC_REGEXP       "ביטוי רגולרי עבור סינון תצוגה:"
     IDS_CARE4ALL            "הערכה של כל הקבצים"

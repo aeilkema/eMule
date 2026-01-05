@@ -7,20 +7,6 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-
-#if (_WIN32_WINNT < 0x501)
-typedef struct tagNMLVSCROLL
-{
-	NMHDR   hdr;
-	int     dx;
-	int     dy;
-} NMLVSCROLL, *LPNMLVSCROLL;
-
-#define LVN_BEGINSCROLL          (LVN_FIRST-80)
-#define LVN_ENDSCROLL            (LVN_FIRST-81)
-#endif
-
-
 #define MAX_COLS	2
 
 #define LV_EDIT_CTRL_ID		1001
@@ -212,15 +198,15 @@ void CEditableListCtrl::ShowComboBoxCtrl()
 	CRect rect;
 	GetSubItemRect(m_iRow, m_iCol, LVIR_LABEL, rect);
 	rect.bottom += 100;
-	if (!m_pctrlComboBox) {
+	if (m_pctrlComboBox) {
+		m_pctrlComboBox->SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
+		m_pctrlComboBox->SetCurSel(0);
+	} else {
 		m_pctrlComboBox = new CComboBox;
 		m_pctrlComboBox->Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_CLIPSIBLINGS | WS_BORDER | CBS_DROPDOWN | WS_VSCROLL | WS_HSCROLL, rect, this, 1002);
 		m_pctrlComboBox->ShowWindow(SW_SHOW);
 		m_pctrlComboBox->SetHorizontalExtent(800);
 		m_pctrlComboBox->SendMessage(CB_SETDROPPEDWIDTH, 600, 0);
-	} else {
-		m_pctrlComboBox->SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
-		m_pctrlComboBox->SetCurSel(0);
 	}
 	if (m_pctrlEdit)
 		m_pctrlEdit->ShowWindow(SW_HIDE);

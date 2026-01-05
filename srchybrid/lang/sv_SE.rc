@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "sv_SE.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_SVE)
 #ifdef _WIN32
 LANGUAGE LANG_SWEDISH, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -1543,9 +1543,8 @@ BEGIN
     IDS_NEWMSG              "Nytt meddelande från '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "bara i samma kategori"
     IDS_LOG_ULDL_EVENTS     "Logga uppladdnings-/nedladdningshändelser"
-//    IDS_PEERCACHE_ENABLED   "Din ISP stöder PeerCache teknologin, aktiverar cachade nedladdningar!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Tillåt användare att lägga till dig som kompis."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Ladda hem de delar som behövs för förhandsvisning först"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Ladda hem de delar som behövs för förhandsvisning först"
 END
 
 STRINGTABLE
@@ -1585,9 +1584,6 @@ BEGIN
                             "Aktivera så att eMule startar när windows startar. (avaktiverad som standard)"
     IDS_KAD_WAITCBK         "Vänta på svar från Kad"
     IDS_KAD_TOOMANDYKADLKPS "För många Kad Lookups"
-//    IDS_PCDS_CLIENTWAIT     "ClientWait" //!
-//    IDS_PCDS_CACHEWAIT      "CacheWait" //!
-//    IDS_CACHE               "Cache" //!
     IDS_INDEXED             "Indexerad"
     IDS_KADINFO_SRC         "\tKälla: %u\r\n"
     IDS_KADINFO_KEYW        "\tOrd: %u\r\n"
@@ -1683,8 +1679,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Windows Common Controls library (COMCTL32.DLL) är för gammal!\r\n\r\neMule har hittat en version av ""Windows Common Controls library (COMCTL32.DLL)"" som är för gammal för att användas tillsammans med eMule. För en fullständig och felfri funktionalitet är det rekommenderat att uppdatera ""Windows Common Controls library (COMCTL32.DLL)"" till minst version 5.8.\r\n\r\nLadda hem och installera en uppdatering av ""Windows Common Controls library (COMCTL32.DLL)"" på Microsoft (R) Download Center. Vill du besöka den här sidan?"
     IDS_ASREGEXPR           "Som Regular Expression"
     IDS_STATIC_REGEXP       "Regular expression som filter:"
     IDS_CARE4ALL            "Utvärdera alla filer"

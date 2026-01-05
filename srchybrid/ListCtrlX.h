@@ -23,7 +23,7 @@ typedef enum
 //////////////////////////////////////////////////////////////////////////////
 // LCX_COLUMN_INIT
 
-typedef struct
+struct LCX_COLUMN_INIT
 {
 	int				iColID;
 	LPCTSTR			pszHeading;
@@ -34,7 +34,7 @@ typedef struct
 	LCX_SORT_ORDER	eDfltSortOrder;
 	LCX_SORT_ORDER	eSortOrder;		// changed during runtime
 	LPCTSTR			pszSample;
-} LCX_COLUMN_INIT;
+};
 
 
 //////////////////////////////////////////////////////////////////////////////

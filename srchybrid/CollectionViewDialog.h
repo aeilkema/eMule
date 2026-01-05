@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( devs@emule-project.net / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( devs@emule-project.net / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -30,7 +30,7 @@ class CCollectionViewDialog : public CResizableDialog
 	};
 
 public:
-	explicit CCollectionViewDialog(CWnd *pParent = NULL);   // standard constructor
+	explicit CCollectionViewDialog(CWnd *pParent = NULL);	// standard constructor
 	virtual	~CCollectionViewDialog();
 
 	void SetCollection(CCollection *pCollection);
@@ -59,7 +59,7 @@ protected:
 	void DownloadSelected();
 
 	virtual BOOL OnInitDialog();
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnBnClickedOk();

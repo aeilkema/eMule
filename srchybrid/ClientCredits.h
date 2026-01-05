@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@
 #include "MapKey.h"
 #include "cryptopp/rsa.h"
 
-#define	 MAXPUBKEYSIZE		80
+#define	MAXPUBKEYSIZE			80
 
 #define CRYPT_CIP_REMOTECLIENT	10
 #define CRYPT_CIP_LOCALCLIENT	20
@@ -30,18 +30,20 @@ struct CreditStruct_29a
 	uchar		abyKey[MDX_DIGEST_SIZE];
 	uint32		nUploadedLo;	// uploaded TO him
 	uint32		nDownloadedLo;	// downloaded from him
-	uint32		nLastSeen;
+	uint32		tLastSeen;
 	uint32		nUploadedHi;	// upload high 32
 	uint32		nDownloadedHi;	// download high 32
 	uint16		nReserved3;
 };
+#pragma pack(pop)
 
+#pragma pack(push, 1)
 struct CreditStruct
 {
 	uchar		abyKey[MDX_DIGEST_SIZE];
 	uint32		nUploadedLo;	// uploaded TO him
 	uint32		nDownloadedLo;	// downloaded from him
-	uint32		nLastSeen;
+	uint32		tLastSeen;
 	uint32		nUploadedHi;	// upload high 32
 	uint32		nDownloadedHi;	// download high 32
 	uint16		nReserved3;
@@ -72,14 +74,14 @@ public:
 	const uchar* GetKey() const					{ return m_Credits.abyKey; }
 	uchar*	GetSecureIdent()					{ return m_abyPublicKey; }
 	uint8	GetSecIDKeyLen() const				{ return m_nPublicKeyLen; }
-	const CreditStruct*	GetDataStruct()	const	{ return &m_Credits; }
+	const CreditStruct*	GetDataStruct() const	{ return &m_Credits; }
 	void	ClearWaitStartTime();
 	void	AddDownloaded(uint32 bytes, uint32 dwForIP);
 	void	AddUploaded(uint32 bytes, uint32 dwForIP);
 	uint64	GetUploadedTotal() const;
 	uint64	GetDownloadedTotal() const;
 	float	GetScoreRatio(uint32 dwForIP) const;
-	void	SetLastSeen()						{ m_Credits.nLastSeen = static_cast<uint32>(time(NULL)); }
+	void	SetLastSeen()						{ m_Credits.tLastSeen = static_cast<uint32>(time(NULL)); }
 	bool	SetSecureIdent(const uchar *pachIdent, uint8 nIdentLen); // Public key cannot change, use only if there is not public key yet
 	uint32	m_dwCryptRndChallengeFor;
 	uint32	m_dwCryptRndChallengeFrom;

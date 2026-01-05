@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -19,7 +19,6 @@
 #include "StatisticFile.h"
 #include "ShareableFile.h"
 
-class CxImage;
 class CUpDownClient;
 class Packet;
 class CFileDataIO;
@@ -47,8 +46,8 @@ public:
 
 	// last file modification time in (DST corrected, if NTFS) real UTC format
 	// NOTE: this value can *not* be compared with NT's version of the UTC time
-	CTime	GetUtcCFileDate() const						{ return CTime(m_tUtcLastModified); }
-	time_t	GetUtcFileDate() const						{ return m_tUtcLastModified; }
+	CTime	GetUtcCFileDate() const						{ return CTime(m_tUTClastModified); }
+	time_t	GetUtcFileDate() const						{ return m_tUTClastModified; }
 
 	// Did we not see this file for a long time so that some information should be purged?
 	bool	ShouldPartiallyPurgeFile() const;
@@ -72,12 +71,12 @@ public:
 	// This has lost its meaning here. This is the total clients we know that want this file.
 	// Right now this number is used for auto priorities.
 	// This may be replaced with total complete source known in the network.
-	INT_PTR	GetQueuedCount()							{ return m_ClientUploadList.GetCount(); }
+	INT_PTR	GetQueuedCount() const						{ return m_ClientUploadList.GetCount(); }
 
 	void	AddUploadingClient(CUpDownClient *client);
 	void	RemoveUploadingClient(CUpDownClient *client);
 	virtual void	UpdatePartsInfo();
-	virtual	void	DrawShareStatusBar(CDC *dc, LPCRECT rect, bool onlygreyrect, bool bFlat) const;
+	virtual	void	DrawShareStatusBar(CDC &dc, LPCRECT rect, bool onlygreyrect, bool bFlat) const;
 
 	// comment
 	void	SetFileComment(LPCTSTR pszComment);
@@ -111,7 +110,7 @@ public:
 	// preview
 	bool	IsMovie() const;
 	virtual bool GrabImage(uint8 nFramesToGrab, double dStartTime, bool bReduceColor, uint16 nMaxWidth, void *pSender);
-	virtual void GrabbingFinished(CxImage **imgResults, uint8 nFramesGrabbed, void *pSender);
+	virtual void GrabbingFinished(HBITMAP *imgResults, uint8 nFramesGrabbed, void *pSender);
 
 	bool	ImportParts();
 
@@ -130,14 +129,14 @@ public:
 	CStatisticFile statistic;
 	// last file modification time in (DST corrected, if NTFS) real UTC format
 	// NOTE: this value can *not* be compared with NT's version of the UTC time
-	time_t	m_tUtcLastModified;
+	time_t	m_tUTClastModified;
 
-	time_t	m_nCompleteSourcesTime;
+	time_t	m_tCompleteSourcesTime;
 	uint16	m_nCompleteSourcesCount;
 	uint16	m_nCompleteSourcesCountLo;
 	uint16	m_nCompleteSourcesCountHi;
 	CUpDownClientPtrList m_ClientUploadList;
-	CArray<uint16, uint16> m_AvailPartFrequency;
+	CArray<uint16> m_AvailPartFrequency;
 	CCollection *m_pCollection;
 	//overlapped disk reads
 	HANDLE		m_hRead;

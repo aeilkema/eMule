@@ -26,10 +26,10 @@
 #define MD4_BLOCK_SIZE	64
 #define MD4_DIGEST_SIZE	16
 
-typedef struct
+struct MD4
 {
 	byte	b[MD4_DIGEST_SIZE];
-} MD4;
+};
 
 class CMD4
 {

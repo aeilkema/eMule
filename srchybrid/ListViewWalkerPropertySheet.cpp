@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -55,13 +55,10 @@ void CListViewPropertySheet::InsertPage(int iIndex, CPropertyPage *pPage)
 	m_pages.InsertAt(iIndex, pPage);
 	BuildPropPageArray();
 
-	if (m_hWnd != NULL) {
-		PROPSHEETPAGE *ppsp = const_cast<PROPSHEETPAGE*>(m_psh.ppsp);
-		for (UINT i = 0; i < m_psh.nPages; ++i) {
-			if (i == (UINT)iIndex)
-				break;
-			(BYTE *&)ppsp += ppsp->dwSize;
-		}
+	if (m_hWnd) {
+		LPPROPSHEETPAGE ppsp = const_cast<LPPROPSHEETPAGE>(m_psh.ppsp);
+		for (UINT i = 0; i != (UINT)iIndex && i < m_psh.nPages; ++i)
+			(BYTE*&)ppsp += ppsp->dwSize;
 
 		HPROPSHEETPAGE hPSP = CreatePropertySheetPage(ppsp);
 		if (hPSP == NULL)
@@ -80,7 +77,7 @@ void CListViewPropertySheet::ChangedData()
 
 	for (int iPage = GetPageCount(); --iPage >= 0;) {
 		CPropertyPage *pPage = GetPage(iPage);
-		if (pPage && pPage->m_hWnd) {
+		if (pPage->GetSafeHwnd()) {
 			pPage->SendMessage(UM_DATA_CHANGED);
 			pPage->SetModified(FALSE);
 		}
@@ -129,8 +126,8 @@ BOOL CListViewWalkerPropertySheet::OnInitDialog()
 			UINT	uCtlId;
 		} aCtrls[] =
 		{
-			{&m_ctlPrev, _T("&Prev"), _T("5"), WS_CHILD | WS_VISIBLE | WS_GROUP | WS_TABSTOP,  IDC_PREV},
-			{&m_ctlNext, _T("&Next"), _T("6"), WS_CHILD | WS_VISIBLE | WS_GROUP | WS_TABSTOP,  IDC_NEXT}
+			{&m_ctlPrev, _T("&Prev"), _T("5"), WS_CHILD | WS_VISIBLE | WS_GROUP | WS_TABSTOP,  IDC_PREV},	//up arrow
+			{&m_ctlNext, _T("&Next"), _T("6"), WS_CHILD | WS_VISIBLE | WS_GROUP | WS_TABSTOP,  IDC_NEXT}	//down arrow
 		};
 
 		int iLeftMostButtonId = IDOK;
@@ -188,7 +185,7 @@ void CListViewWalkerPropertySheet::OnPrev()
 		m_aItems.Add(pObj);
 		ChangedData();
 	} else
-		MessageBeep(MB_OK);
+		::MessageBeep(MB_OK);
 }
 
 void CListViewWalkerPropertySheet::OnNext()
@@ -203,7 +200,7 @@ void CListViewWalkerPropertySheet::OnNext()
 		m_aItems.Add(pObj);
 		ChangedData();
 	} else
-		MessageBeep(MB_OK);
+		::MessageBeep(MB_OK);
 }
 
 CObject* CListCtrlItemWalk::GetPrevSelectableItem()

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -36,7 +36,7 @@ static char THIS_FILE[] = __FILE__;
 //#define FILETYPE_INETSHRTCUT		_T("Internet Shortcut File")
 //#define FILEFLT_INETSHRTCUT		FILETYPE_INETSHRTCUT _T("s (*") FILEEXTDOT_INETSHRTCUT _T(")|*") FILEEXTDOT_INETSHRTCUT _T("|")
 
-BOOL IsUrlSchemeSupportedW(LPCWSTR pszUrl)
+static BOOL IsUrlSchemeSupportedW(LPCWSTR pszUrl)
 {
 	static const struct SCHEME
 	{
@@ -58,9 +58,9 @@ BOOL IsUrlSchemeSupportedW(LPCWSTR pszUrl)
 
 // GetFileExtA -- ANSI version
 //
-// This function is thought to be used only for filenames which have been
+// This function should be used only for filenames which have been
 // validated by 'GetFullPathName' or similar functions.
-LPCSTR GetFileExtA(LPCSTR pszPathA, int iLen /*= -1*/)
+static LPCSTR GetFileExtA(LPCSTR pszPathA, int iLen /*= -1*/)
 {
 	// Just search the last '.'-character which comes after an optionally
 	// available last '\'-char.
@@ -77,9 +77,9 @@ LPCSTR GetFileExtA(LPCSTR pszPathA, int iLen /*= -1*/)
 
 // GetFileExtW -- Unicode version
 //
-// This function is thought to be used only for filenames which have been
+// This function should be used only for filenames which have been
 // validated by 'GetFullPathName' or similar functions.
-LPCWSTR GetFileExtW(LPCWSTR pszPathW, int iLen /*= -1*/)
+static LPCWSTR GetFileExtW(LPCWSTR pszPathW, int iLen /*= -1*/)
 {
 	// Just search the last '.'-character which comes after an optionally
 	// available last '\'-char.
@@ -175,7 +175,7 @@ HRESULT CMainFrameDropTarget::PasteHTMLDocument(IHTMLDocument2 *doc, PASTEURLDAT
 					if (SUCCEEDED(item->QueryInterface(&anchor))) {
 						CComBSTR bstrHref;
 						if (anchor->get_href(&bstrHref) == S_OK && bstrHref.Length() > 0 && IsUrlSchemeSupportedW(bstrHref)) {
-							theApp.emuledlg->ProcessED2KLink(CString(bstrHref));
+							theApp.emuledlg->ProcessED2KLink(bstrHref);
 							hrPasteResult = S_OK;
 						}
 						anchor.Release(); // free memory
@@ -217,7 +217,7 @@ HRESULT CMainFrameDropTarget::PasteHTMLDocument(IHTMLDocument2 *doc, PASTEURLDAT
 				// HTML comments like "<!--StartFragment-->...<!--EndFragment-->". Those
 				// tags have to be explicitly parsed to get the real raw text contents.
 				// Those Start- and End-tags are available if the text is copied into the clipboard
-				// from a HTML window which was open with "View Partial Source"!
+				// from an HTML window which was open with "View Partial Source"!
 				static const WCHAR _wszStartFrag[] = L"<!--StartFragment-->";
 				if (wcsncmp(pwsz, _wszStartFrag, _countof(_wszStartFrag) - 1) == 0) {
 					pwsz += _countof(_wszStartFrag) - 1;
@@ -243,8 +243,7 @@ HRESULT CMainFrameDropTarget::PasteHTMLDocument(IHTMLDocument2 *doc, PASTEURLDAT
 							++pwszEnd;
 						int iLen = (int)(pwszEnd - pwsz);
 						if (iLen > 0) {
-							CString strURL(pwsz, iLen);
-							theApp.emuledlg->ProcessED2KLink(strURL);
+							theApp.emuledlg->ProcessED2KLink(CStringW(pwsz, iLen));
 							hrPasteResult = S_OK;
 							pwsz += iLen;
 						}
@@ -342,9 +341,9 @@ HRESULT CMainFrameDropTarget::PasteText(CLIPFORMAT cfData, COleDataObject &data)
 
 			hrPasteResult = S_FALSE; // default: nothing was pasted
 			if (_strnicmp(pszUrlA, "ed2k://|", 8) == 0 || _strnicmp(pszUrlA, "magnet:?", 8) == 0) {
-				const CString strData(pszUrlA);
+				const CStringW strData(pszUrlA);
 				for (int iPos = 0; iPos >= 0;) {
-					const CString &sLink(strData.Tokenize(_T("\r\n"), iPos));
+					const CStringW &sLink(strData.Tokenize(L"\r\n", iPos));
 					if (!sLink.IsEmpty()) {
 						theApp.emuledlg->ProcessED2KLink(sLink);
 						hrPasteResult = S_OK;
@@ -358,18 +357,18 @@ HRESULT CMainFrameDropTarget::PasteText(CLIPFORMAT cfData, COleDataObject &data)
 	return hrPasteResult;
 }
 
-HRESULT CMainFrameDropTarget::AddUrlFileContents(LPCTSTR pszFileName)
+HRESULT CMainFrameDropTarget::AddUrlFileContents(LPCWSTR pszFileName)
 {
 	HRESULT hrResult = S_FALSE;
 
-	if (ExtensionIs(pszFileName, FILEEXTDOT_INETSHRTCUT)) {
+	if (ExtensionIs((CString)pszFileName, FILEEXTDOT_INETSHRTCUT)) {
 		CComPtr<IUniformResourceLocatorW> pIUrl;
-		hrResult = CoCreateInstance(CLSID_InternetShortcut, NULL, CLSCTX_INPROC_SERVER, IID_IUniformResourceLocatorW, (void**)&pIUrl);
+		hrResult = CoCreateInstance(CLSID_InternetShortcut, NULL, CLSCTX_INPROC_SERVER, IID_IUniformResourceLocatorW, (LPVOID*)&pIUrl);
 		if (SUCCEEDED(hrResult)) {
 			CComPtr<IPersistFile> pIFile;
 			hrResult = pIUrl.QueryInterface(&pIFile);
 			if (SUCCEEDED(hrResult)) {
-				hrResult = pIFile->Load(CComBSTR(pszFileName), STGM_READ | STGM_SHARE_DENY_WRITE);
+				hrResult = pIFile->Load(pszFileName, STGM_READ | STGM_SHARE_DENY_WRITE);
 				if (SUCCEEDED(hrResult)) {
 					LPWSTR pwszUrl;
 					hrResult = pIUrl->GetURL(&pwszUrl);
@@ -406,7 +405,7 @@ HRESULT CMainFrameDropTarget::PasteHDROP(COleDataObject &data)
 			} else {
 				LPCSTR pszFileNameA = (LPCSTR)((LPBYTE)lpDrop + lpDrop->pFiles);
 				while (*pszFileNameA != '\0') {
-					if (FAILED(AddUrlFileContents(CString(pszFileNameA))))
+					if (FAILED(AddUrlFileContents(CStringW(pszFileNameA))))
 						break;
 					hrPasteResult = S_OK;
 					pszFileNameA += strlen(pszFileNameA) + 1;
@@ -419,7 +418,7 @@ HRESULT CMainFrameDropTarget::PasteHDROP(COleDataObject &data)
 	return hrPasteResult;
 }
 
-BOOL CMainFrameDropTarget::IsSupportedDropData(COleDataObject *pDataObject)
+BOOL CMainFrameDropTarget::IsSupportedDropData(COleDataObject *pDataObject) const
 {
 	//************************************************************************
 	//*** THIS FUNCTION HAS TO BE AS FAST AS POSSIBLE!!!

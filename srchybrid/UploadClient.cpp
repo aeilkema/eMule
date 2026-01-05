@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -23,13 +23,11 @@
 #include "UploadQueue.h"
 #include "Statistics.h"
 #include "ClientList.h"
-#include "ClientUDPSocket.h"
 #include "SharedFileList.h"
 #include "KnownFileList.h"
 #include "PartFile.h"
 #include "ClientCredits.h"
 #include "ListenSocket.h"
-#include "ServerConnect.h"
 #include "SafeFile.h"
 #include "DownloadQueue.h"
 #include "emuledlg.h"
@@ -50,7 +48,7 @@ static char THIS_FILE[] = __FILE__;
 
 CBarShader CUpDownClient::s_UpStatusBar(16);
 
-void CUpDownClient::DrawUpStatusBar(CDC *dc, const CRect &rect, bool onlygreyrect, bool  bFlat) const
+void CUpDownClient::DrawUpStatusBar(CDC &dc, const CRect &rect, bool onlygreyrect, bool  bFlat) const
 {
 	COLORREF crNeither, crNextSending, crBoth, crSending;
 
@@ -121,14 +119,14 @@ void CUpDownClient::SetUploadState(EUploadState eNewState)
 			// Reset upload data rate computation
 			m_nUpDatarate = 0;
 			m_nSumForAvgUpDataRate = 0;
-			m_AverageUDR_list.RemoveAll();
+			m_AverageUDR_hist.RemoveAll();
 		}
 		if (eNewState == US_UPLOADING)
 			m_fSentOutOfPartReqs = 0;
 
 		// don't add any final cleanups for US_NONE here
 		m_eUploadState = eNewState;
-		theApp.emuledlg->transferwnd->GetClientList()->RefreshClient(this);
+		theApp.emuledlg->transferwnd->GetClientList().RefreshClient(this);
 	}
 }
 
@@ -143,7 +141,7 @@ float CUpDownClient::GetCombinedFilePrioAndCredit()
 		return 0.0F;
 	}
 
-	return 10.0f * credits->GetScoreRatio(GetIP()) * GetFilePrioAsNumber();
+	return (float)(10 * GetFilePrioAsNumber()) * credits->GetScoreRatio(GetIP());
 }
 
 /*
@@ -157,7 +155,7 @@ int CUpDownClient::GetFilePrioAsNumber() const
 
 	// TODO coded by tecxx & herbert, one yet unsolved problem here:
 	// sometimes a client asks for 2 files and there is no way to decide, which file the
-	// client finally gets. so it could happen that he is queued first because of a
+	// client finally gets. So it could happen that he is queued first because of a
 	// high prio file, but then asks for something completely different.
 	switch (currequpfile->GetUpPriority()) {
 	case PR_VERYHIGH:
@@ -209,23 +207,22 @@ uint32 CUpDownClient::GetScore(bool sysvalue, bool isdownloading, bool onlybasev
 	DWORD dwBaseValue;
 	if (onlybasevalue)
 		dwBaseValue = SEC2MS(100);
-	else if (!isdownloading)
-		dwBaseValue = ::GetTickCount() - GetWaitStartTime();
-	else {
+	else if (isdownloading) {
 		// we don't want one client to download forever
 		// the first 15 min download time counts as 15 min waiting time and you get
 		// a 15 min bonus while you are in the first 15 min :)
 		// (to avoid 20 sec downloads) after this the score won't rise any more
 		dwBaseValue = m_dwUploadTime - GetWaitStartTime();
-		dwBaseValue += MIN2MS(::GetTickCount() >= m_dwUploadTime + MIN2MS(15) ? 15 : 30);
+		dwBaseValue += (::GetTickCount() >= m_dwUploadTime + MIN2MS(15) ? MIN2MS(15) : MIN2MS(30));
 		//ASSERT ( m_dwUploadTime - GetWaitStartTime() >= 0 ); //oct 28, 02: changed this from "> 0" to ">= 0" -> // 02-Okt-2006 []: ">=0" is always true!
-	}
-	float fBaseValue = dwBaseValue / SEC2MS(1.0f);
+	} else
+		dwBaseValue = ::GetTickCount() - GetWaitStartTime();
+	float fBaseValue = (float)dwBaseValue / SEC2MS(1);
 	if (thePrefs.UseCreditSystem())
 		fBaseValue *= credits->GetScoreRatio(GetIP());
 
 	if (!onlybasevalue)
-		fBaseValue *= GetFilePrioAsNumber() / 10.0f;
+		fBaseValue *= (float)GetFilePrioAsNumber() / 10;
 
 	if ((IsEmuleClient() || GetClientSoft() < 10) && m_byEmuleVersion <= 0x19)
 		fBaseValue *= 0.5f;
@@ -242,12 +239,7 @@ bool CUpDownClient::ProcessExtendedInfo(CSafeMemFile &data, CKnownFile *tempreqf
 		return true;
 
 	uint16 nED2KUpPartCount = data.ReadUInt16();
-	if (!nED2KUpPartCount) {
-		m_nUpPartCount = tempreqfile->GetPartCount();
-		if (!m_nUpPartCount)
-			return false;
-		m_abyUpPartStatus = new uint8[m_nUpPartCount]{};
-	} else {
+	if (nED2KUpPartCount) {
 		if (tempreqfile->GetED2KPartCount() != nED2KUpPartCount) {
 			//We already checked if we are talking about the same file. So if we get here, something really strange happened!
 			m_nUpPartCount = 0;
@@ -266,6 +258,11 @@ bool CUpDownClient::ProcessExtendedInfo(CSafeMemFile &data, CKnownFile *tempreqf
 					break;
 			}
 		}
+	} else {
+		m_nUpPartCount = tempreqfile->GetPartCount();
+		if (!m_nUpPartCount)
+			return false;
+		m_abyUpPartStatus = new uint8[m_nUpPartCount]{};
 	}
 	if (GetExtendedRequestsVersion() > 1) {
 		uint16 nCompleteCountLast = GetUpCompleteSourcesCount();
@@ -274,7 +271,7 @@ bool CUpDownClient::ProcessExtendedInfo(CSafeMemFile &data, CKnownFile *tempreqf
 		if (nCompleteCountLast != nCompleteCountNew)
 			tempreqfile->UpdatePartsInfo();
 	}
-	theApp.emuledlg->transferwnd->GetQueueList()->RefreshClient(this);
+	theApp.emuledlg->transferwnd->GetQueueList().RefreshClient(this);
 	return true;
 }
 
@@ -414,9 +411,11 @@ void CUpDownClient::AddReqBlock(Requested_Block_Struct *reqblock, bool bSignalIO
 		lockBlockLists.Unlock(); // not needed, just to make it visible
 	}
 	if (bSignalIOThread && theApp.m_pUploadDiskIOThread != NULL) {
-		/*DebugLog(_T("BlockRequest Packet received, we have currently %u waiting requests and %s data in buffer (%u in ready packets, %s in pending IO Disk read), socket busy: %s"), dbgLastQueueCount
+		/*DebugLog(_T("BlockRequest Packet received, we have currently %u waiting requests and %s data in buffer (%u in ready packets, %s in pending IO Disk read), socket busy: %s")
+			, dbgLastQueueCount
 			, (LPCTSTR)CastItoXBytes(GetQueueSessionUploadAdded() - (GetQueueSessionPayloadUp() + socket->GetSentPayloadSinceLastCall(false)), false, false, 2)
-			, socket->DbgGetStdQueueCount(), (LPCTSTR)CastItoXBytes((uint32)theApp.m_pUploadDiskIOThread->dbgDataReadPending, false, false, 2)
+			, socket->DbgGetStdQueueCount()
+			, (LPCTSTR)CastItoXBytes((uint32)theApp.m_pUploadDiskIOThread->dbgDataReadPending, false, false, 2)
 			,_T('?')); */
 		theApp.m_pUploadDiskIOThread->WakeUpCall();
 	}
@@ -425,26 +424,24 @@ void CUpDownClient::AddReqBlock(Requested_Block_Struct *reqblock, bool bSignalIO
 void CUpDownClient::UpdateUploadingStatisticsData()
 {
 	const DWORD curTick = ::GetTickCount();
-
-	uint32 sentBytesCompleteFile = 0;
-	uint32 sentBytesPartFile = 0;
-
+	uint32 sentBytesFile;
 	CEMSocket *sock = GetFileUploadSocket();
 	if (sock) {
 		// Extended statistics information based on which client software and which port we sent this data to...
 		// This also updates the grand total for sent bytes, etc.  And where this data came from.
-		sentBytesCompleteFile = (uint32)sock->GetSentBytesCompleteFileSinceLastCallAndReset();
-		sentBytesPartFile = (uint32)sock->GetSentBytesPartFileSinceLastCallAndReset();
+		uint32 sentBytesCompleteFile = (uint32)sock->GetSentBytesCompleteFileSinceLastCallAndReset();
+		uint32 sentBytesPartFile = (uint32)sock->GetSentBytesPartFileSinceLastCallAndReset();
+		sentBytesFile = sentBytesCompleteFile + sentBytesPartFile;
 		thePrefs.Add2SessionTransferData(GetClientSoft(), GetUserPort(), false, true, sentBytesCompleteFile, (IsFriend() && GetFriendSlot()));
 		thePrefs.Add2SessionTransferData(GetClientSoft(), GetUserPort(), true, true, sentBytesPartFile, (IsFriend() && GetFriendSlot()));
 
-		m_nTransferredUp += sentBytesCompleteFile + sentBytesPartFile;
-		credits->AddUploaded(sentBytesCompleteFile + sentBytesPartFile, GetIP());
+		m_nTransferredUp += sentBytesFile;
+		credits->AddUploaded(sentBytesFile, GetIP());
 
 		uint32 sentBytesPayload = sock->GetSentPayloadSinceLastCall(true);
 		m_nCurQueueSessionPayloadUp += sentBytesPayload;
 
-		// on some rare cases (namely switching upload files while still data is in the send queue),
+		// in some rare cases (namely, switching upload files while data still is in the send queue),
 		// we count some bytes for the wrong file, but fixing it (and not counting data only based on
 		// what was put into the queue and not sent yet) isn't really worth it
 		CKnownFile *pCurrentUploadFile = theApp.sharedfiles->GetFileByID(GetUploadFileID());
@@ -452,33 +449,34 @@ void CUpDownClient::UpdateUploadingStatisticsData()
 			pCurrentUploadFile->statistic.AddTransferred(sentBytesPayload);
 		//else
 		//	ASSERT(0); //fired after deleting shared files which had uploads in the current eMule session. Closing this messagebox caused no issues.
-	}
+	} else
+		sentBytesFile = 0;
 
-	const uint32 sentBytesFile = sentBytesCompleteFile + sentBytesPartFile;
-	if (sentBytesFile > 0 || m_AverageUDR_list.IsEmpty() || curTick >= m_AverageUDR_list.GetTail().timestamp + SEC2MS(1)) {
+	if (sentBytesFile > 0 || m_AverageUDR_hist.IsEmpty() || curTick >= m_AverageUDR_hist.Tail().timestamp + SEC2MS(1)) {
 		// Store how much data we've transferred in this round,
 		// to be able to calculate average speed later
 		// keep up to date the sum of all values in the list
-		TransferredData newitem = {sentBytesFile, curTick};
-		m_AverageUDR_list.AddTail(newitem);
+		m_AverageUDR_hist.AddTail(TransferredData{sentBytesFile, curTick});
 		m_nSumForAvgUpDataRate += sentBytesFile;
 	}
 
 	// remove old entries from the list and adjust the sum of all values
-	while (!m_AverageUDR_list.IsEmpty() && curTick >= m_AverageUDR_list.GetHead().timestamp + SEC2MS(10))
-		m_nSumForAvgUpDataRate -= m_AverageUDR_list.RemoveHead().datalen;
+	while (!m_AverageUDR_hist.IsEmpty() && curTick >= m_AverageUDR_hist.Head().timestamp + SEC2MS(10)) {
+		m_nSumForAvgUpDataRate -= m_AverageUDR_hist.Head().datalen;
+		m_AverageUDR_hist.RemoveHead();
+	}
 
 	// Calculate average speed for this slot
-	if (!m_AverageUDR_list.IsEmpty() && curTick > m_AverageUDR_list.GetHead().timestamp && GetUpStartTimeDelay() > SEC2MS(2))
-		m_nUpDatarate = (UINT)(SEC2MS(m_nSumForAvgUpDataRate) / (curTick - m_AverageUDR_list.GetHead().timestamp));
+	if (!m_AverageUDR_hist.IsEmpty() && curTick > m_AverageUDR_hist.Head().timestamp && GetUpStartTimeDelay() > SEC2MS(2))
+		m_nUpDatarate = (UINT)(SEC2MS(m_nSumForAvgUpDataRate) / (curTick - m_AverageUDR_hist.Head().timestamp));
 	else
 		m_nUpDatarate = 0; // not enough data to calculate trustworthy speed
 
 	// Check if it's time to update the display.
 	if (curTick >= m_lastRefreshedULDisplay + MINWAIT_BEFORE_ULDISPLAY_WINDOWUPDATE + rand() % 800) {
 		// Update display
-		theApp.emuledlg->transferwnd->GetUploadList()->RefreshClient(this);
-		theApp.emuledlg->transferwnd->GetClientList()->RefreshClient(this);
+		theApp.emuledlg->transferwnd->GetUploadList().RefreshClient(this);
+		theApp.emuledlg->transferwnd->GetClientList().RefreshClient(this);
 		m_lastRefreshedULDisplay = curTick;
 	}
 }
@@ -651,7 +649,7 @@ void CUpDownClient::Ban(LPCTSTR pszReason)
 	theApp.clientlist->AddBannedClient(GetIP());
 	SetUploadState(US_BANNED);
 	theApp.emuledlg->transferwnd->ShowQueueCount(theApp.uploadqueue->GetWaitingUserCount());
-	theApp.emuledlg->transferwnd->GetQueueList()->RefreshClient(this);
+	theApp.emuledlg->transferwnd->GetQueueList().RefreshClient(this);
 	if (socket != NULL && socket->IsConnected())
 		socket->ShutDown(CAsyncSocket::receives); // let the socket timeout, since we don't want to risk to delete the client right now. This isn't actually perfect, could be changed later
 }

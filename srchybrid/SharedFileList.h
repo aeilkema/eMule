@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -57,13 +57,13 @@ public:
 	void	ClearED2KPublishInfo();
 	void	ClearKadSourcePublishInfo();
 
-	static void	CreateOfferedFilePacket(CKnownFile *cur_file, CSafeMemFile &files, CServer *pServer, CUpDownClient *pClient = NULL);
+	static void	CreateOfferedFilePacket(CKnownFile *cur_file, CSafeMemFile &files, const CServer *pServer, const CUpDownClient *pClient = NULL);
 
 	bool	SafeAddKFile(CKnownFile *toadd, bool bOnlyAdd = false);
 	void	RepublishFile(CKnownFile *pFile);
 	void	SetOutputCtrl(CSharedFilesCtrl *in_ctrl);
 	bool	RemoveFile(CKnownFile *pFile, bool bDeleted = false);	// removes a specific shared file from the list
-	void	UpdateFile(CKnownFile *toupdate);
+	void	UpdateFile(const CKnownFile *toupdate);
 	void	AddFileFromNewlyCreatedCollection(const CString &rstrFilePath)	{ CheckAndAddSingleFile(rstrFilePath); }
 
 	// GUI is not initially updated
@@ -90,8 +90,8 @@ public:
 	CString	GetDirNameByPseudo(const CString &strPseudoName) const;
 
 	uint64	GetDatasize(uint64 &pbytesLargest) const;
-	INT_PTR	GetCount()								{ return m_Files_map.GetCount(); }
-	INT_PTR	GetHashingCount()						{ return waitingforhash_list.GetCount() + currentlyhashing_list.GetCount(); }
+	INT_PTR	GetCount() const						{ return m_Files_map.GetCount(); }
+	INT_PTR	GetHashingCount() const					{ return waitingforhash_list.GetCount() + currentlyhashing_list.GetCount(); }
 	bool	ProbablyHaveSingleSharedFiles() const	{ return bHaveSingleSharedFiles && !m_liSingleSharedFiles.IsEmpty(); } // might not be always up-to-date, could give false "true"s, not a problem currently
 
 	void	HashFailed(UnknownFile_Struct *hashed);	// SLUGFILLER: SafeHash
@@ -110,7 +110,7 @@ protected:
 
 	void	HashNextFile();
 	bool	IsHashing(const CString &rstrDirectory, const CString &rstrName);
-	void	RemoveFromHashing(CKnownFile *hashed);
+	void	RemoveFromHashing(const CKnownFile *hashed);
 	void	LoadSingleSharedFilesList();
 
 	void	CheckAndAddSingleFile(const CFileFind &ff);
@@ -152,7 +152,7 @@ public:
 	virtual int	Run();
 	void	SetValues(CSharedFileList *pOwner, LPCTSTR directory, LPCTSTR filename, LPCTSTR strSharedDir, CPartFile *partfile = NULL);
 	bool	ImportParts();
-	uint16	SetPartToImport(LPCTSTR import);
+	uint16	SetPartsToImport(LPCTSTR import);
 private:
 	CSharedFileList	*m_pOwner;
 	CPartFile	*m_partfile;
@@ -160,5 +160,5 @@ private:
 	CString		m_strFilename;
 	CString		m_strSharedDir;
 	CString		m_strImport;
-	CArray<uint16, uint16>	m_PartsToImport;
+	CArray<uint16>	m_PartsToImport;
 };

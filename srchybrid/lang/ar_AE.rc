@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "ar_AE.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ARU)
 #ifdef _WIN32
 LANGUAGE LANG_ARABIC, SUBLANG_ARABIC_UAE
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -802,7 +802,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "دردشة خاصة"
     IDS_WEB_REMOTE_LINK_ADDED "الوصلة اضيفت: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED "الوصلة لم تضاف, كلمة سر خاطئة."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "ملفات البارت تحتاج الى اظهار اولا"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "ملفات البارت تحتاج الى اظهار اولا"
     IDS_IRC_KICK            "اطرد"
     IDS_IRC_SLAP            "تبب"
     IDS_IRC_JOIN            "التحق"
@@ -819,7 +819,6 @@ BEGIN
     IDS_NEWMSG              "رسالة جديدة من '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "فقط في نفس الجدول"
     IDS_LOG_ULDL_EVENTS     "رفع\تحميل حدث"
-//    IDS_PEERCACHE_ENABLED   "شركة الانترنت الخاصة بك تدعم تقنية البييركاشي, السماح بتحميل الكاشي!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "اسمح للمستخدم باضافتك كصديق."
     IDS_SOURCESWAPBLOCKED   "التبادل  حجز"
     IDS_TRICKLING           "الوقوف دون حدث"
@@ -1607,9 +1606,6 @@ BEGIN
                             "فعل هذا الاختيار لبدأ ايمول عند بدأ الويندوز. [معطل تلقائياً]"
     IDS_KAD_WAITCBK         "انتظر الرد من  Kad "
     IDS_KAD_TOOMANDYKADLKPS "بحوث Kad كثيرة"
-//    IDS_PCDS_CLIENTWAIT     "انتظار العميل"
-//    IDS_PCDS_CACHEWAIT      "انتظار الكاتشي"
-//    IDS_CACHE               "وhjad"
     IDS_INDEXED             "جدول"
     IDS_KADINFO_SRC         "\tمصدر: %u\r\n"
     IDS_KADINFO_KEYW        "\tمفتاح الكلمة: %u\r\n"
@@ -1696,8 +1692,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "مكتبة ملفات ويندوز المشتركة (COMCTL32.DLL) قديمة جدا!\r\n\r\nايمول وجد اصدار جديد لهذه الملفات"" انه قديم جدا لاستخدام ايمول. ل التاكد مب عمل كامل و بدون تصدع ايمول ينصح بتحديث هذه الملفات ""Windows Common Controls library (COMCTL32.DLL)"" لاخر اصدار 5.8.\r\n\r\nحمل و نصب و حدث ملفات ال  ""Windows Common Controls library (COMCTL32.DLL)"" في صفحة ماكيروسوفت. هل تريد بالذهاب مباشرة لتلك الصفحة؟?"
     IDS_ASREGEXPR           "كضغظ عادي"
     IDS_STATIC_REGEXP       "ضغط عادي لاظهار الفلتر:"
     IDS_CARE4ALL            "قيم كل الملفات"

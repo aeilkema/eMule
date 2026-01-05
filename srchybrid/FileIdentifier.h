@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -28,31 +28,31 @@ public:
 
 	virtual EMFileSize GetFileSize() const;
 
-	void			WriteIdentifier(CFileDataIO &file, bool bKadExcludeMD4 = false) const;
-	bool			CompareRelaxed(const CFileIdentifierBase &rFileIdentifier) const;
-	bool			CompareStrict(const CFileIdentifierBase &rFileIdentifier) const;
+	void	WriteIdentifier(CFileDataIO &file, bool bKadExcludeMD4 = false) const;
+	bool	CompareRelaxed(const CFileIdentifierBase &rFileIdentifier) const;
+	bool	CompareStrict(const CFileIdentifierBase &rFileIdentifier) const;
 
-	CString			DbgInfo() const;
+	CString	DbgInfo() const;
 
 	//******************** MD4 Related
-	void			SetMD4Hash(const uchar *pucFileHash);
-	void			SetMD4Hash(CFileDataIO &file);
-	const uchar*	GetMD4Hash() const						{ return m_abyMD4Hash; }
+	void	SetMD4Hash(const uchar *pucFileHash);
+	void	SetMD4Hash(CFileDataIO &file);
+	const uchar* GetMD4Hash() const						{ return m_abyMD4Hash; }
 
 	//******************** AICH Related
-	const CAICHHash& GetAICHHash() const					{ ASSERT(m_bHasValidAICHHash); return m_AICHFileHash; }
-	void			SetAICHHash(const CAICHHash &Hash);
-	bool			HasAICHHash() const						{ return m_bHasValidAICHHash; }
-	void			ClearAICHHash()							{ m_bHasValidAICHHash = false; }
+	const CAICHHash& GetAICHHash() const				{ ASSERT(m_bHasValidAICHHash); return m_AICHFileHash; }
+	void	SetAICHHash(const CAICHHash &Hash);
+	bool	HasAICHHash() const							{ return m_bHasValidAICHHash; }
+	void	ClearAICHHash()								{ m_bHasValidAICHHash = false; }
 
 protected:
 	CFileIdentifierBase();
 	CFileIdentifierBase(const CFileIdentifierBase &rFileIdentifier);
 	CFileIdentifierBase& operator=(const CFileIdentifierBase &rFileIdentifier);
 
-	uchar			m_abyMD4Hash[16];
-	CAICHHash		m_AICHFileHash;
-	bool			m_bHasValidAICHHash;
+	uchar	m_abyMD4Hash[16];
+	CAICHHash m_AICHFileHash;
+	bool	m_bHasValidAICHHash;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,41 +68,41 @@ public:
 	//******************** Common
 	void	WriteHashSetsToPacket(CFileDataIO &file, bool bMD4, bool bAICH) const; // not compatible with old single md4 hashset
 	bool	ReadHashSetsFromPacket(CFileDataIO &file, bool &rbMD4, bool &rbAICH);  // not compatible with old single md4 hashset
-	virtual EMFileSize GetFileSize() const					{ return m_rFileSize; }
+	virtual EMFileSize GetFileSize() const				{ return m_rFileSize; }
 
 	//******************** MD4 Related
 	bool	CalculateMD4HashByHashSet(bool bVerifyOnly, bool bDeleteOnVerifyFail = true);
 	bool	LoadMD4HashsetFromFile(CFileDataIO &file, bool bVerifyExistingHash);
 	void	WriteMD4HashsetToFile(CFileDataIO &file) const;
 
-	bool	SetMD4HashSet(const CArray<uchar*, uchar*> &aHashset);
+	bool	SetMD4HashSet(const CArray<uchar*> &aHashset);
 	uchar*	GetMD4PartHash(UINT part) const;
 	void	DeleteMD4Hashset();
 
 	// nr. of part hashes according the file size wrt ED2K protocol
-	uint16	GetTheoreticalMD4PartHashCount() const;														 /* prev: GetED2KPartHashCount()*/
-	uint16	GetAvailableMD4PartHashCount() const			{ return (uint16)m_aMD4HashSet.GetCount(); } /* prev: GetHashCount() */
-	bool	HasExpectedMD4HashCount() const					{ return GetTheoreticalMD4PartHashCount() == GetAvailableMD4PartHashCount(); }
+	uint16	GetTheoreticalMD4PartHashCount() const;													 /* prev: GetED2KPartHashCount()*/
+	uint16	GetAvailableMD4PartHashCount() const		{ return (uint16)m_aMD4HashSet.GetCount(); } /* prev: GetHashCount() */
+	bool	HasExpectedMD4HashCount() const				{ return GetTheoreticalMD4PartHashCount() == GetAvailableMD4PartHashCount(); }
 
-	CArray<uchar*, uchar*>&	GetRawMD4HashSet()				{ return m_aMD4HashSet; }
+	CArray<uchar*>&	GetRawMD4HashSet()					{ return m_aMD4HashSet; }
 
 	//******************** AICH Related
-	bool		LoadAICHHashsetFromFile(CFileDataIO &file, bool bVerify = true); // bVerify=false means you must call VerifyAICHHashSet immediately after this method
-	void		WriteAICHHashsetToFile(CFileDataIO &file) const;
+	bool	LoadAICHHashsetFromFile(CFileDataIO &file, bool bVerify = true); // bVerify=false means you must call VerifyAICHHashSet immediately after this method
+	void	WriteAICHHashsetToFile(CFileDataIO &file) const;
 
-	bool		SetAICHHashSet(const CAICHRecoveryHashSet &sourceHashSet);
-	bool		SetAICHHashSet(const CFileIdentifier &rSourceHashSet);
+	bool	SetAICHHashSet(const CAICHRecoveryHashSet &sourceHashSet);
+	bool	SetAICHHashSet(const CFileIdentifier &rSourceHashSet);
 
-	bool		VerifyAICHHashSet();
-	uint16		GetTheoreticalAICHPartHashCount() const;
-	uint16		GetAvailableAICHPartHashCount() const		{ return (uint16)m_aAICHPartHashSet.GetCount(); }
-	bool		HasExpectedAICHHashCount() const			{ return GetTheoreticalAICHPartHashCount() == GetAvailableAICHPartHashCount(); }
+	bool	VerifyAICHHashSet();
+	uint16	GetTheoreticalAICHPartHashCount() const;
+	uint16	GetAvailableAICHPartHashCount() const		{ return (uint16)m_aAICHPartHashSet.GetCount(); }
+	bool	HasExpectedAICHHashCount() const			{ return GetTheoreticalAICHPartHashCount() == GetAvailableAICHPartHashCount(); }
 
-	const CArray<CAICHHash>&	GetRawAICHHashSet()	const	{ return m_aAICHPartHashSet; }
+	const CArray<CAICHHash>& GetRawAICHHashSet() const	{ return m_aAICHPartHashSet; }
 private:
-	EMFileSize				&m_rFileSize;
-	CArray<uchar*, uchar*>	m_aMD4HashSet;
-	CArray<CAICHHash>		m_aAICHPartHashSet;
+	EMFileSize		&m_rFileSize;
+	CArray<uchar*>	m_aMD4HashSet;
+	CArray<CAICHHash> m_aAICHPartHashSet;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -114,7 +114,7 @@ public:
 	CFileIdentifierSA(const uchar *pucFileHash, EMFileSize nFileSize, const CAICHHash &rHash, bool bAICHHashValid);
 	CFileIdentifierSA();
 
-	virtual EMFileSize GetFileSize() const					{ return m_nFileSize; }
+	virtual EMFileSize GetFileSize() const				{ return m_nFileSize; }
 
 	bool	ReadIdentifier(CFileDataIO &file, bool bKadValidWithoutMd4 = false);
 

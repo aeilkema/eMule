@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -19,7 +19,6 @@
 #include "SearchDlg.h"
 #include "PPgDisplay.h"
 #include <dlgs.h>
-#include "HTRichEditCtrl.h"
 #include "Preferences.h"
 #include "OtherFunctions.h"
 #include "emuledlg.h"
@@ -147,7 +146,7 @@ BOOL CPPgDisplay::OnApply()
 		if (thePrefs.m_bDisableKnownClientList)
 			bListDisabled = true;
 		else
-			theApp.emuledlg->transferwnd->GetClientList()->ShowKnownClients();
+			theApp.emuledlg->transferwnd->GetClientList().ShowKnownClients();
 		bResetToolbar = true;
 	}
 
@@ -156,7 +155,7 @@ BOOL CPPgDisplay::OnApply()
 		if (thePrefs.m_bDisableQueueList)
 			bListDisabled = true;
 		else
-			theApp.emuledlg->transferwnd->GetQueueList()->ShowQueueClients();
+			theApp.emuledlg->transferwnd->GetQueueList().ShowQueueClients();
 		bResetToolbar = true;
 	}
 
@@ -164,7 +163,7 @@ BOOL CPPgDisplay::OnApply()
 	thePrefs.m_iToolDelayTime = (i > MAX_TOOLTIP_DELAY_SEC) ? MAX_TOOLTIP_DELAY_SEC : i;
 	theApp.emuledlg->SetToolTipsDelay(SEC2MS(thePrefs.GetToolTipDelay()));
 
-	theApp.emuledlg->transferwnd->GetDownloadList()->SetStyle();
+	theApp.emuledlg->transferwnd->GetDownloadList().SetStyle();
 
 	if (bListDisabled)
 		theApp.emuledlg->transferwnd->OnDisableList();

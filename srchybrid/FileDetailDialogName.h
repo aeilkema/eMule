@@ -33,7 +33,7 @@ class CFileDetailDialogName : public CResizablePage
 	};
 
 public:
-	CFileDetailDialogName();   // standard constructor
+	CFileDetailDialogName();	// standard constructor
 	virtual BOOL OnInitDialog();
 
 	void SetFiles(const CSimpleArray<CObject*> *paFiles)	{ m_paFiles = paFiles; m_bDataChanged = true; }
@@ -55,7 +55,7 @@ protected:
 	bool CanRenameFile() const;
 	void RenameFile();
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnSetActive();
 	virtual BOOL OnApply();
 

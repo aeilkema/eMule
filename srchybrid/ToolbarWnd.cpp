@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -24,7 +24,6 @@
 #include "DownloadListCtrl.h"
 #include "TransferDlg.h"
 #include "Preferences.h"
-#include "Otherfunctions.h"
 
 
 #ifdef _DEBUG
@@ -65,180 +64,83 @@ void CToolbarWnd::FillToolbar()
 {
 	m_btnBar.DeleteAllButtons();
 
-	TBBUTTON atb1[DTOOLBAR_NUM_BUTTONS] = {};
+	static const int btndata[DTOOLBAR_NUM_BUTTONS][4] =
+	{	//bmp cmd					state							string ID
+		{  0, MP_PRIOLOW,			BTNS_DROPDOWN | BTNS_AUTOSIZE,	IDS_PRIORITY }, // + IDS_DOWNLOAD
+		{  1, MP_PAUSE,				BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_DL_PAUSE },
+		{  2, MP_STOP,				BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_DL_STOP },
+		{  3, MP_RESUME,			BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_DL_RESUME },
+		{  4, MP_CANCEL,			BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_MAIN_BTN_CANCEL, },
+		{ -1, 0,					BTNS_SEP,						-1 },
+		{  5, MP_OPEN,				BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_DL_OPEN },
+		{  6, MP_OPENFOLDER,		BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_OPENFOLDER },
+		{  7, MP_PREVIEW,			BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_DL_PREVIEW },
+		{  8, MP_METINFO,			BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_DL_INFO },
+		{  9, MP_VIEWFILECOMMENTS,	BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_CMT_SHOWALL },
+		{ 10, MP_SHOWED2KLINK,		BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_DL_SHOWED2KLINK },
+		{ -1, 0,					BTNS_SEP,						-1 },
+		{ 11, MP_NEWCAT,			BTNS_DROPDOWN | BTNS_AUTOSIZE,	IDS_TOCAT },
+		{ 12, MP_CLEARCOMPLETED,	BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_DL_CLEAR },
+		{ 13, MP_SEARCHRELATED,		BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_SEARCHRELATED },
+		{ -1, 0,					BTNS_SEP,						-1 },
+		{ 14, MP_FIND,				BTNS_BUTTON | BTNS_AUTOSIZE,	IDS_FIND } // +TBSTATE_ENABLED
+	};
 
-	//atb1[0].iBitmap = 0;
-	atb1[0].idCommand = MP_PRIOLOW;
-	atb1[0].fsState = TBSTATE_WRAP;
-	atb1[0].fsStyle = BTNS_DROPDOWN | BTNS_AUTOSIZE;
-	CString sPrio(GetResString(IDS_PRIORITY));
-	sPrio.AppendFormat(_T(" (%s)"), (LPCTSTR)GetResString(IDS_DOWNLOAD));
-	atb1[0].iString = m_btnBar.AddString(sPrio);
+	TBBUTTON atb1[DTOOLBAR_NUM_BUTTONS]{};
+	for (int i = 0; i < DTOOLBAR_NUM_BUTTONS; ++i) {
+		atb1[i].iBitmap = btndata[i][0];
+		atb1[i].idCommand = btndata[i][1];
+		atb1[i].fsState = (i == 17) ? TBSTATE_WRAP | TBSTATE_ENABLED : TBSTATE_WRAP;
+		atb1[i].fsStyle = (BYTE)btndata[i][2];
+		if (btndata[i][3] >= 0)
+			if (i)
+				atb1[i].iString = m_btnBar.AddString(GetResString(btndata[i][3]));
+			else {
+				CString s(GetResString(btndata[i][3]));
+				s.AppendFormat(_T(" (%s)"), (LPCTSTR)GetResString(IDS_DOWNLOAD));
+				atb1[i].iString = m_btnBar.AddString(s);
+			}
 
-	atb1[1].iBitmap = 1;
-	atb1[1].idCommand = MP_PAUSE;
-	atb1[1].fsState = TBSTATE_WRAP;
-	atb1[1].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[1].iString = m_btnBar.AddString(GetResString(IDS_DL_PAUSE));
-
-	atb1[2].iBitmap = 2;
-	atb1[2].idCommand = MP_STOP;
-	atb1[2].fsState = TBSTATE_WRAP;
-	atb1[2].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[2].iString = m_btnBar.AddString(GetResString(IDS_DL_STOP));
-
-	atb1[3].iBitmap = 3;
-	atb1[3].idCommand = MP_RESUME;
-	atb1[3].fsState = TBSTATE_WRAP;
-	atb1[3].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[3].iString = m_btnBar.AddString(GetResString(IDS_DL_RESUME));
-
-	atb1[4].iBitmap = 4;
-	atb1[4].idCommand = MP_CANCEL;
-	atb1[4].fsState = TBSTATE_WRAP;
-	atb1[4].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[4].iString = m_btnBar.AddString(GetResString(IDS_MAIN_BTN_CANCEL));
-	/////////////
-	atb1[5].iBitmap = -1;
-	//atb1[5].idCommand = 0;
-	atb1[5].fsState = TBSTATE_WRAP;
-	atb1[5].fsStyle = BTNS_SEP;
-	atb1[5].iString = -1;
-
-	atb1[6].iBitmap = 5;
-	atb1[6].idCommand = MP_OPEN;
-	atb1[6].fsState = TBSTATE_WRAP;
-	atb1[6].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[6].iString = m_btnBar.AddString(GetResString(IDS_DL_OPEN));
-
-	atb1[7].iBitmap = 6;
-	atb1[7].idCommand = MP_OPENFOLDER;
-	atb1[7].fsState = TBSTATE_WRAP;
-	atb1[7].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[7].iString = m_btnBar.AddString(GetResString(IDS_OPENFOLDER));
-
-	atb1[8].iBitmap = 7;
-	atb1[8].idCommand = MP_PREVIEW;
-	atb1[8].fsState = TBSTATE_WRAP;
-	atb1[8].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[8].iString = m_btnBar.AddString(GetResString(IDS_DL_PREVIEW));
-
-	atb1[9].iBitmap = 8;
-	atb1[9].idCommand = MP_METINFO;
-	atb1[9].fsState = TBSTATE_WRAP;
-	atb1[9].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[9].iString = m_btnBar.AddString(GetResString(IDS_DL_INFO));
-
-	atb1[10].iBitmap = 9;
-	atb1[10].idCommand = MP_VIEWFILECOMMENTS;
-	atb1[10].fsState = TBSTATE_WRAP;
-	atb1[10].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[10].iString = m_btnBar.AddString(GetResString(IDS_CMT_SHOWALL));
-
-	atb1[11].iBitmap = 10;
-	atb1[11].idCommand = MP_SHOWED2KLINK;
-	atb1[11].fsState = TBSTATE_WRAP;
-	atb1[11].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[11].iString = m_btnBar.AddString(GetResString(IDS_DL_SHOWED2KLINK));
-
-	/////////////
-	atb1[12].iBitmap = -1;
-	//atb1[12].idCommand = 0;
-	atb1[12].fsState = TBSTATE_WRAP;
-	atb1[12].fsStyle = BTNS_SEP;
-	atb1[12].iString = -1;
-
-	atb1[13].iBitmap = 11;
-	atb1[13].idCommand = MP_NEWCAT;
-	atb1[13].fsState = TBSTATE_WRAP;
-	atb1[13].fsStyle = BTNS_DROPDOWN | BTNS_AUTOSIZE;
-	atb1[13].iString = m_btnBar.AddString(GetResString(IDS_TOCAT));
-
-	atb1[14].iBitmap = 12;
-	atb1[14].idCommand = MP_CLEARCOMPLETED;
-	atb1[14].fsState = TBSTATE_WRAP;
-	atb1[14].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[14].iString = m_btnBar.AddString(GetResString(IDS_DL_CLEAR));
-
-	atb1[15].iBitmap = 13;
-	atb1[15].idCommand = MP_SEARCHRELATED;
-	atb1[15].fsState = TBSTATE_WRAP;
-	atb1[15].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[15].iString = m_btnBar.AddString(GetResString(IDS_SEARCHRELATED));
-
-	/////////////
-	atb1[16].iBitmap = -1;
-	//atb1[16].idCommand = 0;
-	atb1[16].fsState = TBSTATE_ENABLED | TBSTATE_WRAP;
-	atb1[16].fsStyle = BTNS_SEP;
-	atb1[16].iString = -1;
-
-	atb1[17].iBitmap = 14;
-	atb1[17].idCommand = MP_FIND;
-	atb1[17].fsState = TBSTATE_ENABLED | TBSTATE_WRAP;
-	atb1[17].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
-	atb1[17].iString = m_btnBar.AddString(GetResString(IDS_FIND));
+	}
 
 	m_btnBar.AddButtons(_countof(atb1), atb1);
 }
 
 LRESULT CToolbarWnd::OnInitDialog(WPARAM, LPARAM)
 {
+	static LPCTSTR const sIconNames[15] = {
+			  _T("FILEPRIORITY"), _T("PAUSE"), _T("STOP"), _T("RESUME"), _T("DELETE")
+			, _T("OPENFILE"), _T("OPENFOLDER"), _T("PREVIEW"), _T("FILEINFO"), _T("FILECOMMENTS")
+			, _T("ED2KLINK"), _T("CATEGORY"), _T("CLEARCOMPLETE"), _T("KadFileSearch"), _T("Search") };
+
 	Default();
 	InitWindowStyles(this);
 
-	//(void)m_sizeDefault; // not yet set
 	CRect sizeDefault;
 	GetWindowRect(&sizeDefault);
 	static const RECT rcBorders = { 4, 4, 4, 4 };
 	SetBorders(&rcBorders);
-	m_szFloat.cx = sizeDefault.Width() + rcBorders.left + rcBorders.right + ::GetSystemMetrics(SM_CXEDGE) * 2;
-	m_szFloat.cy = sizeDefault.Height() + rcBorders.top + rcBorders.bottom + ::GetSystemMetrics(SM_CYEDGE) * 2;
+	m_szFloat.SetSize(sizeDefault.Width() + rcBorders.left + rcBorders.right + ::GetSystemMetrics(SM_CXEDGE) * 2
+		, sizeDefault.Height() + rcBorders.top + rcBorders.bottom + ::GetSystemMetrics(SM_CYEDGE) * 2);
 	m_szMRU = m_szFloat;
 	UpdateData(FALSE);
 
 	// Initialize the toolbar
-	CImageList iml;
-	int nFlags = theApp.m_iDfltImageListColorFlags;
-	// older Windows versions image lists cannot create monochrome (disabled) icons which have alpha support
-	// so we have to take care of this ourself
-	bool bNeedMonoIcons = thePrefs.GetWindowsVersion() < _WINVER_VISTA_ && nFlags != ILC_COLOR4;
-	nFlags |= ILC_MASK;
-	iml.Create(16, 16, nFlags, 1, 1);
-	iml.Add(CTempIconLoader(_T("FILEPRIORITY")));
-	iml.Add(CTempIconLoader(_T("PAUSE")));
-	iml.Add(CTempIconLoader(_T("STOP")));
-	iml.Add(CTempIconLoader(_T("RESUME")));
-	iml.Add(CTempIconLoader(_T("DELETE")));
-	iml.Add(CTempIconLoader(_T("OPENFILE")));
-	iml.Add(CTempIconLoader(_T("OPENFOLDER")));
-	iml.Add(CTempIconLoader(_T("PREVIEW")));
-	iml.Add(CTempIconLoader(_T("FILEINFO")));
-	iml.Add(CTempIconLoader(_T("FILECOMMENTS")));
-	iml.Add(CTempIconLoader(_T("ED2KLINK")));
-	iml.Add(CTempIconLoader(_T("CATEGORY")));
-	iml.Add(CTempIconLoader(_T("CLEARCOMPLETE")));
-	iml.Add(CTempIconLoader(_T("KadFileSearch")));
-	iml.Add(CTempIconLoader(_T("Search")));
+	int nFlags = theApp.m_iDfltImageListColorFlags | ILC_MASK;
 
-	if (bNeedMonoIcons) {
+	CImageList iml;
+	iml.Create(16, 16, nFlags, 1, 1);
+	for (unsigned i = 0; i < _countof(sIconNames); ++i)
+		iml.Add(CTempIconLoader(sIconNames[i]));
+
+	// older Windows versions image list cannot create monochrome (disabled) icons with alpha support
+	// so we have to take care of this ourselves
+	if (thePrefs.GetWindowsVersion() < _WINVER_VISTA_ && nFlags != ILC_COLOR4) {
 		CImageList iml2;
 		iml2.Create(16, 16, nFlags, 1, 1);
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("FILEPRIORITY"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("PAUSE"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("STOP"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("RESUME"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("DELETE"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("OPENFILE"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("OPENFOLDER"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("PREVIEW"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("FILEINFO"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("FILECOMMENTS"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("ED2KLINK"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("CATEGORY"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("CLEARCOMPLETE"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("KadFileSearch"))));
-		VERIFY(AddIconGrayscaledToImageList(iml2, CTempIconLoader(_T("Search"))));
+		for (unsigned i = 0; i < _countof(sIconNames); ++i)
+			VERIFY(AddIconGreyedToImageList(iml2, CTempIconLoader(sIconNames[i])) >= 0);
+
 		CImageList *pImlOld = m_btnBar.SetDisabledImageList(&iml2);
 		iml2.Detach();
 		if (pImlOld)
@@ -272,26 +174,19 @@ CSize CToolbarWnd::CalcDynamicLayout(int nLength, DWORD dwMode)
 	pFrm->GetClientRect(&rcFrmClnt);
 	CRect rcInside(rcFrmClnt);
 	CalcInsideRect(rcInside, dwMode & LM_HORZDOCK);
-	RECT rcBorders =
-	{
-		rcInside.left - rcFrmClnt.left,
-		rcInside.top - rcFrmClnt.top,
-		rcFrmClnt.right - rcInside.right,
-		rcFrmClnt.bottom - rcInside.bottom
-	};
+	RECT rcBorders = { rcInside.left - rcFrmClnt.left, rcInside.top - rcFrmClnt.top
+				 , rcFrmClnt.right - rcInside.right, rcFrmClnt.bottom - rcInside.bottom };
 
 	if (dwMode & (LM_HORZDOCK | LM_VERTDOCK)) {
 		if (dwMode & LM_VERTDOCK) {
-			CSize szFloat;
-			szFloat.cx = MIN_VERT_WIDTH;
-			szFloat.cy = rcFrmClnt.Height() + ::GetSystemMetrics(SM_CYEDGE) * 2;
+			CSize szFloat(MIN_VERT_WIDTH
+						, rcFrmClnt.Height() + ::GetSystemMetrics(SM_CYEDGE) * 2);
 			m_szFloat = szFloat;
 			return szFloat;
 		}
 		if (dwMode & LM_HORZDOCK) {
-			CSize szFloat;
-			szFloat.cx = rcFrmClnt.Width() + ::GetSystemMetrics(SM_CXEDGE) * 2;
-			szFloat.cy = m_sizeDefault.cy + rcBorders.top + rcBorders.bottom;
+			CSize szFloat(rcFrmClnt.Width() + ::GetSystemMetrics(SM_CXEDGE) * 2
+						, m_sizeDefault.cy + rcBorders.top + rcBorders.bottom);
 			m_szFloat = szFloat;
 			return szFloat;
 		}
@@ -309,16 +204,15 @@ CSize CToolbarWnd::CalcDynamicLayout(int nLength, DWORD dwMode)
 	CSize szFloat;
 	if ((dwMode & LM_LENGTHY) == 0) {
 		szFloat.cx = nLength;
-		if (nLength < m_sizeDefault.cx + rcBorders.left + rcBorders.right) {
-			szFloat.cx = MIN_VERT_WIDTH;
-			szFloat.cy = MIN_HORZ_WIDTH;
-		} else
+		if (nLength < m_sizeDefault.cx + rcBorders.left + rcBorders.right)
+			szFloat.SetSize(MIN_VERT_WIDTH, MIN_HORZ_WIDTH);
+		else
 			szFloat.cy = m_sizeDefault.cy + rcBorders.top + rcBorders.bottom;
 	} else {
 		szFloat.cy = nLength;
 		if (nLength < MIN_HORZ_WIDTH) {
-			szFloat.cx = m_sizeDefault.cx + rcBorders.left + rcBorders.right;
-			szFloat.cy = m_sizeDefault.cy + rcBorders.top + rcBorders.bottom;
+			szFloat.SetSize(m_sizeDefault.cx + rcBorders.left + rcBorders.right
+				, m_sizeDefault.cy + rcBorders.top + rcBorders.bottom);
 		} else
 			szFloat.cx = MIN_VERT_WIDTH;
 	}
@@ -351,9 +245,9 @@ void CToolbarWnd::OnSize(UINT nType, int cx, int cy)
 	if (m_btnBar.m_hWnd == 0)
 		return;
 
+	CRect rcClient;
+	GetClientRect(&rcClient);
 	if (cx >= MIN_HORZ_WIDTH) {
-		CRect rcClient;
-		GetClientRect(&rcClient);
 		CalcInsideRect(rcClient, TRUE);
 		m_btnBar.MoveWindow(rcClient.left + 1, rcClient.top, rcClient.Width() - 8, 22);
 		//int iWidthOpts = rcClient.right - (rcClient.left + m_rcOpts.left);
@@ -363,9 +257,7 @@ void CToolbarWnd::OnSize(UINT nType, int cx, int cy)
 			//hdwp = DeferWindowPos(hdwp, *GetDlgItem(IDC_MSTATIC3), NULL, rcClient.left + m_rcNameLbl.left, rcClient.top + m_rcNameLbl.top, m_rcNameLbl.Width(), m_rcNameLbl.Height(), uFlags);
 			VERIFY( EndDeferWindowPos(hdwp) );
 		}*/
-	} else if (cx < MIN_HORZ_WIDTH) {
-		CRect rcClient;
-		GetClientRect(&rcClient);
+	} else { //cx < MIN_HORZ_WIDTH
 		CalcInsideRect(rcClient, FALSE);
 		m_btnBar.MoveWindow(rcClient.left, rcClient.top + 1, 24, rcClient.Height() - 1);
 	}

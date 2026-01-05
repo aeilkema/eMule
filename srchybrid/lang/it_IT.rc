@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "it_IT.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ITA)
 #ifdef _WIN32
 LANGUAGE LANG_ITALIAN, SUBLANG_ITALIAN
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -65,6 +65,8 @@ BEGIN
     IDS_HTTPDOWNLOAD_RESOLVED_NAME "Nome determinato: %s"
     IDS_HTTPDOWNLOAD_CONNECTING "Connessione in corso a %s"
     IDS_HTTPDOWNLOAD_REDIRECTING "Reindirizzamento a %s"
+    IDS_UNCADD              "Aggiungi percorso UNC..."
+    IDS_PREVIEWREQUESTED    "Anteprima richiesta: attendere"
 END
 
 STRINGTABLE
@@ -166,10 +168,10 @@ BEGIN
     IDS_AVAIL               "Parti totali: %u, disponibili: %u (%.1f%%)\n\n"
     IDS_TYPE                "Tipo"
     IDS_FILEID              "ID file"
-    IDS_FILE                "File"
+//    IDS_FILE                "File"
     IDS_DOWNLOAD            "Scaricamento"
     IDS_SL_SERVERNAME       "Nome server"
-    IDS_IP                  "IP"
+//    IDS_IP                  "IP"
     IDS_DESCRIPTION         "Descrizione"
     IDS_PING                "Latenza"
     IDS_FILES               "File"
@@ -283,7 +285,7 @@ STRINGTABLE
 BEGIN
     IDS_SEARCH_PICS         "Immagine"
     IDS_SEARCH_PRG          "Programma"
-    IDS_SEARCH_VIDEO        "Video"
+//    IDS_SEARCH_VIDEO        "Video"
     IDS_SEARCH_CDIMG        "Immagine CD"
     IDS_SEARCH_ARC          "Archivio"
     IDS_ERR_INVALIDLINK     "Questo indirizzo eD2K non è valido (%s)"
@@ -368,7 +370,7 @@ BEGIN
     IDS_PW_VIDEOPLAYER      "Lettore multimediale per le anteprime"
     IDS_VIDEOBACKUP         "Crea una copia per l'anteprima"
     IDS_MYINFO              "Le mie informazioni"
-    IDS_ID                  "ID"
+//    IDS_ID                  "ID"
     IDS_IDLOW               "ID basso"
     IDS_IDHIGH              "ID alto"
     IDS_UPSTATUS            "Parti ottenute"
@@ -392,7 +394,7 @@ BEGIN
     IDS_STATS_FILTEREDCLIENTS "Filtrati: %u"
     IDS_FILTERLABEL         "Filtra messaggi contenenti: (separa con | )"
     IDS_ERR_LARGEREQBLOCK   "Un utente ha richiesto una parte troppo grande."
-    IDS_SHOWRATEONTITLE     "Mostra le velocità di trasferimento nella barra del titolo"
+    IDS_SHOWRATEONTITLE     "Velocità di trasferimento nella barra del titolo"
     IDS_TBN_NOMESSAGEHISTORY "Nessun messaggio presente nella cronologia!"
     IDS_PW_DAP              "Dai priorità automatica ai nuovi scaricamenti"
     IDS_FD_LASTCHANGE       "Ultima ricezione:"
@@ -452,7 +454,7 @@ BEGIN
     IDS_SW_LINK             "Indirizzo eD2K"
     IDS_SW_START            "Inizia"
     IDS_SCHEDULER           "Pianificatore"
-    IDS_IRC                 "&IRC"
+//    IDS_IRC                 "&IRC"
     IDS_SW_RESULT           "Risultati ricerche"
     IDS_SW_DOWNLOAD         "Scarica i file selezionati"
     IDS_SV_SERVERLIST       "Lista server"
@@ -464,7 +466,7 @@ END
 
 STRINGTABLE
 BEGIN
-
+//***IDS_SV_PORT             "Port"
     IDS_SV_ADD              "Aggiungi server"
     IDS_SV_MET              "Aggiorna server.met da indirizzo"
     IDS_SV_UPDATE           "Aggiorna"//used in \eMule0.50a-sources\srchybrid\TransferWnd.CPP line 685 too, but there it looks ugly because the button is too small
@@ -532,7 +534,7 @@ BEGIN
     IDS_CW_CLOSE            "Chiudi"
     IDS_PW_GENERAL          "Generale"
     IDS_PW_DIR              "Cartelle"
-    IDS_PW_NICK             "Nick"
+//    IDS_PW_NICK             "Nick"
     IDS_PW_INCOMING         "File completati"
     IDS_PW_TEMP             "File temporanei"
     IDS_PW_BROWSE           "Sfoglia..."
@@ -548,7 +550,7 @@ BEGIN
     IDS_PW_CLIENTPORT       "Porte del programma"
     IDS_PW_AUTOCON          "Connessione automatica all'avvio"
     IDS_PW_RECON            "Riconnessione automatica"
-    IDS_PW_SERVER           "Server"
+//    IDS_PW_SERVER           "Server"
     IDS_PW_RDEAD            "Elimina i server inattivi dopo"
     IDS_PW_RETRIES          "connessioni fallite"
     IDS_PW_SCORE            "Usa il sistema di priorità"
@@ -558,6 +560,7 @@ BEGIN
     IDS_PW_USS              "Scarica automaticamente la lista server all'avvio"
     IDS_PW_MISC             "Opzioni varie"
     IDS_PW_TRAY             "Minimizza nella barra delle notifiche"
+    IDS_LANMODE             "Modalità rete domestica"
     IDS_PW_PROMPT           "Chiedi conferma prima di uscire"
 END
 
@@ -589,7 +592,7 @@ BEGIN
     IDS_MB_LANGUAGEINFO     "La lingua è stata impostata su 'English'.\r\n\r\nPuoi cambiarla in qualsiasi momento da ""Opzioni -> Generale""."
     IDS_FD_GENERAL          "Generale"
     IDS_FD_MET              "File part.met:"
-    IDS_FD_HASH             "Hash:"
+//    IDS_FD_HASH             "Hash:"
     IDS_FD_SIZE             "Dimensione:"
     IDS_FD_TRANSFER         "Trasferimenti"
     IDS_FD_PARTS            "Parti"
@@ -688,8 +691,8 @@ BEGIN
     IDS_SF_FILE             "File totali"
     IDS_UPLOADTIME          "Durata invio dati"
     IDS_LASTSEENCOMPL       "Visto completo:"
-    IDS_YES                 "Si"
-    IDS_NO                  "No"
+    IDS_YES                 "Sì"
+//    IDS_NO                  "No"
     IDS_UNBAN               "Togli il blocco"
     IDS_SF_WORKING          "Server attivi"
     IDS_ADDTOSTATIC         "Aggiungi alla lista dei server statici"
@@ -711,12 +714,12 @@ BEGIN
     IDS_AVG                 "Media"
     IDS_BYTES               "Byte"
     IDS_KBYTES              "KB"//kilobytes is kB http://www.bipm.org/en/si/si_brochure/chapter3/prefixes.html kibibytes exists KiB
-    IDS_MBYTES              "MB"
-    IDS_GBYTES              "GB"
-    IDS_TBYTES              "TB"
+//    IDS_MBYTES              "MB"
+//    IDS_GBYTES              "GB"
+//    IDS_TBYTES              "TB"
     IDS_SECS                "sec"
     IDS_MINS                "min"
-    IDS_HOURS               "h"
+//    IDS_HOURS               "h"
     IDS_DAYS                "g"
     IDS_ED2KLINKFIX         "Apri gli indirizzi eD2K con eMule"
 END
@@ -809,9 +812,9 @@ BEGIN
     IDS_CMT_EXCELLENT       "Ottimo"
     IDS_CMT_NOTRATED        "Non Votato"
     IDS_KILO                "K"//as line 713: kilo is k, not K. Anyway Windows uses K
-    IDS_MEGA                "M"
-    IDS_GIGA                "G"
-    IDS_TERA                "T"
+//    IDS_MEGA                "M"
+//    IDS_GIGA                "G"
+//    IDS_TERA                "T"
     IDS_IRC_EMULEPROTO_IGNOREINFOMESSAGE "Ignora i messaggi del protocollo IRC di eMule"
     IDS_SMARTLOWIDCHECK     "Controllo ID basso alla connessione"
     IDS_SF_SRVOCC           "Occupazione server: %.2f%%"
@@ -823,12 +826,13 @@ END
 
 STRINGTABLE
 BEGIN
+    IDS_OPENPREFINI         "Apri il file preferences.ini"
     IDS_RECOVER_SINGLE      "Recupero archivio: 1 file recuperato."
     IDS_RECOVER_MULTIPLE    "Recupero archivio: %u file recuperati."
     IDS_ATTEMPTING_RECOVERY "Recupero archivio: iniziato..."
     IDS_RECOVERY_SUCCESSFUL "Recupero archivio: riuscito!"
     IDS_RECOVERY_FAILED     "Recupero archivio: fallito."
-    IDS_STARTNEXTFILE       "Scarica il successivo file in pausa al termine di uno scaricamento"
+    IDS_STARTNEXTFILE       "Terminato uno scaricamento, passa al successivo file in pausa"
     IDS_FULLCHUNKTRANS      "Prova ad inviare a tutti delle parti complete"
     IDS_MANUALSERVERHIGHPRIO "Dai automaticamente priorità alta ai server aggiunti"
     IDS_VERBOSE             "Informazioni aggiuntive (nuova scheda in Server)"
@@ -854,7 +858,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "Messaggio privato"
     IDS_WEB_REMOTE_LINK_ADDED "Indirizzo aggiunto: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED "Indirizzo non aggiunto. Parola chiave errata."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Scarica prima le parti necessarie all'anteprima"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Aumenta la priorità delle parti necessarie all'anteprima"
     IDS_IRC_KICK            "Butta fuori"
     IDS_IRC_SLAP            "Colpisci"
     IDS_IRC_JOIN            "Entra"
@@ -874,7 +878,7 @@ BEGIN
     IDS_IRC_SETSMODE        "* %s imposta la modalità: %s %s"
     IDS_IRC_NOTSUPPORTED    "** Alcune modalità che sono state impostate non sono ancora presenti. Dovresti uscire e rientrare nel canale per aggiornare la lista utenti..."
     IDS_IRC_CHANNEL         "Canale"
-    IDS_IRC_NICK            "Nick"
+//    IDS_IRC_NICK            "Nick"
     IDS_IRC_SEND            "Invia"
     IDS_IRC_NAME            "Nome"
     IDS_IRC_SLAPMSGSEND     "PRIVMSG %s :\001ACTION colpisce %s con un grosso e puzzolente tonno!\001"
@@ -908,7 +912,6 @@ BEGIN
     IDS_NEWMSG              "Nuovo messaggio da ""%s"" (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "Solo nella stessa categoria"
     IDS_LOG_ULDL_EVENTS     "Registra gli eventi di invio e recezione di dati"
-//    IDS_PEERCACHE_ENABLED   "Il tuo gestore supporta la tecnologia PeerCache, abilitata per gli scaricamenti!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Consenti agli altri di aggiungerti alla lista degli amici"
     IDS_SOURCESWAPBLOCKED   "Scambio bloccato"
     IDS_TRICKLING           "In attesa"
@@ -984,10 +987,10 @@ END
 STRINGTABLE
 BEGIN
     IDS_LENGTH              "Durata"
-    IDS_VIDEO               "Video"
-    IDS_AUDIO               "Audio"
+//    IDS_VIDEO               "Video"
+//    IDS_AUDIO               "Audio"
     IDS_FILEINFO            "Dati tecnici file"
-    IDS_CODEC               "Codec"
+//    IDS_CODEC               "Codec"
     IDS_BITRATE             "Frequenza di cifra"
     IDS_WIDTH               "Larghezza"
     IDS_FPS                 "Fotogrammi/s"
@@ -1072,7 +1075,7 @@ BEGIN
     IDS_RATINGRECV          "Dai un voto al file ricevuto ""%s"": %u"
     IDS_DESCRIPTIONRECV     "Descrizione per il file ricevuto ""%s"": %s"
     IDS_WEBSERVICES         "Risorse in rete"
-    IDS_WEBSVEDIT           "Modifica risorse in rete..."
+    IDS_WEBSVEDIT           "Modifica 'Risorse in rete'..."
     IDS_IRC_EMULEPROTO_IGNORESENDLINK
                             "Ignora i messaggi di indirizzi eD2K"
     IDS_CHECK4UPDATE        "Controlla aggiornamenti"
@@ -1110,6 +1113,7 @@ BEGIN
     IDS_USECREDITSYSTEM     "Usa il sistema dei crediti (favorirai chi ti fa scaricare)"
     IDS_FIRSTAUTODOWN       "Vuoi che eMule gestisca le priorità dei file in scaricamento?\n\nAttivando quest'opzione permetterai ad eMule di controllare che i file con molte fonti non interferiscano con quelli con poche fonti. Quest'opzione avrà effetto solo sugli scaricamenti futuri."
     IDS_FIRSTAUTOUP         "Vuoi che eMule gestisca le priorità dei file in invio?\n\nAttivando quest'opzione consentirai ad eMule di accelerare la diffusione dei file più rari, inviando di meno i file popolari. Disattivando quest'opzione consentirai ad eMule di inviare con la stessa intensità i file rari e quelli popolari. Quest'opzione avrà effetto solo sui file condivisi in futuro."
+    IDS_AUTOMATIC           "Automatico"
     IDS_FIRSTSAFECON        "Vuoi che eMule si connetta ai server utilizzando una connessione sicura?\n\nDisattivando questa funzione, permetterai ad eMule di connettersi ai server più velocemente, ma sarà maggiore la possibilità di ottenere falsi ID bassi."
     IDS_FIRSTAUTOCON        "Connetti automaticamente eMule al suo avvio."
     IDS_FIRSTCOMPLETE       "Hai completato la procedura guidata del primo avvio.\n\nTutte queste ed altre opzioni possono essere modificate cliccando sul pulsante 'Opzioni'. Per spiegazioni e supporto controlla la guida premendo F1 in eMule!"
@@ -1149,8 +1153,26 @@ END
 
 STRINGTABLE
 BEGIN
+//    IDS_ED2KSERVER          "eD2K Server"
+//    IDS_CONTENTDB           "ContentDB (Web)"
+    IDS_WEB_GENERATE        "Crea nuovo certificato"
+    IDS_CERT_CREATED        "Nuovo certificato creato; seriale %d"
+    IDS_CERT_ERR_CREATE     "Certificato non creato (vedi in Server - Verbose)"
+    IDS_DELETEAFTERFILEOP   "Il file '%s' verrà cancellato dopo il completamento dell'operazione corrente"
+    IDS_IMPORTPARTS_ERR_ALREADYCOMPLETE
+                            "Importo annullato: impossibile importare su un file completo."
+    IDS_IMPORTPARTS_ERR_CANTOPENFILE "Importo annullato: impossibile aprire %s."
+    IDS_IMPORTPARTS_IMPORTSTART "Importate %i parti in %s."
+    IDS_IMPORTPARTS         "Importa parti..."
+    IDS_IMPORTPARTS_STOP    "Ferma l'importo delle parti"
+    IDS_DL_RESUMED          "Riprendo lo scaricamento di ""%s"""
+END
+
+STRINGTABLE
+BEGIN
     IDS_ERR_TOOLARGEFILE    "File di dimensioni troppo grandi per il protocollo di eDonkey (>=256GB)"
     IDS_MSGONLYFRIENDS      "Accetta solo dagli amici"
+    IDS_BOOTSTRAPFAILED     "Bootstrap fallito, il tuo file nodes.dat può essere troppo vecchio oppure ci sono problemi alla tua connessione"
     IDS_DAY_MO_SA           "Lun-sab"
     IDS_LIMITSOURCES        "Limite fonti"
     IDS_LIMITCONS5SEC       "Connessioni massime in 5 secondi"
@@ -1172,14 +1194,14 @@ BEGIN
     IDS_WEBSRV              "Controllo remoto"
     IDS_SW_REFETCHRES       "Attesa risultati"
     IDS_FILEHASH            "Hash file"
-    IDS_PW_PROXY            "Proxy"
+//    IDS_PW_PROXY            "Proxy"
     IDS_PROXY_ENABLE        "Attiva proxy"
-    IDS_PROXY_TYPE          "Tipo proxy:"
-    IDS_PROXY_HOST          "Indirizzo del proxy:"
-    IDS_PROXY_PORT          "Porta del proxy:"
+    IDS_PROXY_TYPE          "Tipo:"
+    IDS_PROXY_HOST          "Indirizzo:"
+    IDS_PROXY_PORT          "Porta:"
     IDS_PROXY_AUTH          "Attiva autenticazione"
     IDS_AUTH                "Autenticazione"
-    IDS_SHOWCATINFO         "Mostra più informazioni sulle schede delle categorie"
+    IDS_SHOWCATINFO         "Più informazioni sulle schede delle categorie"
     IDS_SW_SEARCHINGINFO    "Ricerca in corso. I risultati saranno mostrati a breve!"
     IDS_LOGENTRY            "Registra accesso"
     IDS_COPY                "Copia"
@@ -1234,7 +1256,7 @@ BEGIN
     IDS_CHANGECATVIEW       "Seleziona un filtro visuale"
     IDS_STATUS_NOTCOMPLETED "Incompleto"
     IDS_STATS_CUMULATIVE    "Totale"
-    IDS_STATS_OVRHD         "Overhead"
+//    IDS_STATS_OVRHD         "Overhead"
     IDS_STATS_RECORDS       "Numeri da ricordare"
     IDS_STATS_COMPDL        "Scaricamenti completati"
     IDS_STATS_SVRECWORKING  "Numero massimo di server attivi"
@@ -1405,6 +1427,8 @@ BEGIN
                             "UploadSpeedSense: traceroute fallito troppe volte. UploadSpeedSense disattivato."
     IDS_USS_STARTING        "UploadSpeedSense: preparazione completata. Avvio del controllo della velocità di invio. Nei primi 60 secondi sarà nella modalità di reazione veloce"
     IDS_A4AF                "Gestione fonti"
+    IDS_ENABLEIMPORTPARTS   "Abilita l'importo delle parti"
+    IDS_ERR_REGEXP          "Espressione regolare errata"
     IDS_AUTOCAT_LABEL       "Riconoscimento automatico della categoria: (separatore | )"
     IDS_SHOWEXTSETTINGS     "Mostra più controlli (controlli avanzati)"
     IDS_TREEOPTIONS_TRUE    "Vero"
@@ -1413,7 +1437,7 @@ END
 STRINGTABLE
 BEGIN
     IDS_TREEOPTIONS_FALSE   "Falso"
-    IDS_TREEOPTIONS_OK      "OK"
+//    IDS_TREEOPTIONS_OK      "OK"
     IDS_HYPERTEXT_FONT_HINT "Carattere delle finestre Server, Messaggi e IRC"
     IDS_SELECT_FONT         "Seleziona carattere"
     IDS_SERVER_LIMITS       "File accettati per utente/Disconnesso se condividi più di..."
@@ -1425,14 +1449,15 @@ BEGIN
     IDS_WRN_TEMPFILES_RESERVED
                             "La cartella dei file temporanei non può corrispondere ad una cartella di installazione di eMule."
     IDS_WRN_INCTEMP_SAME    "La cartella dei file temporanei e dei file scaricati non possono coincidere."
-    IDS_SHOWDWLPERCENTAGE   "Mostra la percentuale di completamento nella barra del progresso"
+    IDS_SHOWDWLPERCENTAGE   "Percentuale di completamento nella barra del progresso"
     IDS_TBN_ONNEWDOWNLOAD   "Viene aggiunto uno scaricamento"
     IDS_ARTIST              "Artista"
 END
 
 STRINGTABLE
 BEGIN
-    IDS_ALBUM               "Album"
+//    IDS_ALBUM               "Album"
+    IDS_AUTHMETHOD          "Metodo d'autenticazione"
     IDS_CD_UPLOADREQ        "Tu hai richiesto:"
     IDS_SETTINGCHANGED_RESTART
                             "Riavviare eMule affinché i cambiamenti abbiano effetto!"
@@ -1538,7 +1563,7 @@ BEGIN
     IDS_KAD_RECHECKFW       "Ricontrolla firewall"
     IDS_SHAREDTITLE         "File eD2K | Kad"
     IDS_FIREWALLED          "Dietro firewall"
-    IDS_KADEMLIA            "Kad"
+//    IDS_KADEMLIA            "Kad"
     IDS_KADCONTACTLAB       "Contatti"
     IDS_KADDISTANCE         "Distanza"
     IDS_KEY                 "Chiave"
@@ -1578,9 +1603,9 @@ BEGIN
     IDS_OPENFOLDER          "Apri cartella"
     IDS_RUNASUSER           "Esegui eMule come utente non privilegiato"
     IDS_DELETE              "Cancella dal disco"
-    IDS_BOOTSTRAP           "Bootstrap"
+//    IDS_BOOTSTRAP           "Bootstrap"
     IDS_VIAED2KSQ           "Tramite server"
-    IDS_EM_KADEMLIA         "&Kad"
+//    IDS_EM_KADEMLIA         "&Kad"
     IDS_VIAKAD              "Tramite Kad"
     IDS_VIASE               "Tramite scambio fonte"
     IDS_SELECTTOOLBARBITMAP "Seleziona un'immagine per la barra degli strumenti"
@@ -1619,9 +1644,6 @@ BEGIN
                             "Esegui eMule all'avvio di Windows."
     IDS_KAD_WAITCBK         "Attendi il richiamo in Kad"
     IDS_KAD_TOOMANDYKADLKPS "Troppe analisi in Kad"
-//    IDS_PCDS_CLIENTWAIT     "Attesa utente"
-//    IDS_PCDS_CACHEWAIT      "Attesa cache"
-//    IDS_CACHE               "Cache"
     IDS_INDEXED             "Indicizzato"
     IDS_KADINFO_SRC         "\tFonte: %u\r\n"
     IDS_KADINFO_KEYW        "\tParola chiave: %u\r\n"
@@ -1665,11 +1687,11 @@ BEGIN
     IDS_LD_HOSTNAME         "Usa il nome di dominio (dalle opzioni avanzate) al posto dell'IP quando si crea un indirizzo eD2K con fonti"
     IDS_SAVEACFAILED        "Errore nel salvare l'hashset AICH!"
     IDS_AICHHASH            "Hash AICH"
-    IDS_BYTESPERSEC         "B/s"
-    IDS_KBYTESPERSEC        "KB/s"//as above: the standard says it's kB/s, anyway Windows uses kibibyte per second using KB instead of KiB
-    IDS_MBYTESPERSEC        "MB/s"
-    IDS_GBYTESPERSEC        "GB/s"
-    IDS_TBYTESPERSEC        "TB/s"
+//    IDS_BYTESPERSEC         "B/s"
+//    IDS_KBYTESPERSEC        "KB/s"//as above: the standard says it's kB/s, anyway Windows uses kibibyte per second using KB instead of KiB
+//    IDS_MBYTESPERSEC        "MB/s"
+//    IDS_GBYTESPERSEC        "GB/s"
+//    IDS_TBYTESPERSEC        "TB/s"
 END
 
 STRINGTABLE
@@ -1704,8 +1726,6 @@ BEGIN
     IDS_EXTRACT_META_DATA   "Estrai i meta dati"
     IDS_META_DATA_MEDIADET  "DirectShow (per tutti gli altri file audio o video)"
     IDS_META_DATA_ID3LIB    "Librerie ID3 (solo per i file audio MPEG)"
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "La ""common controls library (COMCTL32.DLL)"" di Windows è troppo vecchia!\r\n\r\nPer garantire il corretto funzionamento di eMule è vivamente consigliato l'aggiornamento di questa libreria alla versione 5.8 o superiore.\r\n\r\nVuoi visitare il sito di Microsoft (R) per scaricarla?"
     IDS_ASREGEXPR           "Come espressione regolare"
     IDS_STATIC_REGEXP       "Espressione regolare per i filtri visuali:"
     IDS_CARE4ALL            "Valuta tutti i file"
@@ -1723,7 +1743,7 @@ BEGIN
     IDS_PW_RECEIVERADDRESS  "Indirizzo destinatario:"
     IDS_PW_ENABLEEMAIL      "Attiva"
     IDS_EMULENOTIFICATION   "Notifica eMule"
-    IDS_PW_SHOWTRANSTOOLBAR "Mostra la barra degli strumenti aggiuntiva nella finestra Trasferimenti"
+    IDS_PW_SHOWTRANSTOOLBAR "Barra degli strumenti aggiuntiva nella finestra Trasferimenti"
     IDS_SHARED_STATUS       "Parti condivise"
     IDS_SEARCH_EMULECOLLECTION "Collezione"
     IDS_INCOMING_FILES      "File completati"
@@ -1871,7 +1891,7 @@ BEGIN
     IDS_UPNP_NOSERVICE      "Il servizio host dell'UPnP non è in esecuzione, l'UPnP non verrà utilizzato"
     IDS_DELAYEDBYUPNP       "La connessione alla rete è stata ritardata poiché l'UPnP è occupato nel configurare il router."
     IDS_DELAYEDBYUPNP2      "Attendere alcuni secondi, eMule si connetterà non appena l'UPnP avrà terminato."
-    IDS_UPNP                "UPnP"
+//    IDS_UPNP                "UPnP"
     IDS_UPNPCLOSEONEXIT     "Rimuovi la configurazione delle porte tramite UPnP all'uscita da eMule"
     IDS_UPNPSKIPWANIP       "Non usare il servizio WANIPConnection"//Windows service only!
     IDS_UPNPSKIPWANPPP      "Non usare il servizio WANPPPConnection"//Windows service only!
@@ -1884,15 +1904,15 @@ END
 STRINGTABLE
 BEGIN
     IDS_SHAREEMULEWARNING   "Cambiando questa opzione farai in modo che eMule utilizzi un'altra configurazione. Le tue impostazioni correnti verranno ignorate e gli scaricamenti già iniziati potrebbero non essere più visibili. Potrai tornare alla tua configurazione attuale cambiando sempre questa opzione.\n\nDevi riavviare eMule affichè le modifiche abbiano effetto."
-    IDS_SPAM                "Spam"
+//    IDS_SPAM                "Spam"
     IDS_MARKSPAM            "Segna come spam"
     IDS_MARKNOTSPAM         "Segna come non spam"
     IDS_SEARCHSPAMFILTER    "Abilita il filtro antispam per la ricerca"
     IDS_SHOWSMILEYS         "Mostra le faccine"
-    IDS_CAPTCHAREQUEST      "Per evitare messaggi indesiderati, questo utente richiede che tu risolva un 'captcha' prima che tu possa inviargli un messaggio. Inserisci come risposta le lettere che vedi in questa immagine:"
-    IDS_CAPTCHAFAILED       "La tua risposta al 'captcha' è errata e il tuo messaggio è stato ignorato. Puoi richiedere un nuovo 'captcha' inviando un nuovo messaggio."
-    IDS_CAPTCHASOLVED       "Hai superato il controllo 'captcha' e l'utente ha ricevuto il tuo messaggio."
-    IDS_USECAPTCHAS         "Richiedi un'autenticazione 'captcha'"
+    IDS_CAPTCHAREQUEST      "Per evitare messaggi indesiderati, questo utente richiede che tu risolva un 'CAPTCHA' prima che tu possa inviargli un messaggio. Inserisci come risposta le lettere che vedi in questa immagine:"
+    IDS_CAPTCHAFAILED       "La tua risposta al 'CAPTCHA' è errata e il tuo messaggio è stato ignorato. Puoi richiedere un nuovo 'CAPTCHA' inviando un nuovo messaggio."
+    IDS_CAPTCHASOLVED       "Hai superato il controllo 'CAPTCHA' e l'utente ha ricevuto il tuo messaggio."
+    IDS_USECAPTCHAS         "Richiedi un'autenticazione 'CAPTCHA'"
     IDS_BOOTSRAPNODESDAT    "Scarica un file nodes.dat dall'indirizzo:"
     IDS_DOWNLOADING_NODESDAT_FROM "Scaricamento del file 'nodes.dat' da %s"
     IDS_DOWNLOADING_NODESDAT "Scaricamento del file 'nodes.dat' in corso..."
@@ -1914,7 +1934,6 @@ BEGIN
     IDS_BETANAG             "Questa è una versione beta di eMule. Riferisci i problemi e controlla regolarmente la presenza di aggiornamenti nel nostro forum (https://forum.emule-project.net)."
     IDS_CONFIRMNODESDOWNLOAD
                             "Vuoi scaricare ed usare i contatti Kad (nodes.dat) da questo indirizzo:\n%s ?"
-    IDS_AUTOMATIC           "Automatico"
     IDS_NOTCONNECTEDANY     "Non sei connesso ad un server o alla rete Kad!"
     IDS_ERR_SHARED_DIR      "Errore nella lettura della cartella condivisa ""%s"" - %s"
     IDS_FILE_WARNING_DRM    "Il file ""%s"" sembra essere protetto con un Digital Rights Management.\r\n\r\nProbabilmente non sarai in grado di usarlo senza avere una licenza dal produttore. Dovresti essere consapevole che l'apertura di questo file col tuo lettore multimediale attiverà, molto probabilmente, il tuo web browser che ti trasferirà automaticamente al sito web del produttore del file in oggetto, dove ti verrà chiesto di acquistare una licenza.\r\n\r\nSei sicuro di voler continuare con l'apertura di questo file?"
@@ -1929,10 +1948,8 @@ BEGIN
     IDS_WEBUPNPINCLUDE      "Includi la porta nelle impostazioni dell'UPnP"
     IDS_ADDEDON             "Aggiunto"
     IDS_RESOLVELINKS        "Condividi anche i file i cui collegamenti simbolici sono nelle cartelle condivise"
-END
-
-STRINGTABLE
-BEGIN
+    IDS_PAUSEONPREVIEW      "Metti in pausa quando è possibile l'anteprima"
+    IDS_PREVIEWWITH         "Anteprima con"
     IDS_DOWNLOADCOMMANDS    "Comandi rapidi"
     IDS_CLOSETOOLBAR        "Chiudi la barra degli strumenti"
     IDS_SHOWTOOLBAR         "Mostra barra degli strumenti"
@@ -1944,17 +1961,25 @@ BEGIN
     IDS_PROTOCOLVERSION     "Versione di protocollo"
     IDS_FOUNDNODESUSEFUL    "Nodi trovati (utili)"
     IDS_NORESPONSE          "Nessuna risposta"
+END
+
+STRINGTABLE
+BEGIN
     IDS_NOTASKED            "Non chiesto"
     IDS_LOOKUPGRAPH         "Dettagli di ricerca"
     IDS_AUTOKADLOOKUPGRAPH  "Visualizza automaticamente le ricerche attive"
-    IDS_PAUSEONPREVIEW      "Metti in pausa quando è possibile l'anteprima"
-    IDS_PREVIEWWITH         "Anteprima con"
     IDS_CLOSEEMULE          "Chiudi eMule"
     IDS_DONOTASKAGAIN       "Non chiedermelo nuovamente"
     IDS_POPULARITY          "Livello di popolarità"
     IDS_SHOWWIN7TASKBARGOODIES "Abilita gli effetti della barra strumenti di Windows 7"
-    IDS_LANMODE             "Modalità rete domestica"
-    IDS_OPENPREFINI         "Apri il file preferences.ini"
+    IDS_WEB_HTTPS           "Usa HTTPS"
+    IDS_WEB_CERT            "Certificato"
+    IDS_CERT_NOT_FOUND      "Certificato non trovato"
+    IDS_KEY_NOT_FOUND       "File chiave non trovato"
+    IDS_IRC_IGNOREPINGPONGMESSAGE "Ignora i messaggi 'Ping? Pong!'"
+    IDS_IRC_ENABLEUTF8      "Abilita UTF-8"
+    IDS_ITALIC              "Testo corsivo"
+//    IDS_IRC_BAN             "Ban"
 END
 
 #endif    // Italian (Italy) resources

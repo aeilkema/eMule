@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -25,10 +25,8 @@
 #include "UpDownClient.h"
 #include "SafeFile.h"
 #include "SharedFileList.h"
-#include "KnownFileList.h"
 #include "DownloadQueue.h"
 #include "PartFile.h"
-#include "CxImage/xImage.h"
 #include "kademlia/utils/uint128.h"
 #include "Kademlia/Kademlia/Entry.h"
 #include "Kademlia/Kademlia/SearchManager.h"
@@ -64,7 +62,7 @@ namespace
 // CSearchList
 
 CSearchList::CSearchList()
-	: outputwnd()
+	: m_outputwnd()
 	, m_nCurED2KSearchID()
 	, m_bSpamFilterLoaded()
 {
@@ -111,24 +109,24 @@ void CSearchList::RemoveResults(uint32 nSearchID)
 
 void CSearchList::ShowResults(uint32 nSearchID)
 {
-	ASSERT(outputwnd);
-	outputwnd->SetRedraw(false);
-	CMuleListCtrl::EUpdateMode bCurUpdateMode = outputwnd->SetUpdateMode(CMuleListCtrl::none/*direct*/);
+	ASSERT(m_outputwnd);
+	m_outputwnd->SetRedraw(false);
+	CMuleListCtrl::EUpdateMode bCurUpdateMode = m_outputwnd->SetUpdateMode(CMuleListCtrl::EUpdateMode::none/*direct*/);
 
 	const SearchList *list = GetSearchListForID(nSearchID);
 	for (POSITION pos = list->GetHeadPosition(); pos != NULL;) {
 		const CSearchFile *cur_file = list->GetNext(pos);
 		ASSERT(cur_file->GetSearchID() == nSearchID);
 		if (cur_file->GetListParent() == NULL && !cur_file->m_flags.noshow) {
-			outputwnd->AddResult(cur_file);
+			m_outputwnd->AddResult(cur_file);
 			if (cur_file->IsListExpanded() && cur_file->GetListChildCount() > 0)
-				outputwnd->UpdateSources(cur_file);
+				m_outputwnd->UpdateSources(cur_file);
 		}
 	}
 
-	outputwnd->UpdateTabHeader(nSearchID);
-	outputwnd->SetUpdateMode(bCurUpdateMode);
-	outputwnd->SetRedraw(true);
+	m_outputwnd->UpdateTabHeader(nSearchID);
+	m_outputwnd->SetUpdateMode(bCurUpdateMode);
+	m_outputwnd->SetRedraw(true);
 }
 
 void CSearchList::RemoveResult(CSearchFile *todel)
@@ -145,7 +143,7 @@ void CSearchList::RemoveResult(CSearchFile *todel)
 void CSearchList::NewSearch(CSearchListCtrl *pWnd, const CString &strResultFileType, SSearchParams *pParams)
 {
 	if (pWnd)
-		outputwnd = pWnd;
+		m_outputwnd = pWnd;
 
 	m_strResultFileType = strResultFileType;
 	ASSERT(pParams->eType != SearchTypeAutomatic);
@@ -192,11 +190,11 @@ UINT CSearchList::ProcessSearchAnswer(const uchar *in_packet, uint32 size
 	pParams->strExpression = sender.GetUserName();
 	pParams->dwSearchID = uSearchID;
 	pParams->bClientSharedFiles = true;
-	if (theApp.emuledlg->searchwnd->CreateNewTab(pParams)) {
+	if (theApp.emuledlg->searchwnd->CreateOrFindTab(pParams, true)) {
 		m_foundFilesCount[uSearchID] = 0;
 		m_foundSourcesCount[uSearchID] = 0;
 	} else
-		delete pParams;
+		delete pParams; //found tab with this ID
 
 	CSafeMemFile packet(in_packet, size);
 	for (uint32 results = packet.ReadUInt32(); results > 0; --results) {
@@ -218,8 +216,8 @@ UINT CSearchList::ProcessSearchAnswer(const uchar *in_packet, uint32 size
 		toadd->SetPreviewPossible(sender.GetPreviewSupport() && ED2KFT_VIDEO == GetED2KFileTypeID(toadd->GetFileName()));
 		AddToList(toadd, true);
 	}
-	if (outputwnd)
-		outputwnd->UpdateTabHeader(uSearchID);
+	if (m_outputwnd)
+		m_outputwnd->UpdateTabHeader(uSearchID);
 
 	if (pbMoreResultsAvailable)
 		*pbMoreResultsAvailable = false;
@@ -260,8 +258,8 @@ UINT CSearchList::ProcessSearchAnswer(const uchar *in_packet, uint32 size, bool 
 		}
 		AddToList(toadd, false);
 	}
-	if (outputwnd)
-		outputwnd->UpdateTabHeader(m_nCurED2KSearchID);
+	if (m_outputwnd)
+		m_outputwnd->UpdateTabHeader(m_nCurED2KSearchID);
 
 	if (pbMoreResultsAvailable)
 		*pbMoreResultsAvailable = false;
@@ -329,8 +327,8 @@ UINT CSearchList::ProcessUDPSearchAnswer(CFileDataIO &packet, bool bOptUTF8, uin
 	}
 
 	AddToList(toadd, false, nServerIP);
-	if (outputwnd)
-		outputwnd->UpdateTabHeader(m_nCurED2KSearchID);
+	if (m_outputwnd)
+		m_outputwnd->UpdateTabHeader(m_nCurED2KSearchID);
 
 	return GetED2KResultCount();
 }
@@ -352,7 +350,7 @@ void CSearchList::GetWebList(CQArray<SearchFileStruct, SearchFileStruct> *Search
 		SearchListsStruct *listCur = m_listFileLists.GetNext(pos);
 		for (POSITION pos2 = listCur->m_listSearchFiles.GetHeadPosition(); pos2 != NULL;) {
 			const CSearchFile *pFile = listCur->m_listSearchFiles.GetNext(pos2);
-			if (pFile == NULL || pFile->GetListParent() != NULL || !(uint64)pFile->GetFileSize() || pFile->GetFileName().IsEmpty() || pFile->m_flags.noshow)
+			if (pFile == NULL || pFile->GetListParent() != NULL || !pFile->GetFileSize() || pFile->GetFileName().IsEmpty() || pFile->m_flags.noshow)
 				continue;
 
 			SearchFileStruct structFile;
@@ -429,7 +427,7 @@ bool CSearchList::AddToList(CSearchFile *toadd, bool bClientResponse, uint32 dwF
 		}
 		if (!bFound) {
 			if (!strNameWithoutKeyword.IsEmpty())
-				strNameWithoutKeyword += _T(' ');
+				strNameWithoutKeyword += _T(" ");
 			strNameWithoutKeyword += sToken;
 		}
 	}
@@ -606,8 +604,8 @@ bool CSearchList::AddToList(CSearchFile *toadd, bool bClientResponse, uint32 dwF
 			AddResultCount(parent->GetSearchID(), parent->GetFileHash(), uAvail, parent->IsConsideredSpam());
 
 			// update parent in GUI
-			if (outputwnd)
-				outputwnd->UpdateSources(parent);
+			if (m_outputwnd)
+				m_outputwnd->UpdateSources(parent);
 
 			if (bFound) {
 				toadd->m_flags.noshow = 1; //hide in GUI
@@ -643,8 +641,8 @@ bool CSearchList::AddToList(CSearchFile *toadd, bool bClientResponse, uint32 dwF
 	AddResultCount(toadd->GetSearchID(), toadd->GetFileHash(), uAvail, toadd->IsConsideredSpam());
 
 	// add to parent in GUI
-	if (outputwnd)
-		outputwnd->AddResult(toadd);
+	if (m_outputwnd)
+		m_outputwnd->AddResult(toadd);
 
 	return true;
 }
@@ -702,11 +700,10 @@ void CSearchList::AddResultCount(uint32 nSearchID, const uchar *hash, UINT nCoun
 	m_foundSourcesCount[nSearchID] = tempValue + ((bSpam && thePrefs.IsSearchSpamFilterEnabled()) ? min(nCount, 5) : nCount);
 }
 
-// FIXME LARGE FILES
-void CSearchList::KademliaSearchKeyword(uint32 nSearchID, const Kademlia::CUInt128 *pFileID, LPCTSTR name
-	, uint64 size, LPCTSTR type, UINT uKadPublishInfo
-	, CArray<CAICHHash> &raAICHHashes, CArray<uint8, uint8> &raAICHHashPopularity
-	, SSearchTerm *pQueriedSearchTerm, UINT numProperties, ...)
+void CSearchList::KademliaSearchKeyword(uint32 nSearchID, const Kademlia::CUInt128 *pFileID
+					, LPCWSTR name, uint64 size, LPCWSTR type, UINT uKadPublishInfo
+					, CArray<CAICHHash> &raAICHHashes, CArray<uint8> &raAICHHashPopularity
+					, SSearchTerm *pQueriedSearchTerm, UINT numProperties, ...)
 {
 	va_list args;
 	va_start(args, numProperties);
@@ -739,7 +736,7 @@ void CSearchList::KademliaSearchKeyword(uint32 nSearchID, const Kademlia::CUInt1
 	++tagcount;
 	verifierEntry.m_uSize = size;
 
-	if (type != NULL && type[0] != _T('\0')) {
+	if (type && *type) {
 		CTag tagType(FT_FILETYPE, type);
 		tagType.WriteTagToFile(temp, eStrEncode);
 		++tagcount;
@@ -750,17 +747,17 @@ void CSearchList::KademliaSearchKeyword(uint32 nSearchID, const Kademlia::CUInt1
 	for (; numProperties > 0; --numProperties) {
 		UINT uPropType = va_arg(args, UINT);
 		LPCSTR pszPropName = va_arg(args, LPCSTR);
-		LPVOID pvPropValue = va_arg(args, LPVOID);
+		LPCTSTR pvPropValue = va_arg(args, LPCTSTR);
 		if (uPropType == TAGTYPE_STRING) {
-			if ((LPCTSTR)pvPropValue != NULL && ((LPCTSTR)pvPropValue)[0] != _T('\0')) {
+			if (pvPropValue && *pvPropValue) {
 				if (strlen(pszPropName) == 1) {
-					CTag tagProp((uint8)*pszPropName, (LPCTSTR)pvPropValue);
+					CTag tagProp((uint8)*pszPropName, pvPropValue);
 					tagProp.WriteTagToFile(temp, eStrEncode);
 				} else {
-					CTag tagProp(pszPropName, (LPCTSTR)pvPropValue);
+					CTag tagProp(pszPropName, pvPropValue);
 					tagProp.WriteTagToFile(temp, eStrEncode);
 				}
-				verifierEntry.AddTag(new Kademlia::CKadTagStr(pszPropName, (LPCTSTR)pvPropValue));
+				verifierEntry.AddTag(new Kademlia::CKadTagStr(pszPropName, pvPropValue));
 				++tagcount;
 			}
 		} else if (uPropType == TAGTYPE_UINT32) {
@@ -804,8 +801,8 @@ void CSearchList::KademliaSearchKeyword(uint32 nSearchID, const Kademlia::CUInt1
 		} else if (raAICHHashes.GetCount() > 1)
 			DEBUG_ONLY(DebugLog(_T("Received multiple (%u) AICH hashes for search result %s, ignoring AICH"), raAICHHashes.GetCount(), (LPCTSTR)tempFile->GetFileName()));
 		AddToList(tempFile);
-		if (outputwnd)
-			outputwnd->UpdateTabHeader(nSearchID);
+		if (m_outputwnd)
+			m_outputwnd->UpdateTabHeader(nSearchID);
 	} else
 		DebugLogWarning(_T("Kad Searchresult failed sanitize check against search query, ignoring. (%s)"), name);
 }
@@ -923,9 +920,9 @@ void CSearchList::DoSpamRating(CSearchFile *pSearchFile, bool bIsClientFile, boo
 
 		//4 - Sizes
 		for (INT_PTR i = m_aui64KnownSpamSizes.GetCount(); --i >= 0;) {
-			uint64 fsize = (uint64)pSearchFile->GetFileSize();
+			uint64 fsize = pSearchFile->GetFileSize();
 			if (fsize != 0 && _abs64(fsize - m_aui64KnownSpamSizes[i]) < 5242880
-				&& ((_abs64(fsize - m_aui64KnownSpamSizes[i]) * 100) / fsize) < 5)
+				&& (100 * _abs64(fsize - m_aui64KnownSpamSizes[i]) / fsize) < 5)
 			{
 				if (!bMarkAsNoSpam) {
 					nSpamScore += SPAM_SIMILARSIZE_HIT;
@@ -973,7 +970,7 @@ void CSearchList::DoSpamRating(CSearchFile *pSearchFile, bool bIsClientFile, boo
 				if (!bMarkAsNoSpam && aservers[i].m_bUDPAnswer && m_mUDPServerRecords.Lookup(aservers[i].m_nIP, pRecord) && pRecord != NULL) {
 					ASSERT(pRecord->m_nResults >= pRecord->m_nSpamResults);
 					if (pRecord->m_nResults >= pRecord->m_nSpamResults && pRecord->m_nResults > 0) {
-						int nRatio = (pRecord->m_nSpamResults * 100) / pRecord->m_nResults;
+						int nRatio = 100 * pRecord->m_nSpamResults / pRecord->m_nResults;
 						if (nRatio < 50) {
 							bNormalServerWithoutCurrentPresent |= (dwFromUDPServerIP != aservers[i].m_nIP);
 							bNormalServerPresent = true;
@@ -1026,7 +1023,7 @@ void CSearchList::DoSpamRating(CSearchFile *pSearchFile, bool bIsClientFile, boo
 				}
 
 				if (((GetED2KFileTypeID(pTempFile->GetFileName()) == ED2KFT_PROGRAM || GetED2KFileTypeID(pTempFile->GetFileName()) == ED2KFT_ARCHIVE)
-					&& (uint64)pTempFile->GetFileSize() > 102400 && (uint64)pTempFile->GetFileSize() < 10485760
+					&& pTempFile->GetFileSize() > 102400ull && pTempFile->GetFileSize() < 10485760ull
 					&& !bMarkAsNoSpam
 					)
 					|| bSourceServer)
@@ -1045,12 +1042,13 @@ void CSearchList::DoSpamRating(CSearchFile *pSearchFile, bool bIsClientFile, boo
 			&& !::IsLowID(pTempFile->GetClientID())
 			&& m_mapKnownSpamSourcesIPs.Lookup(pTempFile->GetClientID(), bFound))
 		{
-			if (!bMarkAsNoSpam) {
+			if (bMarkAsNoSpam)
+				m_mapKnownSpamSourcesIPs.RemoveKey(pTempFile->GetClientID());
+			else {
 				strDebug.AppendFormat(_T(" (Sourceshit: %s)"), (LPCTSTR)ipstr(pTempFile->GetClientID()));
 				nSpamScore += SPAM_SOURCE_HIT;
 				nDbgSources = SPAM_SOURCE_HIT;
-			} else
-				m_mapKnownSpamSourcesIPs.RemoveKey(pTempFile->GetClientID());
+			}
 		} else {
 			for (int i = 0; i != pTempFile->GetClients().GetSize(); ++i)
 				if (pTempFile->GetClients()[i].m_nIP != 0
@@ -1069,12 +1067,11 @@ void CSearchList::DoSpamRating(CSearchFile *pSearchFile, bool bIsClientFile, boo
 	}
 #endif
 
-	if (!bMarkAsNoSpam) {
-		if (nSpamScore > 0)
-			DebugLog(_T("Spamrating Result: %u. Details: Hash: %u, Name: %u, Size: %u, Server: %u, Sources: %u, Heuristic: %u, OnlySpamServers: %u. %s Filename: %s")
-				, bSureNegative ? 0 : nSpamScore, nDbgFileHash, nDbgStrings, nDbgSize, nDbgServer, nDbgSources, nDbgHeuristic, nDbgOnlySpamServer, (LPCTSTR)strDebug, (LPCTSTR)pSearchFile->GetFileName());
-	} else
+	if (bMarkAsNoSpam)
 		DebugLog(_T("Marked file as No Spam, Old Rating: %u."), pSearchFile->GetSpamRating());
+	else if (nSpamScore > 0)
+		DebugLog(_T("Spamrating Result: %u. Details: Hash: %u, Name: %u, Size: %u, Server: %u, Sources: %u, Heuristic: %u, OnlySpamServers: %u. %s Filename: %s")
+				, bSureNegative ? 0 : nSpamScore, nDbgFileHash, nDbgStrings, nDbgSize, nDbgServer, nDbgSources, nDbgHeuristic, nDbgOnlySpamServer, (LPCTSTR)strDebug, (LPCTSTR)pSearchFile->GetFileName());
 
 	bool bOldSpamStatus = pSearchFile->IsConsideredSpam();
 
@@ -1116,8 +1113,8 @@ void CSearchList::DoSpamRating(CSearchFile *pSearchFile, bool bIsClientFile, boo
 			++pair->value->m_nSpamResults;
 	}
 
-	if (bUpdate && outputwnd != NULL)
-		outputwnd->UpdateSources((pParent != NULL) ? pParent : pSearchFile);
+	if (bUpdate && m_outputwnd != NULL)
+		m_outputwnd->UpdateSources((pParent != NULL) ? pParent : pSearchFile);
 	if (bRecalculateAll)
 		RecalculateSpamRatings(pSearchFile->GetSearchID(), false, true, bUpdate);
 }
@@ -1197,7 +1194,7 @@ void CSearchList::MarkFileAsSpam(CSearchFile *pSpamFile, bool bRecalculateAll, b
 	m_astrKnownSpamNames.Add(pSpamFile->GetFileName());
 	m_astrKnownSimilarSpamNames.Add(pSpamFile->GetNameWithoutKeyword());
 	m_mapKnownSpamHashes[CSKey(pSpamFile->GetFileHash())] = true;
-	m_aui64KnownSpamSizes.Add((uint64)pSpamFile->GetFileSize());
+	m_aui64KnownSpamSizes.Add(pSpamFile->GetFileSize());
 
 	if (IsValidSearchResultClientIPPort(pSpamFile->GetClientID(), pSpamFile->GetClientPort())
 		&& !::IsLowID(pSpamFile->GetClientID()))
@@ -1218,8 +1215,8 @@ void CSearchList::MarkFileAsSpam(CSearchFile *pSpamFile, bool bRecalculateAll, b
 	else
 		DoSpamRating(pSpamFile);
 
-	if (bUpdate && outputwnd != NULL)
-		outputwnd->UpdateSources(pSpamFile);
+	if (bUpdate && m_outputwnd != NULL)
+		m_outputwnd->UpdateSources(pSpamFile);
 }
 
 void CSearchList::RecalculateSpamRatings(uint32 nSearchID, bool bExpectHigher, bool bExpectLower, bool bUpdate)
@@ -1235,8 +1232,8 @@ void CSearchList::RecalculateSpamRatings(uint32 nSearchID, bool bExpectHigher, b
 			&& !(!pCurFile->IsConsideredSpam() && bExpectLower))
 		{
 			DoSpamRating(pCurFile, false, false, false, false);
-			if (bUpdate && outputwnd != NULL)
-				outputwnd->UpdateSources(pCurFile);
+			if (bUpdate && m_outputwnd != NULL)
+				m_outputwnd->UpdateSources(pCurFile);
 		}
 	}
 }
@@ -1321,7 +1318,7 @@ void CSearchList::LoadSpamFilter()
 					m_mUDPServerRecords[PeekUInt32(&pBuffer[0])] = pRecord;
 					int nRatio;
 					if (pRecord->m_nResults >= pRecord->m_nSpamResults && pRecord->m_nResults > 0)
-						nRatio = (pRecord->m_nSpamResults * 100) / pRecord->m_nResults;
+						nRatio = 100 * pRecord->m_nSpamResults / pRecord->m_nResults;
 					else
 						nRatio = 100;
 					DEBUG_ONLY(DebugLog(_T("UDP Server Spam Record: IP: %s, Results: %u, SpamResults: %u, Ratio: %u")
@@ -1408,8 +1405,8 @@ void CSearchList::SaveSpamFilter()
 		}
 
 		for (const CUDPServerRecordMap::CPair *pair = m_mUDPServerRecords.PGetFirstAssoc(); pair != NULL; pair = m_mUDPServerRecords.PGetNextAssoc(pair)) {
-			const uint32 buf[3] = { pair->key, pair->value->m_nResults, pair->value->m_nSpamResults };
-			CTag tag(SP_UDPSERVERSPAMRATIO, sizeof(buf), (const BYTE*)buf);
+			const uint32 buf[3] = {pair->key, pair->value->m_nResults, pair->value->m_nSpamResults};
+			CTag tag(SP_UDPSERVERSPAMRATIO, sizeof buf , (const BYTE*)buf);
 			tag.WriteNewEd2kTag(file);
 			++nCount;
 		}
@@ -1509,26 +1506,26 @@ void CSearchList::LoadSearches()
 			const CString &strResultType(pParams->strFileType);
 			NewSearch(NULL, (strResultType == _T(ED2KFTSTR_PROGRAM) ? CString() : strResultType), pParams);
 
-			bool bDeleteParams = !theApp.emuledlg->searchwnd->CreateNewTab(pParams, false);
-			if (!bDeleteParams) {
+			bool bTabCreated = theApp.emuledlg->searchwnd->CreateOrFindTab(pParams, false);
+			if (bTabCreated) {
 				m_foundFilesCount[pParams->dwSearchID] = 0;
 				m_foundSourcesCount[pParams->dwSearchID] = 0;
 			} else
-				ASSERT(0); //failed to create tab
+				ASSERT(0); //should never happen - found tab with this ID
 
 			// fill the list using stored data
 			for (uint32 nFileCount = file.ReadUInt32(); nFileCount > 0; --nFileCount) {
 				CSearchFile *toadd = new CSearchFile(file, true, pParams->dwSearchID, 0, 0, NULL, pParams->eType == SearchTypeKademlia);
 				AddToList(toadd, pParams->bClientSharedFiles);
 			}
-			if (outputwnd)
-				outputwnd->UpdateTabHeader(pParams->dwSearchID);
+			if (m_outputwnd)
+				m_outputwnd->UpdateTabHeader(pParams->dwSearchID);
 
-			if (bDeleteParams)
+			if (!bTabCreated)
 				delete pParams;
 		}
 		file.Close();
-		// adjust the starting values for search IDs to avoid reused IDs in loaded searches
+		// increment next ID to keep the values unique for loaded searches
 		Kademlia::CSearchManager::SetNextSearchID(++nID);
 		theApp.emuledlg->searchwnd->SetNextSearchID(0x80000000u + nID);
 	} catch (CFileException *ex) {

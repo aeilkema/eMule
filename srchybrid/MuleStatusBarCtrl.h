@@ -1,6 +1,6 @@
 #pragma once
 
-enum EStatusBarPane
+enum EStatusBarPane : uint8
 {
 	SBarLog = 0,
 	SBarUsers,
@@ -15,9 +15,7 @@ class CMuleStatusBarCtrl : public CStatusBarCtrl
 	DECLARE_DYNAMIC(CMuleStatusBarCtrl)
 
 public:
-	CMuleStatusBarCtrl() = default;
-
-	void Init();
+	CMuleStatusBarCtrl()			{ EnableToolTips(TRUE); }
 
 protected:
 	int GetPaneAtPosition(CPoint &point) const;

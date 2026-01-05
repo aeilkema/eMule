@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -26,7 +26,7 @@ class InputBox : public CDialog
 	};
 
 public:
-	explicit InputBox(CWnd *pParent = NULL);   // standard constructor
+	explicit InputBox(CWnd *pParent = NULL);	// standard constructor
 	virtual	~InputBox();
 
 	void	SetLabels(const CString &title, const CString &label, const CString &defaultStr);
@@ -43,7 +43,7 @@ protected:
 	bool	m_bFilenameMode;
 	HICON	m_icMain;
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnInitDialog();
 
 	afx_msg void OnOK();

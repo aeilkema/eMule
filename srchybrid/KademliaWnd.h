@@ -24,7 +24,7 @@ class CKademliaWnd : public CResizableDialog
 	};
 
 public:
-	explicit CKademliaWnd(CWnd *pParent = NULL);   // standard constructor
+	explicit CKademliaWnd(CWnd *pParent = NULL);	// standard constructor
 	virtual	~CKademliaWnd();
 	CKademliaWnd(const CKademliaWnd&) = delete;
 	CKademliaWnd& operator=(const CKademliaWnd&) = delete;
@@ -66,7 +66,7 @@ protected:
 	void		SetAllIcons();
 	void		UpdateButtonTitle(bool bLookupGraph);
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual BOOL OnInitDialog();
 	virtual BOOL PreTranslateMessage(MSG *pMsg);
 	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);

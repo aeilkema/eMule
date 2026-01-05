@@ -133,12 +133,12 @@ static int check_header(z_stream *stream, HINTERNET m_hHttpFile)
 #define PREPARE_DECODER                                                     \
   if(bEncodedWithGZIP) {                                                    \
     zs.next_out = cBufferGZIP;                                              \
-    zs.zalloc = (alloc_func)Z_NULL;                                         \
-    zs.zfree = (free_func)Z_NULL;                                           \
-    zs.opaque = (voidpf)Z_NULL;                                             \
+    zs.zalloc = Z_NULL;                                                     \
+    zs.zfree = Z_NULL;                                                      \
+    zs.opaque = Z_NULL;                                                     \
     zs.next_in = (unsigned char*)szReadBuf;                                 \
     zs.total_out = 0;                                                       \
-    zs.avail_in = sizeof(szReadBuf);                                        \
+    zs.avail_in = (uInt)sizeof szReadBuf;                                   \
 	zs.avail_out = 0;                                                       \
                                                                             \
     VERIFY(inflateInit2(&zs, -MAX_WBITS) == Z_OK);                          \
@@ -215,7 +215,7 @@ CHttpDownloadDlg::CHttpDownloadDlg(CWnd *pParent /*=NULL*/)
 	//{{AFX_DATA_INIT(CHttpDownloadDlg)
 	//}}AFX_DATA_INIT
 	if (sm_ullWinInetVer == 0)
-		sm_ullWinInetVer = GetModuleVersion(GetModuleHandle(_T("wininet")));
+		sm_ullWinInetVer = GetModuleVersion(::GetModuleHandle(_T("wininet")));
 }
 
 void CHttpDownloadDlg::DoDataExchange(CDataExchange *pDX)
@@ -273,7 +273,7 @@ BOOL CHttpDownloadDlg::OnInitDialog()
 		}
 	}
 
-	//Setup the animation control
+	//Set up the animation control
 	m_ctrlAnimate.Open(IDR_HTTPDOWNLOAD_ANI);
 
 	// Check to see if the file we will be downloading into, exists
@@ -444,7 +444,7 @@ void CHttpDownloadDlg::DownloadThread()
 		return;
 	}
 
-	//Setup the status callback function
+	//Set up the status callback function
 	if (::InternetSetStatusCallback(m_hInternetSession, _OnStatusCallBack) == INTERNET_INVALID_STATUS_CALLBACK) {
 		TRACE(_T("Failed in call to InternetSetStatusCallback, Error:%d\n"), ::GetLastError());
 		HandleThreadErrorWithLastError(GetResString(IDS_HTTPDOWNLOAD_GENERIC_ERROR));
@@ -608,8 +608,8 @@ resend:
 			//Increment the total number of bytes read
 			dwTotalBytesRead += dwBytesRead;
 
-			UpdateControlsDuringTransfer(dwStartTicks, dwCurrentTicks, dwTotalBytesRead, dwLastTotalBytes,
-				dwLastPercentage, bGotFileSize, dwFileSize);
+			UpdateControlsDuringTransfer(dwStartTicks, dwCurrentTicks, dwTotalBytesRead
+						, dwLastTotalBytes, dwLastPercentage, bGotFileSize, dwFileSize);
 		}
 	} while (dwBytesRead && !m_bAbort);
 
@@ -637,7 +637,7 @@ void CHttpDownloadDlg::UpdateControlsDuringTransfer(DWORD dwStartTicks, DWORD &d
 {
 	if (bGotFileSize) {
 		//Update the percentage downloaded in the caption
-		DWORD dwPercentage = (DWORD)(dwTotalBytesRead * 100.0 / dwFileSize);
+		DWORD dwPercentage = (DWORD)(100.0 * dwTotalBytesRead / dwFileSize);
 		if (dwPercentage != dwLastPercentage) {
 			SetPercentage(dwPercentage);
 			dwLastPercentage = dwPercentage;
@@ -654,7 +654,7 @@ void CHttpDownloadDlg::UpdateControlsDuringTransfer(DWORD dwStartTicks, DWORD &d
 		double KbPerSecond = (dwTotalBytesRead - dwLastTotalBytes) / (double)dwTimeTaken;
 		SetTransferRate(KbPerSecond);
 
-		//Setup for the next time around the loop
+		//Set up for the next time around the loop
 		dwCurrentTicks = curTick;
 		dwLastTotalBytes = dwTotalBytesRead;
 

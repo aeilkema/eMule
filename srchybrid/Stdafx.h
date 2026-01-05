@@ -9,7 +9,7 @@
 #define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
 #endif
 
-#include <emule_site_config.h>
+#include "emule_site_config.h"
 
 // MSDN: Using the Windows Headers
 // ===========================================================
@@ -48,10 +48,10 @@
 #endif
 
 #ifndef _WIN32_IE
-#define _WIN32_IE 0x0560		// 0x0560 == Internet Explorer 5.6 -> Comctl32.dll v5.8
+#define _WIN32_IE 0x0603		// 0x0603 == Internet Explorer 6.0 SP2
 #endif
 
-#else//HAVE_VISTA_SDK
+#else //HAVE_VISTA_SDK
 
 #ifndef WINVER
 #define WINVER 0x0400			// 0x0400 == Windows 98 and Windows NT 4.0 (because of '_WIN32_WINDOWS=0x0410')
@@ -69,13 +69,13 @@
 #define _WIN32_IE 0x0560		// 0x0560 == Internet Explorer 5.6 -> Comctl32.dll v5.8 (same as MFC internally used)
 #endif
 
-#endif//HAVE_VISTA_SDK
+#endif //HAVE_VISTA_SDK
 
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// Makes certain CString constructors explicit, preventing any unintentional conversions
 #define	_ATL_EX_CONVERSION_MACROS_ONLY		// Disable old ATL 3.0 string conversion macros
 #ifdef _ATL_EX_CONVERSION_MACROS_ONLY
 #define CharNextO CharNextW					// work around a bug in ATL headers
-#endif//_ATL_EX_CONVERSION_MACROS_ONLY
+#endif //_ATL_EX_CONVERSION_MACROS_ONLY
 #define _CONVERSION_DONT_USE_THREAD_LOCALE	// for consistency with C-RTL/MFC the ATL thread locale support has to get disabled
 #define _ATL_NO_COM_SUPPORT
 #define _ATL_NO_PERF_SUPPORT
@@ -122,9 +122,11 @@
 #if _MSC_VER>=1400
 #pragma warning(disable:4738) // storing 32-bit float result in memory, possible loss of performance
 #endif
+#ifdef _M_ARM64
+#pragma warning(disable:4746) // volatile access of '<expression>' is subject to /volatile:[iso|ms] setting
+#endif
 #pragma warning(disable:4820) // <n> bytes padding added after member <member>
 #pragma warning(disable:4917) // a GUID can only be associated with a class, interface or namespace
-
 #if _MSC_VER>=1900
 #pragma warning(disable:5026) // move constructor was implicitly defined as deleted
 #pragma warning(disable:5027) // move assignment operator was implicitly defined as deleted
@@ -161,7 +163,7 @@
 #endif
 #endif//!defined(_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES) || (_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES==0)
 
-#if !defined(_USE_32BIT_TIME_T) && !defined(_WIN64)
+#if defined(XP_BUILD) && !defined(_WIN64) && !defined(_USE_32BIT_TIME_T)
 #define _USE_32BIT_TIME_T
 #endif
 
@@ -178,6 +180,9 @@
 #endif
 
 #include <afxwin.h>			// MFC core and standard components
+#undef _RICHEDIT_VER
+#define _RICHEDIT_VER 0x0500
+
 #include <afxext.h>			// MFC extensions
 #include <afxdtctl.h>		// MFC support for 'CDateTimeCtrl' and 'CMonthCalCtrl'
 #include <afxcmn.h>			// MFC support for Windows Common Controls
@@ -192,55 +197,6 @@
 #include <afxcoll.h>
 #include <afximpl.h>
 
-
-#ifndef EWX_FORCEIFHUNG
-#define EWX_FORCEIFHUNG			0x00000010
-#endif
-
-#ifndef WS_EX_LAYOUTRTL
-#define WS_EX_LAYOUTRTL			0x00400000L // Right to left mirroring
-#endif
-
-#ifndef LAYOUT_RTL
-#define LAYOUT_RTL				0x00000001 // Right to left
-#endif
-
-#ifndef COLOR_HOTLIGHT
-#define COLOR_HOTLIGHT			26
-#endif
-
-#ifndef WS_EX_LAYERED
-#define WS_EX_LAYERED			0x00080000
-#endif
-
-#ifndef LWA_COLORKEY
-#define LWA_COLORKEY			0x00000001
-#endif
-
-#ifndef LWA_ALPHA
-#define LWA_ALPHA				0x00000002
-#endif
-
-#ifndef HDF_SORTUP
-#define HDF_SORTUP				0x0400
-#endif
-
-#ifndef HDF_SORTDOWN
-#define HDF_SORTDOWN			0x0200
-#endif
-
-#ifndef COLOR_GRADIENTACTIVECAPTION
-#define COLOR_GRADIENTACTIVECAPTION 27
-#endif
-
-#ifndef LVBKIF_TYPE_WATERMARK
-#define LVBKIF_TYPE_WATERMARK   0x10000000
-#endif
-
-#ifndef LVBKIF_FLAG_ALPHABLEND
-#define LVBKIF_FLAG_ALPHABLEND  0x20000000
-#endif
-
 #include "types.h"
 
 #ifdef _DEBUG
@@ -253,17 +209,15 @@
 #endif
 
 typedef CArray<CStringA> CStringAArray;
+#ifdef _UNICODE
 typedef CStringArray CStringWArray;
+#else
+typedef CArray<CStringW> CStringWArray;
+#endif
+
 //replaces str.Mid(idx) when a constant character pointer is required
 #define CPTR(str, idx)	(&((LPCTSTR)(str))[(idx)])
 #define CPTRA(str, idx)	(&((LPCSTR)(str))[(idx)])
 #define CPTRW(str, idx)	(&((LPCWSTR)(str))[(idx)])
-
-
-#ifdef UNICODE
-#define _TWINAPI(fname)	fname "W"
-#else
-#define _TWINAPI(fname)	fname "A"
-#endif
 
 extern "C" int __cdecl __ascii_stricmp(const char * dst, const char * src);

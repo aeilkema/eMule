@@ -1,6 +1,6 @@
 /*
 Copyright (C)2003 Barry Dunne (https://www.emule-project.net)
-Copyright (C)2007-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+Copyright (C)2007-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -19,8 +19,8 @@ Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
 This work is based on the java implementation of the Kademlia protocol.
 Kademlia: Peer-to-peer routing based on the XOR metric
-Copyright (C) 2002  Petar Maymounkov [petar@post.harvard.edu]
-http://kademlia.scs.cs.nyu.edu
+Copyright (C) 2002  Petar Maymounkov [petar@maymounkov.org]
+https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf
 */
 
 // Note To Mods //
@@ -46,7 +46,6 @@ their client on the eMule forum.
  */
 
 #include "stdafx.h"
-#include <math.h>
 #include "emule.h"
 #include "emuledlg.h"
 #include "ipfilter.h"
@@ -60,9 +59,8 @@ their client on the eMule forum.
 #include "kademlia/kademlia/SearchManager.h"
 #include "kademlia/kademlia/UDPFirewallTester.h"
 #include "kademlia/net/KademliaUDPListener.h"
-#include "kademlia/routing/RoutingZone.h"
 #include "kademlia/routing/RoutingBin.h"
-#include "kademlia/utils/MiscUtils.h"
+#include "kademlia/routing/RoutingZone.h"
 #include "kademlia/utils/KadUDPKey.h"
 
 #ifdef _DEBUG
@@ -392,39 +390,42 @@ void CRoutingZone::DbgWriteBootstrapFile()
 		DebugLogError(_T("Unable to store bootstrap file: %s"), (LPCTSTR)m_sFilename);
 		return;
 	}
-	// Write the saved contact list.
+	// Write the collected contact list.
 	try {
 		::setvbuf(file.m_pStream, NULL, _IOFBF, 32768);
-		ContactMap mapContacts;
-		// filter out Kad1 nodes and null IDs
-		for (ContactMap::const_iterator itContactMap = mapContacts.begin(); itContactMap != mapContacts.end();) {
-			ContactMap::const_iterator itCurContactMap = itContactMap++;
-			const CContact *pContact = itCurContactMap->second;
-			if (pContact->GetClientID() == 0 || pContact->GetVersion() < KADEMLIA_VERSION2_47a)
-				mapContacts.erase(itCurContactMap);
-		}
+		ContactArray ac;
+		GetAllEntries(ac);
+		// filter out zero ID or Kad1 nodes
+		size_t ksize = 0;
+		for (size_t i = ac.size(); i-- > 0;)
+			if (ac[i]->GetClientID() != 0 && ac[i]->GetVersion() >= KADEMLIA_VERSION2_47a)
+				ac[ksize++] = ac[i];
 
-		// The bootstrap method gets a very nice sample of contacts to save.
-		CUInt128 uRandom(CUInt128(0ul), 0);
-		CUInt128 uDistance = uRandom;
-		uDistance.Xor(uMe);
-		GetClosestTo(2, uRandom, uDistance, 1200, mapContacts, false, false);
+		int csize = (int)ksize;
+		if (csize < 1200)
+			DebugLogWarning(_T("Got %d out of target 1200 contacts for bootstrap file"), csize);
+		else
+			csize = 1200;
 		// Start file with 0 to prevent older clients from reading it.
 		file.WriteUInt32(0);
-		// Now tag it with a version which happens to be 2 (1 till 0.48a).
+		// Now tag it with a special version 3
 		file.WriteUInt32(3);
 		file.WriteUInt32(1); // if we would use version >=3, this would mean that this is not a normal nodes.dat
-		file.WriteUInt32((uint32)mapContacts.size());
-		for (ContactMap::const_iterator itContactMap = mapContacts.begin(); itContactMap != mapContacts.end(); ++itContactMap) {
-			const CContact &contact = *itContactMap->second;
+		file.WriteUInt32((uint32)csize);
+
+		//do partial shuffle in ksize contacts for random even distibution
+		for (int i = csize; --i >= 0;) {
+			size_t j = rand() % ksize;
+			const CContact &contact(*ac[j]);
 			file.WriteUInt128(contact.GetClientID());
 			file.WriteUInt32(contact.GetIPAddress());
 			file.WriteUInt16(contact.GetUDPPort());
 			file.WriteUInt16(contact.GetTCPPort());
 			file.WriteUInt8(contact.GetVersion());
+			ac[j] = ac[--ksize];
 		}
 		file.Close();
-		AddDebugLogLine(false, _T("Wrote %ld contact to bootstrap file."), mapContacts.size());
+		AddDebugLogLine(false, _T("Wrote %d contacts to bootstrap file."), csize);
 	} catch (CFileException *ex) {
 		ex->Delete();
 		AddDebugLogLine(false, _T("CFileException in CRoutingZone::writeFile"));
@@ -444,7 +445,7 @@ bool CRoutingZone::CanSplit() const
 		return false;
 
 	// Check if this zone is allowed to split.
-	return ((m_uZoneIndex < KK || m_uLevel < KBASE) && m_pBin->GetSize() == K);
+	return (m_uZoneIndex < KK || m_uLevel < KBASE) && m_pBin->GetSize() == K;
 }
 
 // Returns true if a contact was added or updated, false if the routing table was not touched
@@ -603,7 +604,7 @@ CContact* CRoutingZone::GetContact(uint32 uIP, uint16 nPort, bool bTCPPort) cons
 		return m_pBin->GetContact(uIP, nPort, bTCPPort);
 
 	CContact *pContact = m_pSubZones[0]->GetContact(uIP, nPort, bTCPPort);
-	return (pContact != NULL) ? pContact : m_pSubZones[1]->GetContact(uIP, nPort, bTCPPort);
+	return pContact ? pContact : m_pSubZones[1]->GetContact(uIP, nPort, bTCPPort);
 }
 
 CContact* CRoutingZone::GetRandomContact(uint32 nMaxType, uint32 nMinKadVersion) const
@@ -613,7 +614,7 @@ CContact* CRoutingZone::GetRandomContact(uint32 nMaxType, uint32 nMinKadVersion)
 
 	int nZone = rand() & 1;
 	CContact *pContact = m_pSubZones[nZone]->GetRandomContact(nMaxType, nMinKadVersion);
-	return (pContact != NULL) ? pContact : m_pSubZones[nZone ^ 1]->GetRandomContact(nMaxType, nMinKadVersion);
+	return pContact ? pContact : m_pSubZones[nZone ^ 1]->GetRandomContact(nMaxType, nMinKadVersion);
 }
 
 void CRoutingZone::GetClosestTo(uint32 uMaxType, const CUInt128 &uTarget, const CUInt128 &uDistance, uint32 uMaxRequired, ContactMap &rmapResult, bool bEmptyFirst, bool bInUse) const
@@ -764,9 +765,9 @@ uint32 CRoutingZone::EstimateCount()
 		return 0;
 	if (m_uLevel < KBASE)
 		return (uint32)(pow(2.0f, (int)m_uLevel) * K);
-	CRoutingZone *pCurZone = m_pSuperZone->m_pSuperZone->m_pSuperZone;
+	const CRoutingZone *pCurZone = m_pSuperZone->m_pSuperZone->m_pSuperZone;
 	// Find out how full this part of the tree is.
-	float fModify = pCurZone->GetNumContacts() / (K * 2.0f);
+	/*	float fModify = (float)pCurZone->GetNumContacts() / (K * 2);	*/
 	// First calculate users assuming the tree is full.
 	// Modify count by bin size.
 	// Modify count by how full the tree is.
@@ -775,13 +776,13 @@ uint32 CRoutingZone::EstimateCount()
 	// Modify count by assuming 20% of the users are firewalled and can't be a contact for < 0.49b nodes
 	// Modify count by actual statistics of Firewalled ratio for >= 0.49b if we are not firewalled ourself
 	// Modify count by 40% for >= 0.49b if we are firewalled ourself (the actual Firewalled count at this date on kad is 35-55%)
-	const float fFirewalledModifyOld = 1.20F;
+	const float fFirewalledModifyOld = 1.20f;
 	float fFirewalledModifyNew;
 	if (CUDPFirewallTester::IsFirewalledUDP(true))
-		fFirewalledModifyNew = 1.40F; // we are firewalled and to get the real statistic, assume 40% firewalled >=0.49b nodes
+		fFirewalledModifyNew = 1.40f; // we are firewalled and to get the real statistic, assume 40% firewalled >=0.49b nodes
 	else if (CKademlia::GetPrefs()->StatsGetFirewalledRatio(true) > 0) {
-		fFirewalledModifyNew = 1.0F + (CKademlia::GetPrefs()->StatsGetFirewalledRatio(true)); // apply the firewalled ratio to the modify
-		ASSERT(fFirewalledModifyNew > 1.0F && fFirewalledModifyNew < 1.90F);
+		fFirewalledModifyNew = 1.00f + (CKademlia::GetPrefs()->StatsGetFirewalledRatio(true)); // apply the firewalled ratio to the modify
+		ASSERT(fFirewalledModifyNew > 1.0F && fFirewalledModifyNew < 1.90f);
 	} else
 		fFirewalledModifyNew = 0;
 	float fNewRatio = CKademlia::GetPrefs()->StatsGetKadV8Ratio();
@@ -790,9 +791,10 @@ uint32 CRoutingZone::EstimateCount()
 		fFirewalledModifyTotal = (fNewRatio * fFirewalledModifyNew) + ((1 - fNewRatio) * fFirewalledModifyOld);
 	else
 		fFirewalledModifyTotal = fFirewalledModifyOld;
-	ASSERT(fFirewalledModifyTotal > 1.0F && fFirewalledModifyTotal < 1.90F);
+	ASSERT(fFirewalledModifyTotal > 1.00f && fFirewalledModifyTotal < 1.90f);
 
-	return (uint32)(pow(2.0F, (int)m_uLevel - 2) * K * fModify * fFirewalledModifyTotal);
+	/*	return (uint32)(pow(2.0F, (int)m_uLevel - 2) * K * fModify * fFirewalledModifyTotal);	*/
+	return (uint32)(pow(2.0F, (int)m_uLevel - 3) * (float)pCurZone->GetNumContacts() * fFirewalledModifyTotal);
 }
 
 void CRoutingZone::OnSmallTimer()
@@ -932,7 +934,7 @@ bool CRoutingZone::IsAcceptableContact(const CContact *pToCheck) const
 	// We use this to check KADEMLIA_RES routing answers on searches
 	if (pToCheck->GetVersion() < KADEMLIA_VERSION2_47a)	// No Kad1 Contacts allowed
 		return false;
-	CContact *pDuplicate = GetContact(pToCheck->GetClientID());
+	const CContact *pDuplicate = GetContact(pToCheck->GetClientID());
 	if (pDuplicate != NULL) {
 		//false - a verified node with different IP exists
 		//true - node exists already in our routing table, that's fine

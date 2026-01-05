@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -61,10 +61,8 @@ void CServerConnect::TryAnotherConnectionRequest()
 						DebugLogError(_T("Failed to create 'server connect retry' timer - %s"), (LPCTSTR)GetErrorMessage(::GetLastError()));
 				}
 			}
-		} else
-			// Barry - Only auto-connect to static server option
-			if (!thePrefs.GetAutoConnectToStaticServersOnly() || next_server->IsStaticMember())
-				ConnectToServer(next_server, true, !m_bTryObfuscated);
+		} else if (!thePrefs.GetAutoConnectToStaticServersOnly() || next_server->IsStaticMember())
+			ConnectToServer(next_server, true, !m_bTryObfuscated);	// Barry - "Autoconnect to static server only" option
 	}
 }
 
@@ -253,15 +251,14 @@ void CServerConnect::ConnectionEstablished(CServerSocket *sender)
 
 bool CServerConnect::SendPacket(Packet *packet, CServerSocket *to)
 {
-	if (!to) {
-		if (!connected) {
-			delete packet;
-			return false;
-		}
-		connectedsocket->SendPacket(packet, true);
-	} else
+	if (to)
 		to->SendPacket(packet, true);
-
+	else if (connected)
+		connectedsocket->SendPacket(packet, true);
+	else {
+		delete packet;
+		return false;
+	}
 	return true;
 }
 
@@ -383,7 +380,7 @@ void CServerConnect::ConnectionFailed(CServerSocket *sender)
 	theApp.emuledlg->ShowConnectionState();
 }
 
-VOID CALLBACK CServerConnect::RetryConnectTimer(HWND /*hWnd*/, UINT /*nMsg*/, UINT_PTR /*nId*/, DWORD /*dwTime*/) noexcept
+void CALLBACK CServerConnect::RetryConnectTimer(HWND /*hWnd*/, UINT /*nMsg*/, UINT_PTR /*nId*/, DWORD /*dwTime*/) noexcept
 {
 	// NOTE: Always handle all type of MFC exceptions in TimerProcs - otherwise we'll get mem leaks
 	try {

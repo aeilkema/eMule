@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( devs@emule-project.net / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( devs@emule-project.net / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -60,7 +60,7 @@ public:
 		wnd2OnQueue = 2,
 		wnd2Clients = 3
 	};
-	explicit CTransferWnd(CWnd *pParent = NULL);   // standard constructor
+	explicit CTransferWnd(CWnd *pParent = NULL);	// standard constructor
 	virtual	~CTransferWnd();
 	CTransferWnd(const CTransferWnd&) = delete;
 	CTransferWnd& operator=(const CTransferWnd&) = delete;
@@ -126,7 +126,7 @@ protected:
 	void	LocalizeToolbars();
 
 	virtual BOOL PreTranslateMessage(MSG *pMsg);
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual void OnInitialUpdate();
 	virtual LRESULT DefWindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 	virtual BOOL OnCommand(WPARAM wParam, LPARAM);

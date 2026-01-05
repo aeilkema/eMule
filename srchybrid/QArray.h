@@ -80,8 +80,8 @@ template <class T> BOOL QuickSort(T *pArr, int iSize, BOOL bAscending = TRUE)
 {
 	if (iSize > 1) {
 		try {
-			int	low = 0,
-				high = iSize - 1;
+			int	low = 0;
+			int high = iSize - 1;
 			QuickSortRecursive(pArr, low, high, bAscending);
 			return TRUE;
 		} catch (...) {

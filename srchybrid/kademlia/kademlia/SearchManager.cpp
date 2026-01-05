@@ -51,9 +51,13 @@ their client on the eMule forum.
 static char THIS_FILE[] = __FILE__;
 #endif
 
-LPCSTR g_aszInvKadKeywordCharsA = INV_KAD_KEYWORD_CHARS;
-LPCTSTR g_aszInvKadKeywordChars = _T(INV_KAD_KEYWORD_CHARS);
-LPCWSTR g_awszInvKadKeywordChars = L" ()[]{}<>,._-!?:;\\/\"";
+#define INV_KAD_KEYWORD_CHARS	" ()[]{}<>,._-!?:;\\/\""
+#define _W(x)	__W(x)
+#define __W(x)	L ## x
+
+LPCSTR const g_szInvKadKeywordCharsA = INV_KAD_KEYWORD_CHARS;
+LPCTSTR const g_szInvKadKeywordChars = _T(INV_KAD_KEYWORD_CHARS);
+LPCWSTR const g_szInvKadKeywordCharsW = _W(INV_KAD_KEYWORD_CHARS);
 
 using namespace Kademlia;
 
@@ -132,7 +136,7 @@ CSearch* CSearchManager::PrepareFindKeywords(LPCWSTR szKeyword, UINT uSearchTerm
 
 			// Verify that we are not already searching for this target.
 			if (AlreadySearchingFor(pSearch->m_uTarget))
-				strError.Format(GetResString(IDS_KAD_SEARCH_KEYWORD_ALREADY_SEARCHING), (LPCTSTR)wstrKeyword);
+				strError.Format(GetResString(IDS_KAD_SEARCH_KEYWORD_ALREADY_SEARCHING), (LPCWSTR)wstrKeyword);
 			else {
 				pSearch->SetSearchTermData(uSearchTermsSize, pucSearchTermsData);
 				pSearch->SetGUIName(szKeyword);
@@ -217,7 +221,7 @@ void CSearchManager::FindNode(const CUInt128 &uID, bool bComplete)
 bool CSearchManager::AlreadySearchingFor(const CUInt128 &uTarget)
 {
 	// Check if this target is in the search map.
-	return (m_mapSearches.find(uTarget) != m_mapSearches.end());
+	return m_mapSearches.find(uTarget) != m_mapSearches.end();
 }
 
 bool CSearchManager::IsFWCheckUDPSearch(const CUInt128 &uTarget)
@@ -234,7 +238,7 @@ void CSearchManager::GetWords(LPCWSTR sz, WordList &rlistWords)
 	size_t uChars = 0;
 	size_t uBytes = 0;
 	for (LPCWSTR szS = sz; *szS;) {
-		uChars = wcscspn(szS, g_aszInvKadKeywordChars);
+		uChars = wcscspn(szS, g_szInvKadKeywordCharsW);
 		CKadTagValueString sWord = Kademlia::CKadTagValueString(szS);
 		sWord.Truncate((int)uChars);
 		// TODO: We'd need a safe way to determine if a sequence which contains only 3 chars is a real word.
@@ -449,9 +453,7 @@ void CSearchManager::ProcessResult(const CUInt128 &uTarget, const CUInt128 &uAns
 bool CSearchManager::FindNodeSpecial(const CUInt128 &uID, CKadClientSearcher *pRequester)
 {
 	// Do a node lookup.
-	CString strDbgID;
-	uID.ToHexString(strDbgID);
-	DebugLog(_T("Starting NODESPECIAL Kad Search for %s"), (LPCTSTR)strDbgID);
+	DebugLog(_T("Starting NODESPECIAL Kad Search for %s"), (LPCTSTR)uID.ToHexString());
 	CSearch *pSearch = new CSearch;
 	pSearch->SetSearchType(CSearch::NODESPECIAL);
 	pSearch->m_uTarget = uID;
@@ -475,7 +477,7 @@ void CSearchManager::CancelNodeSpecial(const CKadClientSearcher *pRequester)
 {
 	// Stop a specific nodespecial search
 	for (SearchMap::const_iterator itSearchMap = m_mapSearches.begin(); itSearchMap != m_mapSearches.end(); ++itSearchMap) {
-		CSearch &Search = *itSearchMap->second;
+		CSearch &Search(*itSearchMap->second);
 		if (Search.GetNodeSpecialSearchRequester() == pRequester) {
 			Search.SetNodeSpecialSearchRequester(NULL);
 			Search.PrepareToStop();

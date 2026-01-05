@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -84,6 +84,19 @@ template <typename T> inline static int sgn(const T &val) //for signed types onl
 {
 	return (T(0) < val) - (val < T(0));
 }
+
+template <typename T> inline static bool inSet(const T &v0, const T &v1, const T &v2)
+{
+	const T tmp = v0;
+	return tmp == v1 || tmp == v2;
+}
+
+template <typename T> inline static bool inSet(const T &v0, const T &v1, const T &v2, const T &v3)
+{
+	const T tmp = v0;
+	return tmp == v1 || tmp == v2 || tmp == v3;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Low level str
@@ -173,7 +186,7 @@ void Sort(CStringArray &astr, int(__cdecl *pfnCompare)(const void*, const void*)
 int __cdecl CompareCStringPtrPtrLocaleString(const void *p1, const void *p2);
 int __cdecl CompareCStringPtrPtrLocaleStringNoCase(const void *p1, const void *p2);
 void		Sort(CSimpleArray<const CString*> &apstr, int(__cdecl *pfnCompare)(const void*, const void*) = CompareCStringPtrPtrLocaleStringNoCase);
-void		HeapSort(CArray<uint16, uint16> &count, UINT first, UINT last);
+void		HeapSort(CArray<uint16> &count, UINT first, UINT last);
 void		StripTrailingColon(CString &rstr);
 bool		IsUnicodeFile(LPCTSTR pszFilePath);
 uint64		GetFreeTempSpace(INT_PTR tempdirindex);
@@ -182,9 +195,10 @@ CString		GetShareName(const CString &path);
 EFileType	GetFileTypeEx(CShareableFile *kfile, bool checkextention = true, bool checkfileheader = true, bool nocached = false);
 CString		GetFileTypeName(EFileType ftype);
 bool		ExtensionIs(LPCTSTR pszFilePath, LPCTSTR pszExt);
-int			IsExtensionTypeOf(EFileType type, const CString &ext);
+int			IsExtensionTypeOf(EFileType type, LPCTSTR const pszExt);
 uint32		LevenshteinDistance(const CString &str1, const CString &str2);
 bool		_tmakepathlimit(LPTSTR path, LPCTSTR drive, LPCTSTR dir, LPCTSTR fname, LPCTSTR ext);
+void		makepathabs(CString &sPath);
 bool		HasSubdirectories(const CString &strDir);
 bool		DirAccsess(const CString &strDir);
 #ifdef UNICODE
@@ -216,13 +230,19 @@ void GetPopupMenuPos(const CListCtrl &lv, CPoint &point);
 void GetPopupMenuPos(const CTreeCtrl &tv, CPoint &point);
 void InitWindowStyles(CWnd *pWnd);
 CString GetRateString(UINT rate);
-HWND ReplaceRichEditCtrl(CWnd *pwndRE, CWnd *pwndParent, CFont *pFont);
 void DisableAutoSelect(CRichEditCtrl &re);
 int  FontPointSizeToLogUnits(int nPointSize);
 bool CreatePointFont(CFont &rFont, int nPointSize, LPCTSTR lpszFaceName);
 bool CreatePointFontIndirect(CFont &rFont, const LOGFONT *lpLogFont);
 void SetTabTitle(UINT uid, CPropertyPage *pPage, CPropertySheet *pSheet = NULL);
 bool PointInClient(const CWnd &wnd, const CPoint &point);
+
+///////////////////////////////////////////////////////////////////////////////
+// Clipboard
+//
+CString CopyTextFromClipboard();
+bool	CopyTextToClipboard(const CString &strText);
+bool	IsEd2kLinkInClipboard(LPCSTR pszLinkType, int iLinkTypeLen);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Resource strings
@@ -232,15 +252,16 @@ bool PointInClient(const CWnd &wnd, const CPoint &point);
 #define	IDS2RESIDTYPE(id)	#id
 #define GetResString(id)	_GetResString(#id)
 CString _GetResString(RESSTRIDTYPE StringID);
-#else//USE_STRING_IDS
+#else //USE_STRING_IDS
 #define	RESSTRIDTYPE		UINT
 #define	IDS2RESIDTYPE(id)	id
 CString GetResString(RESSTRIDTYPE uStringID);
 #define _GetResString(id)	GetResString(id)
-#endif//!USE_STRING_IDS
+#endif //USE_STRING_IDS
 void InitThreadLocale();
 int LocMessageBox(UINT uId, UINT nType = MB_OK, UINT nIDHelp = 0); //localize and call AfxMessageBox(UINT, UINT, UINT)
 CString GetResNoAmp(RESSTRIDTYPE uStringID);
+void LocaliseHeaderCtrl(CHeaderCtrl *pHeaderCtrl, const UINT *const uids);
 
 ///////////////////////////////////////////////////////////////////////////////
 // Error strings, Debugging, Logging
@@ -319,8 +340,20 @@ int			GetAppImageListColorFlag();
 int			GetDesktopColorDepth();
 bool		IsFileOnFATVolume(LPCTSTR pszFilePath);
 void		ClearVolumeInfoCache(int iDrive = -1);
-bool		AddIconGrayscaledToImageList(CImageList &rList, HICON hIcon);
 
+//greyscaled icons
+struct BGR //order of colours in bitmap and palette
+{
+	byte b;
+	byte g;
+	byte r;
+};
+
+int			bestclr(const RGBQUAD *const palette, const BGR c);
+byte*		bmp2mem(HBITMAP hbmp, size_t &size, REFGUID imgfmt);
+HBITMAP		mem2bmp(const byte *inbuf, const size_t size);
+int			AddIconGreyedToImageList(CImageList &rList, HICON hIcon);
+HICON		ReplaceIconGreyedInImageList(CImageList &rList, int nPos);
 
 ///////////////////////////////////////////////////////////////////////////////
 // MD4/MD5 helpers
@@ -365,7 +398,7 @@ inline void md4cpy(void *dst, const void *src)
 CString md4str(const byte *hash);
 void md4str(const byte *hash, TCHAR *pszHash);
 bool strmd4(const char *pszHash, byte *hash);
-bool strmd4(const CString &rstr, byte *hash);
+bool strmd4(const wchar_t *pszHash, byte *hash);
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -417,16 +450,16 @@ inline int CompareOptLocaleStringNoCaseUndefinedAtBottom(const CString &str1, co
 ///////////////////////////////////////////////////////////////////////////////
 // ED2K File Type
 //
-enum EED2KFileType
+enum EED2KFileType : uint8
 {
 	ED2KFT_ANY = 0,
-	ED2KFT_AUDIO = 1,	// ED2K protocol value (eserver 17.6+)
-	ED2KFT_VIDEO = 2,	// ED2K protocol value (eserver 17.6+)
-	ED2KFT_IMAGE = 3,	// ED2K protocol value (eserver 17.6+)
-	ED2KFT_PROGRAM = 4,	// ED2K protocol value (eserver 17.6+)
+	ED2KFT_AUDIO = 1,		// ED2K protocol value (eserver 17.6+)
+	ED2KFT_VIDEO = 2,		// ED2K protocol value (eserver 17.6+)
+	ED2KFT_IMAGE = 3,		// ED2K protocol value (eserver 17.6+)
+	ED2KFT_PROGRAM = 4,		// ED2K protocol value (eserver 17.6+)
 	ED2KFT_DOCUMENT = 5,	// ED2K protocol value (eserver 17.6+)
-	ED2KFT_ARCHIVE = 6,	// ED2K protocol value (eserver 17.6+)
-	ED2KFT_CDIMAGE = 7,	// ED2K protocol value (eserver 17.6+)
+	ED2KFT_ARCHIVE = 6,		// ED2K protocol value (eserver 17.6+)
+	ED2KFT_CDIMAGE = 7,		// ED2K protocol value (eserver 17.6+)
 	ED2KFT_EMULECOLLECTION = 8
 };
 
@@ -448,7 +481,7 @@ uint8 GetMyConnectOptions(bool bEncryption = true, bool bCallback = true);
 //No longer need separate lowID checks as we now know the servers just give *.*.*.0 users a lowID
 inline bool IsLowID(uint32 id)
 {
-	return (id < 16777216u); //0x01000000u or 2^25
+	return id < 16777216u; //0x01000000u or 2^25
 }
 CString ipstr(uint32 nIP);
 CString ipstr(uint32 nIP, uint16 nPort);

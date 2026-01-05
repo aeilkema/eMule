@@ -1,12 +1,11 @@
 #pragma once
 #include "TreeOptionsCtrl.h"
 
-typedef struct
+struct TREEOPTSCTRLNOTIFY
 {
 	NMHDR nmhdr;
 	HTREEITEM hItem;
-} TREEOPTSCTRLNOTIFY;
-
+};
 
 // predefined treeview image list indices
 #define	TREEOPTSCTRLIMG_EDIT	11
@@ -22,10 +21,9 @@ public:
 
 	void SetEditLabel(HTREEITEM hItem, const CString &rstrLabel);
 	void UpdateCheckBoxGroup(HTREEITEM hItem);
-	void SetImageListColorFlags(UINT uImageListColorFlags);
+	void SetImageListColorFlags(UINT uImageListColorFlags)	{ m_uImageListColorFlags = uImageListColorFlags; }
 
 	virtual void OnCreateImageList();
-	virtual void HandleChildControlLosingFocus();
 	virtual BOOL SetRadioButton(HTREEITEM hParent, int nIndex);
 	virtual BOOL SetRadioButton(HTREEITEM hItem);
 	BOOL NotifyParent(UINT uCode, HTREEITEM hItem);
@@ -60,7 +58,7 @@ class CNumTreeOptionsEdit : public CTreeOptionsEdit
 
 public:
 	CNumTreeOptionsEdit()
-		: m_bSelf(false)
+		: m_bSelf()
 	{
 	}
 
@@ -85,7 +83,7 @@ class CTreeOptionsEditEx : public CTreeOptionsEdit
 
 public:
 	CTreeOptionsEditEx()
-		: m_bSelf(false)
+		: m_bSelf()
 	{
 	}
 

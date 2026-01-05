@@ -1,5 +1,5 @@
-//this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+ï»¿//this file is part of eMule
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -27,160 +27,89 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 
-// define mask color
-#define MASK_RGB	(COLORREF)0xFFFFFF
+// define background colour
+#define BACK_RGB	(COLORREF)0xFFFFFF
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-IMPLEMENT_DYNAMIC(CCreditsThread, CGDIThread)
+IMPLEMENT_DYNAMIC(CCreditsThread, CWinThread)
 
-BEGIN_MESSAGE_MAP(CCreditsThread, CGDIThread)
+BEGIN_MESSAGE_MAP(CCreditsThread, CWinThread)
 	//{{AFX_MSG_MAP(CCreditsThread)
 		// NOTE - the ClassWizard will add and remove mapping macros here.
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 CCreditsThread::CCreditsThread(CWnd *pWnd, HDC hDC, LPCRECT rectScreen)
-	: CGDIThread(pWnd, hDC)
+	: m_hDC(hDC)
 	, m_rectScreen(rectScreen)
-	, m_nScrollPos()
-	, m_pbmpOldBk()
 	, m_pbmpOldCredits()
-	, m_pbmpOldScreen()
-	, m_pbmpOldMask()
 	, m_nCreditsBmpWidth()
 	, m_nCreditsBmpHeight()
+	, m_nDelay(30)
+	, m_nScrollInc(SCROLL_UP)
+	, m_nScrollPos()
+	, m_Run()
 {
+	m_pMainWnd = pWnd;
 	m_rgnScreen.CreateRectRgnIndirect(m_rectScreen);
 }
 
 BOOL CCreditsThread::InitInstance()
 {
 	InitThreadLocale();
-	BOOL bResult = CGDIThread::InitInstance();
-
-	// NOTE: Because this is a separate thread, we have to delete our GDI objects here
-	// (while the handle maps are still available.)
-	if (m_dcBk.m_hDC != NULL && m_pbmpOldBk != NULL) {
-		m_dcBk.SelectObject(m_pbmpOldBk);
-		m_pbmpOldBk = NULL;
-		m_bmpBk.DeleteObject();
-	}
-
-	if (m_dcScreen.m_hDC != NULL && m_pbmpOldScreen != NULL) {
-		m_dcScreen.SelectObject(m_pbmpOldScreen);
-		m_pbmpOldScreen = NULL;
-		m_bmpScreen.DeleteObject();
-	}
-
-	if (m_dcCredits.m_hDC != NULL && m_pbmpOldCredits != NULL) {
-		m_dcCredits.SelectObject(m_pbmpOldCredits);
-		m_pbmpOldCredits = NULL;
-		m_bmpCredits.DeleteObject();
-	}
-
-	if (m_dcMask.m_hDC != NULL && m_pbmpOldMask != NULL) {
-		m_dcMask.SelectObject(m_pbmpOldMask);
-		m_pbmpOldMask = NULL;
-		m_bmpMask.DeleteObject();
-	}
-
-	// clean up the fonts we created
-	for (INT_PTR n = m_arFonts.GetCount(); --n >= 0;) {
-		m_arFonts[n]->DeleteObject();
-		delete m_arFonts[n];
-	}
-	m_arFonts.RemoveAll();
-
-	return bResult;
+	return TRUE;
 }
 
-// wait for vertical retrace
-// makes scrolling smoother, especially at fast speeds
-// NT does not like this at all
-void waitvrt()
+int CCreditsThread::Run()
 {
-#ifdef _M_IX86
-	__asm {
-		mov	dx, 3dah
-		VRT :
-		in		al, dx
-			test	al, 8
-			jnz		VRT
-			NoVRT :
-		in		al, dx
-			test	al, 8
-			jz		NoVRT
+	m_dc.Attach(m_hDC);
+	CreateCredits();
+	// loop and wait for exit notification
+	while (m_Run)
+		SingleStep();
+	m_dc.Detach();
+
+	if (m_dcCredits.m_hDC && m_pbmpOldCredits) {
+		m_dcCredits.SelectObject(m_pbmpOldCredits);
+		m_bmpCredits.DeleteObject();
 	}
-#endif
+	return 0;
 }
 
 void CCreditsThread::SingleStep()
 {
-	// if this is our first time, initialize the credits
-	if (m_dcCredits.m_hDC == NULL)
-		CreateCredits();
-
-	// track scroll position
-	static int nScrollY = 0;
+	static int nScrollY = 0;	// track the current scroll position
 
 	// timer variables
 	LARGE_INTEGER nFrequency;
-	LARGE_INTEGER nStart = {};
+	LARGE_INTEGER nStart;
 
 	bool bTimerValid = QueryPerformanceFrequency(&nFrequency);
 	if (bTimerValid)
-		// get start time
-		QueryPerformanceCounter(&nStart);
+		QueryPerformanceCounter(&nStart);	// get start time
 
-	CGDIThread::m_csGDILock.Lock();
-	PaintBk(&m_dcScreen);
-
-	m_dcScreen.BitBlt(0, 0, m_nCreditsBmpWidth, m_nCreditsBmpHeight, &m_dcCredits, 0, nScrollY, SRCINVERT);
-	m_dcScreen.BitBlt(0, 0, m_nCreditsBmpWidth, m_nCreditsBmpHeight, &m_dcMask, 0, nScrollY, SRCAND);
-	m_dcScreen.BitBlt(0, 0, m_nCreditsBmpWidth, m_nCreditsBmpHeight, &m_dcCredits, 0, nScrollY, SRCINVERT);
-
-	// wait for vertical retrace
-	if (m_bWaitVRT)
-		waitvrt();
-
-	m_dc.BitBlt(m_rectScreen.left, m_rectScreen.top, m_rectScreen.Width(), m_rectScreen.Height(), &m_dcScreen, 0, 0, SRCCOPY);
-
-	GdiFlush();
-	CGDIThread::m_csGDILock.Unlock();
+	m_dc.BitBlt(m_rectScreen.left, m_rectScreen.top, m_rectScreen.Width(), m_rectScreen.Height(), &m_dcCredits, 0, nScrollY, SRCCOPY);
 
 	// continue scrolling
 	nScrollY += m_nScrollInc;
 	if (nScrollY >= m_nCreditsBmpHeight)
 		nScrollY = 0;	// scrolling up
-	if (nScrollY < 0)
+	else if (nScrollY < 0)
 		nScrollY = m_nCreditsBmpHeight;	// scrolling down
 
-	// delay scrolling by the specified time
+	int nTimeInMilliseconds;
 	if (bTimerValid) {
 		LARGE_INTEGER nEnd;
 		QueryPerformanceCounter(&nEnd);
-		int nTimeInMilliseconds = (int)(SEC2MS(nEnd.QuadPart - nStart.QuadPart) / nFrequency.QuadPart);
-
-		if (nTimeInMilliseconds <= m_nDelay)
-			::Sleep(m_nDelay - nTimeInMilliseconds);
+		nTimeInMilliseconds = (int)(SEC2MS(nEnd.QuadPart - nStart.QuadPart) / nFrequency.QuadPart);
 	} else
-		::Sleep(m_nDelay);
-}
-
-void CCreditsThread::PaintBk(CDC *pDC)
-{
-	//save background the first time
-	if (m_dcBk.m_hDC == NULL) {
-		m_dcBk.CreateCompatibleDC(&m_dc);
-		m_bmpBk.CreateCompatibleBitmap(&m_dc, m_rectScreen.Width(), m_rectScreen.Height());
-		m_pbmpOldBk = m_dcBk.SelectObject(&m_bmpBk);
-		m_dcBk.BitBlt(0, 0, m_rectScreen.Width(), m_rectScreen.Height(), &m_dc, m_rectScreen.left, m_rectScreen.top, SRCCOPY);
-	}
-
-	pDC->BitBlt(0, 0, m_rectScreen.Width(), m_rectScreen.Height(), &m_dcBk, 0, 0, SRCCOPY);
+		nTimeInMilliseconds = 0;
+	// delay scrolling by the specified time
+	if (nTimeInMilliseconds <= m_nDelay)
+		::Sleep(m_nDelay - nTimeInMilliseconds);
 }
 
 void CCreditsThread::CreateCredits()
@@ -191,9 +120,11 @@ void CCreditsThread::CreateCredits()
 
 	m_dc.SelectClipRgn(&m_rgnScreen);
 
-	m_dcScreen.CreateCompatibleDC(&m_dc);
-	m_bmpScreen.CreateCompatibleBitmap(&m_dc, m_rectScreen.Width(), m_rectScreen.Height());
-	m_pbmpOldScreen = m_dcScreen.SelectObject(&m_bmpScreen);
+	CDC dcScreen;
+	dcScreen.CreateCompatibleDC(&m_dc);
+	CBitmap bmpScreen;
+	bmpScreen.CreateCompatibleBitmap(&m_dc, m_rectScreen.Width(), m_rectScreen.Height());
+	CBitmap *pbmpOldScreen = dcScreen.SelectObject(&bmpScreen);
 
 	m_nCreditsBmpWidth = m_rectScreen.Width();
 	m_nCreditsBmpHeight = CalcCreditsHeight();
@@ -202,16 +133,14 @@ void CCreditsThread::CreateCredits()
 	m_bmpCredits.CreateCompatibleBitmap(&m_dc, m_nCreditsBmpWidth, m_nCreditsBmpHeight);
 	m_pbmpOldCredits = m_dcCredits.SelectObject(&m_bmpCredits);
 
-	m_dcCredits.FillSolidRect(0, 0, m_nCreditsBmpWidth, m_nCreditsBmpHeight, MASK_RGB);
+	m_dcCredits.FillSolidRect(0, 0, m_nCreditsBmpWidth, m_nCreditsBmpHeight, BACK_RGB); //sets BkColor
 
 	CFont *pOldFont = m_dcCredits.SelectObject(m_arFonts[0]);
+	int nLastFont = 0;
+	int nTextHeight = m_arFontHeights[0];
 
-	m_dcCredits.SetBkMode(TRANSPARENT);
-
+	int nLastColor = -1;
 	unsigned y = 0;
-
-	int nTextHeight = m_dcCredits.GetTextExtent(_T("Wy")).cy;
-
 	for (INT_PTR n = 0; n < m_arCredits.GetCount(); ++n) {
 		const CString &cs(m_arCredits[n]);
 		if (cs.GetLength() < 3)
@@ -248,47 +177,42 @@ void CCreditsThread::CreateCredits()
 			break;
 		default:		// it's a text string
 			{
-				static const int nLastFont = -1;
-				static const int nLastColor = -1;
-
 				int nFont = _ttoi(cs.Left(2));
-				int nColor = _ttoi(cs.Mid(3, 2));
-
 				if (nFont != nLastFont) {
+					nLastFont = nFont;
 					m_dcCredits.SelectObject(m_arFonts[nFont]);
 					nTextHeight = m_arFontHeights[nFont];
 				}
 
-				if (nColor != nLastColor)
+				int nColor = _ttoi(cs.Mid(3, 2));
+				if (nColor != nLastColor) {
 					m_dcCredits.SetTextColor(m_arColors[nColor]);
+					nLastColor = nColor;
+				}
 
 				RECT rect = { 0, (LONG)y, m_rectScreen.Width(), (LONG)y + nTextHeight };
-
-				m_dcCredits.DrawText(CPTR(cs, 6), &rect, DT_CENTER);
+				m_dcCredits.DrawText(CPTR(cs, 6), -1, &rect, DT_CENTER);
 
 				y += nTextHeight;
 			}
 		}
 	}
 
-	m_dcCredits.SetBkColor(MASK_RGB);
 	m_dcCredits.SelectObject(pOldFont);
+	dcScreen.SelectObject(pbmpOldScreen);
+	bmpScreen.DeleteObject();
 
-	// create the mask bitmap
-	m_dcMask.CreateCompatibleDC(&m_dcScreen);
-	m_bmpMask.CreateBitmap(m_nCreditsBmpWidth, m_nCreditsBmpHeight, 1, 1, NULL);
-
-	// select the mask bitmap into the appropriate dc
-	m_pbmpOldMask = m_dcMask.SelectObject(&m_bmpMask);
-
-	// build mask based on transparent color
-	m_dcMask.BitBlt(0, 0, m_nCreditsBmpWidth, m_nCreditsBmpHeight, &m_dcCredits, 0, 0, SRCCOPY);
+	// clean up the fonts we created
+	for (INT_PTR i = m_arFonts.GetCount(); --i >= 0;) {
+		m_arFonts[i]->DeleteObject();
+		delete m_arFonts[i];
+	}
+	m_arFonts.RemoveAll();
 }
 
+// create each font we'll need and add to the fonts array
 void CCreditsThread::InitFonts()
 {
-	// create each font we'll need and add it to the fonts array
-
 	CDC dcMem;
 	dcMem.CreateCompatibleDC(&m_dc);
 
@@ -296,7 +220,7 @@ void CCreditsThread::InitFonts()
 	// font 0
 	// SMALL ARIAL
 	lf.lfHeight = 12;
-	lf.lfWeight = 500;
+	lf.lfWeight = FW_MEDIUM;
 	lf.lfQuality = NONANTIALIASED_QUALITY;
 	_tcscpy(lf.lfFaceName, _T("Arial"));
 	CFont *font0 = new CFont;
@@ -311,7 +235,7 @@ void CCreditsThread::InitFonts()
 	// MEDIUM BOLD ARIAL
 	memset((void*)&lf, 0, sizeof lf);
 	lf.lfHeight = 14;
-	lf.lfWeight = 600;
+	lf.lfWeight = FW_SEMIBOLD;
 	lf.lfQuality = NONANTIALIASED_QUALITY;
 	_tcscpy(lf.lfFaceName, _T("Arial"));
 	CFont *font1 = new CFont;
@@ -326,7 +250,7 @@ void CCreditsThread::InitFonts()
 	// LARGE ITALIC HEAVY BOLD TIMES ROMAN
 	memset((void*)&lf, 0, sizeof lf);
 	lf.lfHeight = 16;
-	lf.lfWeight = 700;
+	lf.lfWeight = FW_BOLD;
 	//lf.lfItalic = TRUE;
 	lf.lfQuality = ANTIALIASED_QUALITY;
 	_tcscpy(lf.lfFaceName, _T("Arial"));
@@ -341,7 +265,7 @@ void CCreditsThread::InitFonts()
 	// font 3
 	memset((void*)&lf, 0, sizeof lf);
 	lf.lfHeight = 25;
-	lf.lfWeight = 900;
+	lf.lfWeight = FW_HEAVY;
 	lf.lfQuality = ANTIALIASED_QUALITY;
 	_tcscpy(lf.lfFaceName, _T("Arial"));
 	CFont *font3 = new CFont;
@@ -383,176 +307,179 @@ void CCreditsThread::InitText()
 		make it invisible etc.
 	*/
 
+	static LPCTSTR const lines[] =
+	{
+		  _T("01:06:Copyright (C) 2002-2026 Merkur")
+		, _T("S:50")
+		, _T("02:04:Developers")
+		, _T("S:5")
+		, _T("01:06:Ornis")
+
+		, _T("S:50")
+
+		, _T("02:04:Testers")
+		, _T("S:5")
+		, _T("01:06:Monk")
+		, _T("S:5")
+		, _T("01:06:Daan")
+		, _T("S:5")
+		, _T("01:06:Elandal")
+		, _T("S:5")
+		, _T("01:06:Frozen_North")
+		, _T("S:5")
+		, _T("01:06:kayfam")
+		, _T("S:5")
+		, _T("01:06:Khandurian")
+		, _T("S:5")
+		, _T("01:06:Masta2002")
+		, _T("S:5")
+		, _T("01:06:mrLabr")
+		, _T("S:5")
+		, _T("01:06:Nesi-San")
+		, _T("S:5")
+		, _T("01:06:SeveredCross")
+		, _T("S:5")
+		, _T("01:06:Skynetman")
+
+		, _T("S:50")
+		, _T("02:04:Retired Members")
+		, _T("S:5")
+		, _T("01:06:Merkur (the Founder)")
+		, _T("S:5")
+		, _T("01:06:tecxx")
+		, _T("S:5")
+		, _T("01:06:Pach2")
+		, _T("S:5")
+		, _T("01:06:Juanjo")
+		, _T("S:5")
+		, _T("01:06:Barry")
+		, _T("S:5")
+		, _T("01:06:Dirus")
+		, _T("S:5")
+		, _T("01:06:Unknown1")
+
+		, _T("S:50")
+		, _T("02:04:Thanks to these programmers")
+		, _T("02:04:for publishing useful code parts")
+		, _T("S:5")
+		, _T("01:06:Paolo Messina (ResizableDialog class)")
+		, _T("S:5")
+		, _T("01:6:PJ Naughter (HttpDownload Dialog)")
+		, _T("S:5")
+		, _T("01:06:Jim Connor (Scrolling Credits)")
+		, _T("S:5")
+		, _T("01:06:Yury Goltsman (extended Progressbar)")
+		, _T("S:5")
+		, _T("01:06:Magomed G. Abdurakhmanov (Hyperlink ctrl)")
+		, _T("S:5")
+		, _T("01:06:Arthur Westerman (Titled menu)")
+		, _T("S:5")
+		, _T("01:06:Tim Kosse (AsyncSocket-Proxy support)")
+		, _T("S:5")
+		, _T("01:06:Keith Rule (Memory DC)")
+		, _T("S:50")
+
+		, _T("02:07:And thanks to the following")
+		, _T("02:07:people for translating eMule")
+		, _T("02:07:into different languages:")
+		, _T("S:20")
+
+		, _T("01:06:Arabic: Dody")
+		, _T("S:05")
+		, _T("01:06:Albanian: Besmir")
+		, _T("S:05")
+		, _T("01:06:Basque: TXiKi")
+		, _T("S:05")
+		, _T("01:06:Breton: KAD-KorvigelloÃ¹ an Drouizig")
+		, _T("S:05")
+		, _T("01:06:Bulgarian: DapKo, Dumper")
+		, _T("S:05")
+		, _T("01:06:Catalan: LeChuck")
+		, _T("S:05")
+		, _T("01:06:Chinese Simplified: Tim Chen, Qilu T.")
+		, _T("S:05")
+		, _T("01:06:Chinese Traditional: CML, Donlong, Ryan")
+		, _T("S:05")
+		, _T("01:06:Czech: Patejl")
+		, _T("S:05")
+		, _T("01:06:Danish: Tiede, Cirrus, Itchy")
+		, _T("S:05")
+		, _T("01:06:Estonian: Symbio")
+		, _T("S:05")
+		, _T("01:06:Dutch: Mr.Bean")
+		, _T("S:05")
+		, _T("01:06:Finnish: Nikerabbit")
+		, _T("S:05")
+		, _T("01:06:French: Motte, Emzc, Lalrobin")
+		, _T("S:05")
+		, _T("01:06:Galician: Juan, Emilio R.")
+		, _T("S:05")
+		, _T("01:06:Greek: Michael Papadakis")
+		, _T("S:05")
+		, _T("01:06:Italian: Trevi, FrankyFive")
+		, _T("S:05")
+		, _T("01:06:Japanese: DukeDog, Shinro T.")
+		, _T("S:05")
+		, _T("01:06:Hebrew: Avi-3k")
+		, _T("S:05")
+		, _T("01:06:Hungarian: r0ll3r")
+		, _T("S:05")
+		, _T("01:06:Korean: pooz")
+		, _T("S:05")
+		, _T("01:06:Latvian: Zivs")
+		, _T("S:05")
+		, _T("01:06:Lithuanian: Daan")
+		, _T("S:05")
+		, _T("01:06:Maltese: Reuben")
+		, _T("S:05")
+		, _T("01:06:Norwegian (Bokmal): Iznogood")
+		, _T("S:05")
+		, _T("01:06:Norwegian (Nynorsk): Hallvor")
+		, _T("S:05")
+		, _T("01:06:Polish: Tomasz \"TMouse\" Broniarek")
+		, _T("S:05")
+		, _T("01:06:Portuguese: Filipe, LuÐ½s Claro")
+		, _T("S:05")
+		, _T("01:06:Portuguese Brazilian: DarthMaul,Brasco,Ducho")
+		, _T("S:05")
+		, _T("01:06:Romanian: Dragos")
+		, _T("S:05")
+		, _T("01:06:Russian: T-Mac, BRMAIL")
+		, _T("S:05")
+		, _T("01:06:Slovenian: Rok Kralj")
+		, _T("S:05")
+		, _T("01:06:Spanish Castellano: Azuredraco, Javier L., |_Hell_|")
+		, _T("S:05")
+		, _T("01:06:Swedish: Andre")
+		, _T("S:05")
+		, _T("01:06:Turkish: Burak Y.")
+		, _T("S:05")
+		, _T("01:06:Ukrainian: Kex")
+		, _T("S:05")
+		, _T("01:06:Vietnamese: Paul Tran HQ Loc")
+
+		, _T("S:50")
+		, _T("02:04:Part of eMule is based on Kademlia,")
+		, _T("S:5")
+		, _T("02:04:peer-to-peer routing based on a XOR metric")
+		, _T("S:10")
+		, _T("01:06:Copyright (C) 2002 Petar Maymounkov")
+		, _T("S:5")
+		, _T("01:06:(petar@maymounkov.org)")
+		, NULL
+	};
+
 	// start at the bottom of the screen
 	CString sTmp;
 	sTmp.Format(_T("S:%d"), m_rectScreen.Height());
 	m_arCredits.Add(sTmp);
 
 	m_arCredits.Add(_T("03:00:eMule"));
-	m_arCredits.Add(_T("02:01:Version ") + theApp.m_strCurVersionLong);
-	m_arCredits.Add(_T("01:06:Copyright (C) 2002-2024 Merkur"));
-	m_arCredits.Add(_T("S:50"));
-	m_arCredits.Add(_T("02:04:Developers"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Ornis"));
-
-	m_arCredits.Add(_T("S:50"));
-
-	m_arCredits.Add(_T("02:04:Tester"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Monk"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Daan"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Elandal"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Frozen_North"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:kayfam"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Khandurian"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Masta2002"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:mrLabr"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Nesi-San"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:SeveredCross"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Skynetman"));
-
-
-	m_arCredits.Add(_T("S:50"));
-	m_arCredits.Add(_T("02:04:Retired Members"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Merkur (the Founder)"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:tecxx"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Pach2"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Juanjo"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Barry"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Dirus"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Unknown1"));
-
-
-	m_arCredits.Add(_T("S:50"));
-	m_arCredits.Add(_T("02:04:Thanks to these programmers"));
-	m_arCredits.Add(_T("02:04:for publishing useful code parts"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Paolo Messina (ResizableDialog class)"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:6:PJ Naughter (HttpDownload Dialog)"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Jim Connor (Scrolling Credits)"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Yury Goltsman (extended Progressbar)"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Magomed G. Abdurakhmanov (Hyperlink ctrl)"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Arthur Westerman (Titled menu)"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Tim Kosse (AsyncSocket-Proxy support)"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:Keith Rule (Memory DC)"));
-	m_arCredits.Add(_T("S:50"));
-
-	m_arCredits.Add(_T("02:07:And thanks to the following"));
-	m_arCredits.Add(_T("02:07:people for translating eMule"));
-	m_arCredits.Add(_T("02:07:into different languages:"));
-	m_arCredits.Add(_T("S:20"));
-
-
-	m_arCredits.Add(_T("01:06:Arabic: Dody"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Albanian: Besmir"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Basque: TXiKi"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Breton: KAD-Korvigelloù an Drouizig"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Bulgarian: DapKo, Dumper"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Catalan: LeChuck"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Chinese simplified: Tim Chen, Qilu T."));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Chinese Traditional: CML, Donlong, Ryan"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Czech: Patejl"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Danish: Tiede, Cirrus, Itchy"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Estonian: Symbio"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Dutch: Mr.Bean"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Finnish: Nikerabbit"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:French: Motte, Emzc, Lalrobin"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Galician: Juan, Emilio R."));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Greek: Michael Papadakis"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Italian: Trevi, FrankyFive"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Japanese: DukeDog, Shinro T."));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Hebrew: Avi-3k"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Hungarian: r0ll3r"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Korean: pooz"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Latvian: Zivs"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Lithuanian: Daan"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Maltese: Reuben"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Norwegian (Bokmal): Iznogood"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Norwegian (Nynorsk): Hallvor"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Polish: Tomasz \"TMouse\" Broniarek"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Portuguese: Filipe, Luís Claro"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Portuguese Brazilian: DarthMaul,Brasco,Ducho"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Romanian: Dragos"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Russian: T-Mac, BRMAIL"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Slovenian: Rok Kralj"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Spanish Castellano: Azuredraco, Javier L., |_Hell_|"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Swedish: Andre"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Turkish: Burak Y."));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Ukrainian: Kex"));
-	m_arCredits.Add(_T("S:05"));
-	m_arCredits.Add(_T("01:06:Vietnamese: Paul Tran HQ Loc"));
-
-	m_arCredits.Add(_T("S:50"));
-	m_arCredits.Add(_T("02:04:Part of eMule is based on Kademlia:"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("02:04:Peer-to-peer routing based on the XOR metric."));
-	m_arCredits.Add(_T("S:10"));
-	m_arCredits.Add(_T("01:06:Copyright (C) 2002 Petar Maymounkov"));
-	m_arCredits.Add(_T("S:5"));
-	m_arCredits.Add(_T("01:06:http://kademlia.scs.cs.nyu.edu"));
-
-	// pause before repeating
-	m_arCredits.Add(_T("S:100"));
+	sTmp.Format(_T("02:01:Version %s"), (LPCTSTR)theApp.m_strCurVersionLong);
+	m_arCredits.Add(sTmp);
+	//add the rest of the credits
+	for (LPCTSTR const *p = lines; *p; ++p)
+		m_arCredits.Add(*p);
 }
 
 int CCreditsThread::CalcCreditsHeight()
@@ -590,6 +517,6 @@ int CCreditsThread::CalcCreditsHeight()
 			}
 		}
 	}
-
-	return nHeight;
+	ASSERT((int)nHeight > 0);
+	return (int)nHeight;
 }

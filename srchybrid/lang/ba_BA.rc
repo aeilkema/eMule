@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "ba_BA.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_EUQ)
 #ifdef _WIN32
 LANGUAGE LANG_BASQUE, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -1552,9 +1552,8 @@ BEGIN
     IDS_NEWMSG              "'%s' (IP:%s)-ren mezu berria"
     IDS_PREF_STARTNEXTFILECATONLY "kategoria berdinean soilik"
     IDS_LOG_ULDL_EVENTS     "Igoera/Jaitsiera gertaerak log fitxategian gorde"
-//    IDS_PEERCACHE_ENABLED   "Zure Interneterako Zerbitzu Hornitzaileak (ISP) PeerCache onartzen du, cache-a aktibatuta!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Erabiltzaileak baimendu lagun bezala gehitu zaitzaten."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Lehenik eta behin, aurrikuspenerako beharrezko zatiak jaitsi"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Lehenik eta behin, aurrikuspenerako beharrezko zatiak jaitsi"
 END
 
 STRINGTABLE
@@ -1594,9 +1593,6 @@ BEGIN
                             "eMule exekutatu Windows hasterakoan. (Jatorriz desaktibatuta)"
     IDS_KAD_WAITCBK         "Kad erantzuna itxaroten"
     IDS_KAD_TOOMANDYKADLKPS "Kad bilaketa gehiegi"
-//    IDS_PCDS_CLIENTWAIT     "Bezeroaren itxaronaldia"
-//    IDS_PCDS_CACHEWAIT      "Cache-aren itxaronaldia"
-//    IDS_CACHE               "Cache-a"
     IDS_INDEXED             "Indexatuta"
     IDS_KADINFO_SRC         "\tIturria: %u\r\n"
     IDS_KADINFO_KEYW        "\tHitz Gakoa: %u\r\n"
@@ -1692,8 +1688,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Windows-en kontrol arrunten fitxategia (COMCTL32.DLL) zaharregia da!\r\n\r\neMulek fitxategi honen bertsioa zaharregia dela antzeman du bere funtzionamendu egokirako. Funtzionamenduak perfektua izan dezan, ""Windows-en kontrol arrunten fitxategia (COMCTL32.DLL)""-en azkena den 5.8 bertsiora eguneratzea gomendatzen da.\r\n\r\nJaitsi eta instalatu egunerapena Microsoft(R)-en Jaitsiera Zentrutik. Orain jaitsi nahi al duzu?"
     IDS_ASREGEXPR           "Adierazpen erregular gisa"
     IDS_STATIC_REGEXP       "Iragazkien ikuspenerako ohizko adierazpena:"
     IDS_CARE4ALL            "Fitxategi guztiak ebaluatu"
@@ -1922,10 +1916,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Mark as not Spam"
     IDS_SEARCHSPAMFILTER    "Enable Spam Filter for search results"
     IDS_SHOWSMILEYS         "Show Smileys"
-    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a captcha before you can send him a message. Please enter the letters you see on this image as response:"
-    IDS_CAPTCHAFAILED       "Your response to the captcha was wrong and your message has been ignored. You can request a new captcha by sending a new message."
-    IDS_CAPTCHASOLVED       "You have passed the captcha check and the user has received your message."
-    IDS_USECAPTCHAS         "Require captcha authentication"
+    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a CAPTCHA before you can send him a message. Please enter the letters you see on this image as response:"
+    IDS_CAPTCHAFAILED       "Your response to the CAPTCHA was wrong and your message has been ignored. You can request a new CAPTCHA by sending a new message."
+    IDS_CAPTCHASOLVED       "You have passed the CAPTCHA check and the user has received your message."
+    IDS_USECAPTCHAS         "Require CAPTCHA authentication"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat from URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "Downloading nodes.dat from %s"
     IDS_DOWNLOADING_NODESDAT "Downloading nodes.dat..."

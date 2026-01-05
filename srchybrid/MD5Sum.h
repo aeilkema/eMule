@@ -27,10 +27,10 @@ documentation and/or software.
 #define MD5_BLOCK_SIZE	64
 #define MD5_DIGEST_SIZE	16
 
-typedef struct
+struct MD5
 {
 	byte	b[MD5_DIGEST_SIZE];
-} MD5;
+};
 
 class MD5Sum
 {

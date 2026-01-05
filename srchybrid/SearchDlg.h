@@ -43,16 +43,16 @@ public:
 	void LocalEd2kSearchEnd(UINT nCount, bool bMoreResultsAvailable);
 	void AddEd2kSearchResults(UINT nCount);
 
-	bool CreateNewTab(SSearchParams *pParams, bool bActiveIcon = true);
-	SSearchParams* GetSearchParamsBySearchID(uint32 nSearchID);
+	bool CreateOrFindTab(SSearchParams *pParams, bool bActiveIcon);
+	SSearchParams* GetSearchParamsBySearchID(uint32 nSearchID) const;
 	CClosableTabCtrl& GetSearchSelector() const;
 
-	int GetSelectedCat();
-	void UpdateCatTabs();
+	int GetSelectedCat() const;
+	void UpdateCatTabs() const;
 	void SaveAllSettings()					{ m_wndParams.SaveSettings(); }
 	void ResetHistory()						{ m_wndParams.ResetHistory(); }
 
-	void SetToolTipsDelay(UINT uDelay);
+	void SetToolTipsDelay(UINT uDelay) const;
 	void DeleteAllSearchListCtrlItems();
 
 	BOOL IsSearchParamsWndVisible() const	{ return m_wndParams.IsWindowVisible(); }
@@ -67,10 +67,10 @@ protected:
 	virtual BOOL PreTranslateMessage(MSG *pMsg);
 
 	DECLARE_MESSAGE_MAP()
-	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
-	afx_msg void OnSetFocus(CWnd *pOldWnd);
 	afx_msg void OnClose();
-	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
+	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg BOOL OnHelpInfo(HELPINFO*);
+	afx_msg void OnSetFocus(CWnd *pOldWnd);
+	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
+	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 };

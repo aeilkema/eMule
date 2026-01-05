@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( devs@emule-project.net / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( devs@emule-project.net / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -21,12 +21,13 @@
 #include "Collection.h"
 #include "Sharedfilelist.h"
 #include "CollectionFile.h"
-#include "KnownFile.h"
 #include "KnownFileList.h"
 #include "PartFile.h"
 #include "TransferDlg.h"
 #include "DownloadListCtrl.h"
 #include "Preferences.h"
+#include "cryptopp/base64.h"
+#include "cryptopp/files.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -138,14 +139,14 @@ BOOL CCollectionCreateDialog::OnInitDialog()
 
 	AddAnchor(IDC_COLLECTIONAVAILLIST, TOP_LEFT, BOTTOM_CENTER);
 	AddAnchor(IDC_COLLECTIONLISTCTRL, TOP_CENTER, BOTTOM_RIGHT);
-	AddAnchor(IDC_COLLECTIONLISTLABEL, TOP_CENTER);
 	AddAnchor(IDC_COLLECTIONLISTICON, TOP_CENTER);
+	AddAnchor(IDC_COLLECTIONLISTLABEL, TOP_CENTER);
 	AddAnchor(IDC_COLLECTIONADD, MIDDLE_CENTER);
 	AddAnchor(IDC_COLLECTIONREMOVE, MIDDLE_CENTER);
-	AddAnchor(IDC_CCOLL_SAVE, BOTTOM_RIGHT);
 	AddAnchor(IDC_CCOLL_CANCEL, BOTTOM_RIGHT);
-	AddAnchor(IDC_CCOLL_BASICOPTIONS, BOTTOM_LEFT, BOTTOM_RIGHT);
+	AddAnchor(IDC_CCOLL_SAVE, BOTTOM_RIGHT);
 	AddAnchor(IDC_CCOLL_ADVANCEDOPTIONS, BOTTOM_LEFT, BOTTOM_RIGHT);
+	AddAnchor(IDC_CCOLL_BASICOPTIONS, BOTTOM_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_CCOLL_STATIC_NAME, BOTTOM_LEFT);
 	AddAnchor(IDC_COLLECTIONNAMEEDIT, BOTTOM_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_COLLECTIONCREATEFORMAT, BOTTOM_LEFT, BOTTOM_RIGHT);
@@ -295,7 +296,7 @@ void CCollectionCreateDialog::OnBnClickedOk()
 				if (pKnownFile) {
 					theApp.sharedfiles->RemoveFile(pKnownFile, true);
 					if (pKnownFile->IsKindOf(RUNTIME_CLASS(CPartFile)))
-						theApp.emuledlg->transferwnd->GetDownloadList()->ClearCompleted(static_cast<CPartFile*>(pKnownFile));
+						theApp.emuledlg->transferwnd->GetDownloadList().ClearCompleted(static_cast<CPartFile*>(pKnownFile));
 				}
 				m_pCollection->WriteToFileAddShared(pSignkey);
 			} else

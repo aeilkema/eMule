@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -59,7 +59,7 @@ int utf8towc(LPCSTR pcUtf8, UINT uUtf8Size, LPWSTR pwc, UINT uWideCharSize)
 					return -1; // Invalid UTF-8 string.
 
 				if (uExpectedBytes == 2) {
-					//if (uWideChar == 0x0D && ((BYTE)*pcUtf8 & 0x20))
+					//if (uWideChar == 0x0D && ((byte)*pcUtf8 & 0x20))
 					//    return -1;
 				} else if (uExpectedBytes == 3) {
 					if (uWideChar > 4)
@@ -117,12 +117,22 @@ int ByteStreamToWideChar(LPCSTR pcUtf8, UINT uUtf8Size, LPWSTR pwc, UINT uWideCh
 	int iChars = AtlUnicodeToUTF8(rwstr, rwstr.GetLength(), NULL, 0);
 	int iRawChars = 3 + iChars;
 	LPSTR pszUTF8 = rstrUTF8.GetBuffer(iRawChars);
-	*pszUTF8++ = 0xEFU;
-	*pszUTF8++ = 0xBBU;
-	*pszUTF8++ = 0xBFU;
+	*pszUTF8++ = 0xEFu;
+	*pszUTF8++ = 0xBBu;
+	*pszUTF8++ = 0xBFu;
 	AtlUnicodeToUTF8(rwstr, rwstr.GetLength(), pszUTF8, iRawChars);
 	rstrUTF8.ReleaseBuffer(iRawChars);
 }*/
+
+bool NeedUTF8String(LPCSTR pwsz)
+{
+	return NeedUTF8String((CStringW)pwsz);
+}
+
+CStringA wc2utf8(const CStringA &rstr)
+{
+	return wc2utf8((CStringW)rstr);
+}
 
 CStringA wc2utf8(const CStringW &rwstr)
 {
@@ -136,22 +146,22 @@ CStringA wc2utf8(const CStringW &rwstr)
 	return strUTF8;
 }
 
-CString OptUtf8ToStr(const CStringA &rastr)
+CStringW OptUtf8ToStr(const CStringA &rstr)
 {
 	CStringW wstr;
-	int iMaxWideStrLen = rastr.GetLength();
+	int iMaxWideStrLen = rstr.GetLength();
 	LPWSTR pwsz = wstr.GetBuffer(iMaxWideStrLen);
-	int iWideChars = utf8towc(rastr, rastr.GetLength(), pwsz, iMaxWideStrLen);
+	int iWideChars = utf8towc(rstr, rstr.GetLength(), pwsz, iMaxWideStrLen);
 	if (iWideChars <= 0) {
 		// invalid UTF-8 string...
 		wstr.ReleaseBuffer(0);
-		wstr = rastr;				// convert with the local codepage
+		wstr = rstr;				// convert with the local codepage
 	} else
 		wstr.ReleaseBuffer(iWideChars);
 	return wstr;					// just return the string
 }
 
-CString OptUtf8ToStr(LPCSTR psz, int iLen)
+CStringW OptUtf8ToStr(LPCSTR psz, int iLen)
 {
 	CStringW wstr;
 	int iMaxWideStrLen = iLen;
@@ -160,13 +170,13 @@ CString OptUtf8ToStr(LPCSTR psz, int iLen)
 	if (iWideChars <= 0) {
 		// invalid UTF-8 string...
 		wstr.ReleaseBuffer(0);
-		wstr = CString(psz, iLen);	// convert with the local codepage
+		wstr = CStringW(psz, iLen);	// convert with the local codepage
 	} else
 		wstr.ReleaseBuffer(iWideChars);
 	return wstr;					// just return the string
 }
 
-CString OptUtf8ToStr(const CStringW &rwstr)
+CStringW OptUtf8ToStr(const CStringW &rwstr)
 {
 	CStringA astr;
 	for (int i = 0; i < rwstr.GetLength(); ++i) {
@@ -179,7 +189,12 @@ CString OptUtf8ToStr(const CStringW &rwstr)
 	return OptUtf8ToStr(astr);
 }
 
-CStringA StrToUtf8(const CString &rstr)
+CStringA StrToUtf8(const CStringA &rstr)
+{
+	return wc2utf8(rstr);
+}
+
+CStringA StrToUtf8(const CStringW &rstr)
 {
 	return wc2utf8(rstr);
 }
@@ -192,8 +207,8 @@ CString EncodeUrlUtf8(const CString &rstr)
 		// NOTE: The purpose of that function is to encode non-ASCII characters only for being used within
 		// an ED2K URL. An ED2K URL is not conforming to any RFC, thus any unsafe URI characters are kept
 		// as they are. The space character is though special and gets encoded as well.
-		if ((BYTE)utf8[i] == '%' || (BYTE)utf8[i] == ' ' || (BYTE)utf8[i] >= 0x7F)
-			url.AppendFormat(_T("%%%02X"), (BYTE)utf8[i]);
+		if ((byte)utf8[i] == '%' || (byte)utf8[i] == ' ' || (byte)utf8[i] >= 0x7F)
+			url.AppendFormat(_T("%%%02X"), (byte)utf8[i]);
 		else
 			url += utf8[i];
 	}

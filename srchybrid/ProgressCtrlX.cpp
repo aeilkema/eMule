@@ -88,15 +88,15 @@ void CProgressCtrlX::OnPaint()
 	GetClientRect(&info.rcClient);
 
 	// retrieve current position and range
-	if (!m_bEmpty) {
-		info.dwStyle = GetStyle();
-		info.nCurPos = GetPos();
-		GetRange(info.nLower, info.nUpper);
-	} else {
+	if (m_bEmpty) {
 		info.dwStyle = 0;
 		info.nCurPos = 0;
 		info.nLower = 0;
 		info.nUpper = 0;
+	} else {
+		info.dwStyle = GetStyle();
+		info.nCurPos = GetPos();
+		GetRange(info.nLower, info.nUpper);
 	}
 
 	// Draw to memory DC
@@ -121,9 +121,9 @@ void CProgressCtrlX::OnPaint()
 	int range = max(info.nUpper - info.nLower, 1);
 	CRect rcBar, rcMax;
 	rcMax.right = fVert ? info.rcClient.Height() : info.rcClient.Width();
-	rcBar.right = (LONG)((float)(info.nCurPos - info.nLower) * rcMax.right / range);
+	rcBar.right = (LONG)((float)((info.nCurPos - info.nLower) * rcMax.right) / (float)range);
 	if (fSnake)
-		rcBar.left = (LONG)((float)(m_nTail - info.nLower) * rcMax.right / range);
+		rcBar.left = (LONG)((float)((m_nTail - info.nLower) * rcMax.right) / (float)range);
 
 	// draw bar
 	DrawMultiGradient(info, fRubberBar ? rcBar : rcMax, rcBar);
@@ -137,12 +137,12 @@ void CProgressCtrlX::OnPaint()
 void CProgressCtrlX::DrawMultiGradient(const CDrawInfo &info, const CRect &rcGrad, const CRect &rcClip)
 {
 	INT_PTR nSteps = m_ardwGradColors.GetCount() - 1;
-	float nWidthPerStep = (float)rcGrad.Width() / nSteps;
+	float nWidthPerStep = (float)rcGrad.Width() / (float)nSteps;
 	RECT rcGradBand(rcGrad);
 	for (INT_PTR i = 0; i < nSteps; ++i) {
-		rcGradBand.left = rcGrad.left + (LONG)(nWidthPerStep * i);
+		rcGradBand.left = rcGrad.left + (LONG)(nWidthPerStep * (float)i);
 		if (i < nSteps - 1)
-			rcGradBand.right = rcGrad.left + (LONG)(nWidthPerStep * (i + 1));
+			rcGradBand.right = rcGrad.left + (LONG)(nWidthPerStep * (float)(i + 1));
 		else //last step may have rounding errors
 			rcGradBand.right = rcGrad.right;
 
@@ -178,22 +178,22 @@ void CProgressCtrlX::DrawGradient(const CDrawInfo &info, const CRect &rcGrad, co
 	if (nSteps == 0)
 		nSteps = 1;
 
-	float rStep = (float)r / nSteps;
-	float gStep = (float)g / nSteps;
-	float bStep = (float)b / nSteps;
+	float rStep = (float)r / (float)nSteps;
+	float gStep = (float)g / (float)nSteps;
+	float bStep = (float)b / (float)nSteps;
 
 	r = GetRValue(clrStart);
 	g = GetGValue(clrStart);
 	b = GetBValue(clrStart);
 
-	float nWidthPerStep = (float)rcGrad.Width() / nSteps;
+	float nWidthPerStep = (float)rcGrad.Width() / (float)nSteps;
 	RECT rcFill(rcGrad);
-	//CBrush br;
+
 	// Start filling
 	for (int i = 0; i < nSteps; ++i) {
-		rcFill.left = rcGrad.left + (LONG)(nWidthPerStep * i);
+		rcFill.left = rcGrad.left + (LONG)(nWidthPerStep * (float)i);
 		if (i < nSteps - 1)
-			rcFill.right = rcGrad.left + (LONG)(nWidthPerStep * (i + 1));
+			rcFill.right = rcGrad.left + (LONG)(nWidthPerStep * (float)(i + 1));
 		else //last step may have rounding error
 			rcFill.right = rcGrad.right;
 
@@ -206,7 +206,7 @@ void CProgressCtrlX::DrawGradient(const CDrawInfo &info, const CRect &rcGrad, co
 		if (rcFill.right > rcClip.right)
 			rcFill.right = rcClip.right;
 
-		COLORREF clrFill = RGB(r + (int)(i * rStep), g + (int)(i * gStep), b + (int)(i * bStep));
+		COLORREF clrFill = RGB(r + (int)((float)i * rStep), g + (int)((float)i * gStep), b + (int)((float)i * bStep));
 		const CRect rcTmp(ConvertToReal(info, rcFill));
 		info.pDC->FillSolidRect(&rcTmp, clrFill);
 		if (rcFill.right >= rcClip.right)
@@ -228,8 +228,9 @@ void CProgressCtrlX::DrawText(const CDrawInfo &info, const CRect &rcMax, const C
 		if (sFormat.IsEmpty())
 			sFormat = _T("%d%%");
 		// retrieve current position and range
-		nValue = info.nUpper - info.nLower;
-		nValue = (int)((info.nCurPos - info.nLower) * 100.0f / (nValue > 0 ? nValue : 1));
+		nValue = 100 * (info.nCurPos - info.nLower);
+		if (info.nUpper > info.nLower)
+			nValue = (int)((float)nValue / (float)(info.nUpper - info.nLower));
 		break;
 	case PBS_SHOW_POSITION:
 		if (sFormat.IsEmpty())
@@ -248,7 +249,7 @@ void CProgressCtrlX::DrawText(const CDrawInfo &info, const CRect &rcMax, const C
 	CSelTextColor tc(pDC, m_clrTextOnBar);
 	CSelBkMode bm(pDC, TRANSPARENT);
 	CSelTextAlign ta(pDC, TA_BOTTOM | TA_CENTER);
-	CPoint ptOrg = pDC->GetWindowOrg();
+	CPoint ptOrg(pDC->GetWindowOrg());
 	CString sText;
 	sText.Format(sFormat, nValue);
 
@@ -291,17 +292,17 @@ void CProgressCtrlX::DrawText(const CDrawInfo &info, const CRect &rcMax, const C
 		ASSERT(0); // angle not supported
 	}
 
-	CPoint pt = pDC->GetViewportOrg();
+	CPoint pt(pDC->GetViewportOrg());
 	if (info.dwStyle & PBS_TIED_TEXT) {
 		if ((fVert ? y : x) <= rcBar.Width()) {
 			CRect rcFill(ConvertToReal(info, rcBar));
-			pDC->SetViewportOrg(rcFill.left + (rcFill.Width() + dx) / 2,
-				rcFill.top + (rcFill.Height() + dy) / 2);
+			pDC->SetViewportOrg(rcFill.left + (rcFill.Width() + dx) / 2
+							, rcFill.top + (rcFill.Height() + dy) / 2);
 			DrawClippedText(info, rcBar, sText, ptOrg);
 		}
 	} else {
-		pDC->SetViewportOrg(info.rcClient.left + (info.rcClient.Width() + dx) / 2,
-			info.rcClient.top + (info.rcClient.Height() + dy) / 2);
+		pDC->SetViewportOrg(info.rcClient.left + (info.rcClient.Width() + dx) / 2
+						, info.rcClient.top + (info.rcClient.Height() + dy) / 2);
 		if (m_clrTextOnBar == m_clrTextOnBk)
 			// if the same color for bar and background draw text once
 			DrawClippedText(info, rcMax, sText, ptOrg);

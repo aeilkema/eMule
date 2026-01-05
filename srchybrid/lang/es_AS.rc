@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "es_AS.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ESA)
 #ifdef _WIN32
 LANGUAGE 0x901,0
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -519,7 +519,7 @@ BEGIN
     IDS_PW_INCOMING         "Archivos entrantes"
     IDS_PW_TEMP             "Archivos temporales"
     IDS_PW_BROWSE           "Esaminar"
-    IDS_PW_SHARED           "Directorios compartíos  (Ctrl-Click incluye subdirectorios)"
+    IDS_PW_SHARED           "Directorios compartíos  (Ctrl+Click incluye subdirectorios)"
     IDS_CONNECTION          "Conexón"
     IDS_PW_DOWNL            "Límite de baxada"
     IDS_PW_UPL              "Límite de subida"
@@ -801,7 +801,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "Mensaxe priváu"
     IDS_WEB_REMOTE_LINK_ADDED "Enllaz añedíu: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED "Enllaz non añedíu. Contraseña incorrecta."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Baxar delles partes necesita una prevista"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Baxar delles partes necesita una prevista"
     IDS_IRC_KICK            "Zapatiar"
     IDS_IRC_SLAP            "Xostrada"
     IDS_IRC_JOIN            "Xunise"
@@ -818,7 +818,6 @@ BEGIN
     IDS_NEWMSG              "Nuevu mensaxe de '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "Namás na mesma categoría"
     IDS_LOG_ULDL_EVENTS     "Rexistrar eventos de subida/baxada"
-//    IDS_PEERCACHE_ENABLED   "El to proveedor d’accesu a Internet (ISP) soporta PeerCache, caché habilitáu!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Permitir al usuariu añedite como collaciu."
     IDS_SOURCESWAPBLOCKED   "Intercambiu bloqueáu"
     IDS_TRICKLING           "Aguardando"
@@ -1625,9 +1624,6 @@ BEGIN
                             "Activa esta opción si quies qu’eMule s’inicie con Windows (Desactiváu por defeutu)."
     IDS_KAD_WAITCBK         "Esperando respuesta Kad"
     IDS_KAD_TOOMANDYKADLKPS "Demasiaes busques Kad"
-//    IDS_PCDS_CLIENTWAIT     "Espera de veceru"
-//    IDS_PCDS_CACHEWAIT      "Espera de Cache"
-//    IDS_CACHE               "Cache"
     IDS_INDEXED             "Indexáu"
     IDS_KADINFO_SRC         "\tFonte: %u\r\n"
     IDS_KADINFO_KEYW        "\tPallabra clave: %u\r\n"
@@ -1714,8 +1710,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "L’archivu Windows Common Controls library (COMCTL32.DLL) ye enforma vieyu!\r\n\r\n eMule detectó que la versión ""Windows Common Controls library (COMCTL32.DLL)"" ye enforma vieya pa furrular correctamente con eMule. P’asegurase un funcionamientu perfectu, encamentámoste qu’actualices cola cabera versión 5.8 de ""Windows Common Controls library (COMCTL32.DLL)"" \r\n\r\n Baxa y instala l’actualización de ""Windows Common Controls library (COMCTL32.DLL)"" dende Microsoft (R) Download Center. ¿Quies baxalu agora?"
     IDS_ASREGEXPR           "Espresiones regulares"
     IDS_STATIC_REGEXP       "Espresión regular pa la vista de filtros:"
     IDS_CARE4ALL            "Evaluar tolos archivos"
@@ -1903,10 +1897,10 @@ BEGIN
     IDS_MARKNOTSPAM         "Mark as not Spam"
     IDS_SEARCHSPAMFILTER    "Enable Spam Filter for search results"
     IDS_SHOWSMILEYS         "Show Smileys"
-    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a captcha before you can send him a message. Please enter the letters you see on this image as response:"
-    IDS_CAPTCHAFAILED       "Your response to the captcha was wrong and your message has been ignored. You can request a new captcha by sending a new message."
-    IDS_CAPTCHASOLVED       "You have passed the captcha check and the user has received your message."
-    IDS_USECAPTCHAS         "Require captcha authentication"
+    IDS_CAPTCHAREQUEST      "In order to avoid spam messages, this user requires you to solve a CAPTCHA before you can send him a message. Please enter the letters you see on this image as response:"
+    IDS_CAPTCHAFAILED       "Your response to the CAPTCHA was wrong and your message has been ignored. You can request a new CAPTCHA by sending a new message."
+    IDS_CAPTCHASOLVED       "You have passed the CAPTCHA check and the user has received your message."
+    IDS_USECAPTCHAS         "Require CAPTCHA authentication"
     IDS_BOOTSRAPNODESDAT    "Nodes.dat from URL:"
     IDS_DOWNLOADING_NODESDAT_FROM "Downloading nodes.dat from %s"
     IDS_DOWNLOADING_NODESDAT "Downloading nodes.dat..."

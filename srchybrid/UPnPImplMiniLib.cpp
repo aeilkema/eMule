@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,14 +15,12 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "StdAfx.h"
-#include "emule.h"
 #include "preferences.h"
 #include "UPnPImplMiniLib.h"
 #include "Log.h"
 #include "Otherfunctions.h"
 #include "miniupnpc\include\miniupnpc.h"
 #include "miniupnpc\include\upnpcommands.h"
-#include "miniupnpc\include\upnperrors.h"
 #include "opcodes.h"
 
 
@@ -70,10 +68,12 @@ bool CUPnPImplMiniLib::IsReady()
 void CUPnPImplMiniLib::StopAsyncFind()
 {
 	if (m_hThreadHandle != NULL) {
-		m_bAbortDiscovery = true;	// if there is a thread, tell it to abort as soon as possible - he won't sent a Result message when aborted
+		m_bAbortDiscovery = true;	// if there is a thread, tell it to abort as soon as possible - it won't send a Result message when aborted
 		CSingleLock lockTest(&m_mutBusy);
-		if (!lockTest.Lock(SEC2MS(7))) {	// give the thread 7 seconds to exit gracefully - it should never really take that long
-			// that is quite bad, something seems to be locked up. There isn't a good solution here, we need the thread to quit
+		if (lockTest.Lock(SEC2MS(7)))	// give the thread 7 seconds to exit gracefully - it should never really take that long
+			DebugLog(_T("Aborted any possible UPnP StartDiscoveryThread"));
+		else {
+			// that is quite bad, something seems to be locked up. There is no a good solution here, we need the thread to quit
 			// or it might try to access the object later, but terminating is quite bad too. Well.
 			DebugLogError(_T("Waiting for UPnP StartDiscoveryThread to quit failed, trying to terminate the thread..."));
 
@@ -81,8 +81,7 @@ void CUPnPImplMiniLib::StopAsyncFind()
 				DebugLogError(::TerminateThread(m_hThreadHandle, 0) ? _T("...OK") : _T("...Failed"));
 			else
 				ASSERT(0);
-		} else
-			DebugLog(_T("Aborted any possible UPnP StartDiscoveryThread"));
+		}
 		m_hThreadHandle = NULL;
 	}
 	m_bAbortDiscovery = false;
@@ -147,7 +146,7 @@ void CUPnPImplMiniLib::DeletePorts(bool bSkipLock)
 void CUPnPImplMiniLib::StartDiscovery(uint16 nTCPPort, uint16 nUDPPort, uint16 nTCPWebPort)
 {
 	DebugLog(_T("Using MiniUPnPLib based implementation"));
-	DebugLog(_T("miniupnpc (c) 2005-2024 Thomas Bernard - http://miniupnp.free.fr/"));
+	DebugLog(_T("miniupnpc (c) 2005-2026 Thomas Bernard - http://miniupnp.free.fr/"));
 	GetOldPorts();
 	m_nUDPPort = nUDPPort;
 	m_nTCPPort = nTCPPort;
@@ -189,8 +188,8 @@ typedef CUPnPImplMiniLib::CStartDiscoveryThread CStartDiscoveryThread;
 IMPLEMENT_DYNCREATE(CStartDiscoveryThread, CWinThread)
 
 CUPnPImplMiniLib::CStartDiscoveryThread::CStartDiscoveryThread()
+	: m_pOwner()
 {
-	m_pOwner = NULL;
 }
 
 BOOL CUPnPImplMiniLib::CStartDiscoveryThread::InitInstance()
@@ -319,7 +318,8 @@ bool CUPnPImplMiniLib::CStartDiscoveryThread::OpenPort(uint16 nPort, bool bTCP, 
 	char achOutIP[20] = {};
 	char achOutPort[8] = {};
 	if (bCheckAndRefresh) {
-		nResult = UPNP_GetSpecificPortMappingEntry(m_pOwner->m_pURLs->controlURL, m_pOwner->m_pIGDData->first.servicetype
+		nResult = UPNP_GetSpecificPortMappingEntry(m_pOwner->m_pURLs->controlURL
+												 , m_pOwner->m_pIGDData->first.servicetype
 												 , achPort
 												 , (bTCP ? sTCPa : sUDPa)
 												 , NULL

@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -56,7 +56,7 @@ class CPartFileConvertDlg : public CResizableDialog
 	};
 
 public:
-	explicit CPartFileConvertDlg(CWnd *pParent = NULL);   // standard constructor
+	explicit CPartFileConvertDlg(CWnd *pParent = NULL);	// standard constructor
 	virtual	~CPartFileConvertDlg();
 
 	CWnd *m_pParent;
@@ -70,7 +70,7 @@ protected:
 	CProgressCtrlX pb_current;
 	CListCtrl	   joblist;
 
-	virtual void DoDataExchange(CDataExchange *pDX);    // DDX/DDV support
+	virtual void DoDataExchange(CDataExchange *pDX);	// DDX/DDV support
 	virtual void PostNcDestroy();
 
 	DECLARE_MESSAGE_MAP()

@@ -20,11 +20,11 @@ protected:
 	CLIPFORMAT m_cfHTML;
 	CLIPFORMAT m_cfShellURL;
 
-	BOOL IsSupportedDropData(COleDataObject *pDataObject);
+	BOOL IsSupportedDropData(COleDataObject *pDataObject) const;
 	HRESULT PasteHTMLDocument(IHTMLDocument2 *doc, PASTEURLDATA *pPaste);
 	HRESULT PasteHTML(PASTEURLDATA *pPaste);
 	HRESULT PasteHTML(COleDataObject &data);
 	HRESULT PasteText(CLIPFORMAT cfData, COleDataObject &data);
 	HRESULT PasteHDROP(COleDataObject &data);
-	HRESULT AddUrlFileContents(LPCTSTR pszFileName);
+	HRESULT AddUrlFileContents(LPCWSTR pszFileName);
 };

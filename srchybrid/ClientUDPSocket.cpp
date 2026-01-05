@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -32,8 +32,6 @@
 #include "Log.h"
 #include "SafeFile.h"
 #include "kademlia/kademlia/Kademlia.h"
-#include "kademlia/kademlia/UDPFirewallTester.h"
-#include "kademlia/net/KademliaUDPListener.h"
 #include "kademlia/io/IOException.h"
 #include "kademlia/kademlia/prefs.h"
 #include "kademlia/utils/KadUDPKey.h"
@@ -173,7 +171,8 @@ void CClientUDPSocket::OnReceive(int nErrorCode)
 			else
 				strClientInfo.Format(_T("%s:%hu"), (LPCTSTR)ipstr(sockAddr.sin_addr), ntohs(sockAddr.sin_port));
 
-			DebugLogWarning(_T("Client UDP socket: prot=0x%02x  opcode=0x%02x  sizeaftercrypt=%u realsize=%u  %s: %s"), pBuffer[0], pBuffer[1], nPacketLen, nRealLen, (LPCTSTR)strError, (LPCTSTR)strClientInfo);
+			DebugLogWarning(_T("Client UDP socket: prot=0x%02x  opcode=0x%02x  sizeaftercrypt=%u realsize=%u  %s: %s")
+				, pBuffer[0], (nPacketLen > 1 ? pBuffer[1] : 0), nPacketLen, nRealLen, (LPCTSTR)strError, (LPCTSTR)strClientInfo);
 		}
 	} else if (nPacketLen == SOCKET_ERROR) {
 		DWORD dwError = WSAGetLastError();
@@ -295,16 +294,15 @@ bool CClientUDPSocket::ProcessPacket(const BYTE *packet, UINT size, uint8 opcode
 				if (thePrefs.GetDebugClientUDPLevel() > 0)
 					DebugRecv("OP_ReaskFilePing", NULL, reqfilehash, ip);
 				// Don't answer him. We probably have him on our queue already, but can't locate him. Force him to establish a TCP connection
-				if (!bSenderMultipleIpUnknown) {
-					if (theApp.uploadqueue->GetWaitingUserCount() + 50 > thePrefs.GetQueueSize()) {
-						if (thePrefs.GetDebugClientUDPLevel() > 0)
-							DebugSend("OP_QueueFull", NULL);
-						Packet *response = new Packet(OP_QUEUEFULL, 0, OP_EMULEPROT);
-						theStats.AddUpDataOverheadFileRequest(response->size);
-						SendPacket(response, ip, port, false, NULL, false, 0); // we cannot answer this one encrypted since we don't know this client
-					}
-				} else
+				if (bSenderMultipleIpUnknown)
 					DebugLogWarning(_T("UDP Packet received - multiple clients with the same IP but different UDP port found. Possible UDP Port mapping problem, enforcing TCP connection. IP: %s, Port: %u"), (LPCTSTR)ipstr(ip), port);
+				else if(theApp.uploadqueue->GetWaitingUserCount() + 50 > thePrefs.GetQueueSize()) {
+					if (thePrefs.GetDebugClientUDPLevel() > 0)
+						DebugSend("OP_QueueFull", NULL);
+					Packet *response = new Packet(OP_QUEUEFULL, 0, OP_EMULEPROT);
+					theStats.AddUpDataOverheadFileRequest(response->size);
+					SendPacket(response, ip, port, false, NULL, false, 0); // we cannot send encrypted answer since we don't know this client
+				}
 			}
 		}
 		break;
@@ -419,9 +417,10 @@ void CClientUDPSocket::OnSend(int nErrorCode)
 	sendLocker.Lock();
 	m_bWouldBlock = false;
 
-	if (!controlpacket_queue.IsEmpty())
-		theApp.uploadBandwidthThrottler->QueueForSendingControlPacket(this);
+	bool bQueue = !controlpacket_queue.IsEmpty();
 	sendLocker.Unlock();
+	if (bQueue)
+		theApp.uploadBandwidthThrottler->QueueForSendingControlPacket(this);
 // <-- ZZ:UploadBandWithThrottler (UDP)
 }
 
@@ -442,8 +441,8 @@ SocketSentBytes CClientUDPSocket::SendControlData(uint32 maxNumberOfBytesToSend,
 			int iLen = cur_packet->bEncrypt && (theApp.GetPublicIP() > 0 || cur_packet->bKad)
 				? EncryptOverheadSize(cur_packet->bKad) : 0;
 			uchar *sendbuffer = new uchar[nLen + iLen];
-			memcpy(sendbuffer + iLen, cur_packet->packet->GetUDPHeader(), 2);
-			memcpy(sendbuffer + iLen + 2, cur_packet->packet->pBuffer, cur_packet->packet->size);
+			memcpy(&sendbuffer[iLen], cur_packet->packet->GetUDPHeader(), 2);
+			memcpy(&sendbuffer[iLen + 2], cur_packet->packet->pBuffer, cur_packet->packet->size);
 
 			if (iLen) {
 				nLen = EncryptSendClient(sendbuffer, nLen, cur_packet->pachTargetClientHashORKadID, cur_packet->bKad, cur_packet->nReceiverVerifyKey, (cur_packet->bKad ? Kademlia::CPrefs::GetUDPVerifyKey(cur_packet->dwIP) : 0u));
@@ -467,12 +466,11 @@ SocketSentBytes CClientUDPSocket::SendControlData(uint32 maxNumberOfBytesToSend,
 	}
 
 // ZZ:UploadBandWithThrottler (UDP) -->
-	if (!IsBusy() && !controlpacket_queue.IsEmpty())
-		theApp.uploadBandwidthThrottler->QueueForSendingControlPacket(this);
-
+	bool bQueue = !IsBusy() && !controlpacket_queue.IsEmpty();
 	sendLocker.Unlock();
-
-	return SocketSentBytes{ 0, sentBytes, true };
+	if (bQueue)
+		theApp.uploadBandwidthThrottler->QueueForSendingControlPacket(this);
+	return SocketSentBytes{0, sentBytes, true};
 // <-- ZZ:UploadBandWithThrottler (UDP)
 }
 

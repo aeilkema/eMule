@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -46,10 +46,10 @@ class CEditDelayed : public CEdit
 public:
 	CEditDelayed();
 
-	void	OnInit(CHeaderCtrl *pColumnHeader, CArray<int, int> *paIgnoredColumns = NULL);
+	void	OnInit(CHeaderCtrl *pColumnHeader, CArray<int> *paIgnoredColumns = NULL);
 	void	ShowColumnText(bool bShow);
 
-	 // when not using pColumnHeader this text will be shown when the control is empty and has no focus
+	// when not using pColumnHeader this text will be shown when the control is empty and has no focus
 	void	SetAlternateText(const CString &rstrText)	{ m_strAlternateText = rstrText; }
 
 protected:
@@ -66,7 +66,7 @@ protected:
 	int			m_nCurrentColumnIdx;
 	CString		m_strAlternateText;
 	CHeaderCtrl	*m_pctrlColumnHeader;
-	CArray<int, int> m_aIgnoredColumns;
+	CArray<int>	m_aIgnoredColumns;
 
 	void	DoDelayedEvalute(bool bForce = false);
 	void	SetEditRect(bool bUpdateResetButtonPos, bool bUpdateColumnButton = false);

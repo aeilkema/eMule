@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -20,7 +20,6 @@
 #include "IrcWnd.h"
 #include "IrcMain.h"
 #include "otherfunctions.h"
-#include "MenuCmds.h"
 #include "HTRichEditCtrl.h"
 #include "ClosableTabCtrl.h"
 #include "HelpIDs.h"
@@ -167,15 +166,15 @@ BOOL CIrcWnd::OnInitDialog()
 	rcSpl.right = rcSpl.left + SPLITTER_HORZ_WIDTH;
 	m_wndSplitterHorz.CreateWnd(WS_CHILD | WS_VISIBLE, rcSpl, this, IDC_SPLITTER_IRC);
 
+	AddAnchor(m_wndNicks, TOP_LEFT, BOTTOM_LEFT);
 	AddAnchor(IDC_BN_IRCCONNECT, BOTTOM_LEFT);
 	AddAnchor(IDC_CLOSECHAT, BOTTOM_LEFT);
-	AddAnchor(IDC_CHATSEND, BOTTOM_RIGHT);
-	AddAnchor(m_wndFormat, BOTTOM_LEFT);
-	AddAnchor(m_wndInput, BOTTOM_LEFT, BOTTOM_RIGHT);
-	AddAnchor(m_wndNicks, TOP_LEFT, BOTTOM_LEFT);
-	AddAnchor(m_wndChanList, TOP_LEFT, BOTTOM_RIGHT);
-	AddAnchor(m_wndChanSel, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(m_wndSplitterHorz, TOP_LEFT, BOTTOM_LEFT);
+	AddAnchor(IDC_CHATSEND, BOTTOM_RIGHT);
+	AddAnchor(m_wndInput, BOTTOM_LEFT, BOTTOM_RIGHT);
+	AddAnchor(m_wndFormat, BOTTOM_LEFT);
+	AddAnchor(m_wndChanSel, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(m_wndChanList, TOP_LEFT, BOTTOM_RIGHT);
 
 	// Vista: Remove the TBSTYLE_TRANSPARENT to avoid flickering (can be done only after the toolbar was initially created with TBSTYLE_TRANSPARENT !?)
 	m_wndFormat.ModifyStyle((theApp.m_ullComCtrlVer >= MAKEDLLVERULL(6, 16, 0, 0)) ? TBSTYLE_TRANSPARENT : 0, TBSTYLE_TOOLTIPS);
@@ -272,22 +271,24 @@ void CIrcWnd::DoResize(int iDelta)
 	ScreenToClient(&rcSpl);
 	thePrefs.SetSplitterbarPositionIRC(rcSpl.left);
 
+	RemoveAnchor(m_wndNicks);
+	AddAnchor(m_wndNicks, TOP_LEFT, BOTTOM_LEFT);
 	RemoveAnchor(IDC_BN_IRCCONNECT);
 	AddAnchor(IDC_BN_IRCCONNECT, BOTTOM_LEFT);
 	RemoveAnchor(IDC_CLOSECHAT);
 	AddAnchor(IDC_CLOSECHAT, BOTTOM_LEFT);
-	RemoveAnchor(m_wndFormat);
-	AddAnchor(m_wndFormat, BOTTOM_LEFT);
-	RemoveAnchor(m_wndInput);
-	AddAnchor(m_wndInput, BOTTOM_LEFT, BOTTOM_RIGHT);
-	RemoveAnchor(m_wndNicks);
-	AddAnchor(m_wndNicks, TOP_LEFT, BOTTOM_LEFT);
-	RemoveAnchor(m_wndChanList);
-	AddAnchor(m_wndChanList, TOP_LEFT, BOTTOM_RIGHT);
-	RemoveAnchor(m_wndChanSel);
-	AddAnchor(m_wndChanSel, TOP_LEFT, TOP_RIGHT);
 	RemoveAnchor(m_wndSplitterHorz);
 	AddAnchor(m_wndSplitterHorz, TOP_LEFT, BOTTOM_LEFT);
+	RemoveAnchor(IDC_CHATSEND);
+	AddAnchor(IDC_CHATSEND, BOTTOM_RIGHT);
+	RemoveAnchor(m_wndInput);
+	AddAnchor(m_wndInput, BOTTOM_LEFT, BOTTOM_RIGHT);
+	RemoveAnchor(m_wndFormat);
+	AddAnchor(m_wndFormat, BOTTOM_LEFT);
+	RemoveAnchor(m_wndChanSel);
+	AddAnchor(m_wndChanSel, TOP_LEFT, TOP_RIGHT);
+	RemoveAnchor(m_wndChanList);
+	AddAnchor(m_wndChanList, TOP_LEFT, BOTTOM_RIGHT);
 
 	RECT rcWnd;
 	GetWindowRect(&rcWnd);
@@ -334,8 +335,8 @@ LRESULT CIrcWnd::DefWindowProc(UINT uMessage, WPARAM wParam, LPARAM lParam)
 			RECT rcWnd;
 			GetWindowRect(&rcWnd);
 			ScreenToClient(&rcWnd);
-			m_wndSplitterHorz.SetRange(rcWnd.left + SPLITTER_HORZ_RANGE_MIN + SPLITTER_HORZ_WIDTH / 2,
-				rcWnd.left + SPLITTER_HORZ_RANGE_MAX - SPLITTER_HORZ_WIDTH / 2);
+			m_wndSplitterHorz.SetRange(rcWnd.left + SPLITTER_HORZ_RANGE_MIN + SPLITTER_HORZ_WIDTH / 2
+									, rcWnd.left + SPLITTER_HORZ_RANGE_MAX - SPLITTER_HORZ_WIDTH / 2);
 		}
 	}
 	return CResizableDialog::DefWindowProc(uMessage, wParam, lParam);
@@ -347,11 +348,11 @@ void CIrcWnd::UpdateFonts(CFont *pFont)
 	ti.mask = TCIF_PARAM;
 	for (int iIndex = 0; m_wndChanSel.GetItem(iIndex, &ti); ++iIndex) {
 		Channel *pChannel = reinterpret_cast<Channel*>(ti.lParam);
-		if (pChannel->m_wndTopic.m_hWnd != NULL) {
+		if (pChannel->m_wndTopic.m_hWnd) {
 			pChannel->m_wndTopic.SetFont(pFont);
 			pChannel->m_wndTopic.ScrollToFirstLine();
 		}
-		if (pChannel->m_wndLog.m_hWnd != NULL)
+		if (pChannel->m_wndLog.m_hWnd)
 			pChannel->m_wndLog.SetFont(pFont);
 	}
 }
@@ -470,7 +471,9 @@ BOOL CIrcWnd::PreTranslateMessage(MSG *pMsg)
 
 void CIrcWnd::OnBnClickedIrcConnect()
 {
-	if (!m_bConnected) {
+	if (m_bConnected)
+		m_pIrcMain->Disconnect(); //If connected, disconnect
+	else {
 		//close all channels, private conversations and channel list
 		for (POSITION pos = m_wndChanSel.m_lstChannels.GetHeadPosition(); pos != NULL;) {
 			Channel *pToDel = m_wndChanSel.m_lstChannels.GetNext(pos);
@@ -485,17 +488,15 @@ void CIrcWnd::OnBnClickedIrcConnect()
 			inputBox.SetLabels(GetResString(IDS_IRC_NEWNICK), GetResString(IDS_IRC_NEWNICKDESC), sInput);
 			if (inputBox.DoModal() != IDOK)
 				return;
-			sInput = inputBox.GetInput();
-			sInput = sInput.Trim().SpanExcluding(sBadCharsIRC).Left(25);
+			sInput = CStringA(inputBox.GetInput()).Trim();
+			sInput = sInput.SpanExcluding(sBadCharsIRC).Left(25);
 			if (sInput[0] < _T('A'))
 				sInput.Empty();
 		}
 		thePrefs.SetIRCNick(sInput);
 		//if not connected, connect.
 		m_pIrcMain->Connect();
-	} else
-		//If connected, disconnect.
-		m_pIrcMain->Disconnect();
+	}
 }
 
 void CIrcWnd::OnBnClickedCloseChannel(int iItem)
@@ -667,13 +668,12 @@ void CIrcWnd::AddMessage(const CString &sChannel, const CString &sTargetName, co
 		return;
 	Channel *pChannel = m_wndChanSel.FindChannelByName(sChannel);
 	CString sOp;
-	if (!pChannel)
-		pChannel = m_wndChanSel.NewChannel(sChannel, (sChannel[0] == _T('#') ? Channel::ctNormal : Channel::ctPrivate));
-	else {
+	if (pChannel) {
 		const Nick *pNick = m_wndNicks.FindNickByName(pChannel, sTargetName);
 		if (pNick)
 			sOp = pNick->m_sSymbols;
-	}
+	} else
+		pChannel = m_wndChanSel.NewChannel(sChannel, (sChannel[0] == _T('#') ? Channel::ctNormal : Channel::ctPrivate));
 	LPCTSTR fmt = (m_pIrcMain->GetNick() == sTargetName) ? _T("%s<\00310%s%s\003> %s\r\n") : _T("%s<\002\00310%s%s\003\002> %s\r\n");
 	CString cs;
 	cs.Format(fmt, (LPCTSTR)make_time_stamp(), (LPCTSTR)sOp, (LPCTSTR)sTargetName, (LPCTSTR)sLine);
@@ -739,7 +739,7 @@ void CIrcWnd::AddColorLine(const CString &line, CHTRichEditCtrl &wnd, COLORREF c
 		// find any hyperlinks and send them to AppendColoredText
 		if (index == linkfoundat) { //only run the link finding code once in a line with no links
 			for (unsigned iScheme = 0; s_apszSchemes[iScheme].pszScheme;) {
-				const CString &strLeft = line.Right(line.GetLength() - index); //make a string of what we have left
+				const CString &strLeft(line.Right(line.GetLength() - index)); //make a string of what we have left
 				int foundat = strLeft.Find(s_apszSchemes[iScheme].pszScheme); //get position of link; -1 if not found
 				if (foundat == 0) { //link starts at this character
 					if (!text.IsEmpty()) {
@@ -812,7 +812,7 @@ void CIrcWnd::AddColorLine(const CString &line, CHTRichEditCtrl &wnd, COLORREF c
 					iColour = (int)(line[index] - _T('0'));
 				}
 
-				if (iColour >= 0 && iColour < _countof(s_aColors)) {
+				if (iColour >= 0 && iColour < (int)_countof(s_aColors)) {
 					// If the first colour is not valid, don't look for a second background colour!
 					cr = s_aColors[iColour]; //if the number is a valid colour index, set new foreground colour
 					++index;
@@ -829,7 +829,7 @@ void CIrcWnd::AddColorLine(const CString &line, CHTRichEditCtrl &wnd, COLORREF c
 							iColour = (int)(line[index] - _T('0'));
 						}
 						++index;
-						if (iColour >= 0 && iColour < _countof(s_aColors))
+						if (iColour >= 0 && iColour < (int)_countof(s_aColors))
 							bgcr = s_aColors[iColour]; //if the number is a valid colour index, set new foreground colour
 					}
 				}

@@ -8,8 +8,8 @@ class CRichEditStream : public CRichEditCtrl
 public:
 	CRichEditStream();
 
-	CRichEditStream& operator<<(LPCTSTR const psz);
-	CRichEditStream& operator<<(const char *const psz);
+	CRichEditStream& operator<<(LPCSTR const psz);
+	CRichEditStream& operator<<(LPCWSTR const psz);
 	CRichEditStream& operator<<(UINT uVal);
 	CRichEditStream& operator<<(int iVal);
 	CRichEditStream& operator<<(double fVal);

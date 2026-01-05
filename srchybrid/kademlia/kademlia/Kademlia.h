@@ -100,7 +100,7 @@ namespace Kademlia
 		static time_t m_tExternPortLookup;
 		static time_t m_tLANModeCheck;
 		static volatile bool m_bRunning;
-		static CList<uint32, uint32> m_liStatsEstUsersProbes;
+		static CList<uint32> m_liStatsEstUsersProbes;
 		static bool m_bLANMode;
 		static bool	m_bootstrapping; // used for GUI
 

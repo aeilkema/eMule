@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -22,7 +22,6 @@
 #include "UploadQueue.h"
 #include "sharedfilelist.h"
 #include "partfile.h"
-#include "knownfile.h"
 #include "log.h"
 #include "preferences.h"
 #include "safefile.h"
@@ -96,7 +95,7 @@ UINT CUploadDiskIOThread::RunInternal()
 			&& completionKey)
 	{
 		m_Run = RUN_WORK;
-		//start new I/O
+		//start new reads
 		CCriticalSection *pcsUploadListRead = NULL;
 		const CUploadingPtrList &rUploadList = theApp.uploadqueue->GetUploadListTS(&pcsUploadListRead);
 		pcsUploadListRead->Lock();
@@ -105,7 +104,7 @@ UINT CUploadDiskIOThread::RunInternal()
 		InterlockedExchange8(&m_bNewData, 0);
 		pcsUploadListRead->Unlock();
 
-		//completed I/O
+		//check completed I/O
 		do {
 			if (!completionKey)
 				break;
@@ -142,10 +141,10 @@ bool CUploadDiskIOThread::AssociateFile(CKnownFile *pFile)
 {
 	ASSERT(m_hPort && m_Run);
 	if (pFile && pFile->m_hRead == INVALID_HANDLE_VALUE && !pFile->bNoNewReads) {
-		CString fullname = (pFile->IsPartFile())
+		CString fullname = (pFile->IsPartFile()
 			? RemoveFileExtension(static_cast<const CPartFile*>(pFile)->GetFullName())
-			: pFile->GetFilePath();
-		pFile->m_hRead = ::CreateFile(fullname, GENERIC_READ, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+			: pFile->GetFilePath());
+		pFile->m_hRead = ::CreateFile(fullname, GENERIC_READ, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
 		if (pFile->m_hRead == INVALID_HANDLE_VALUE) {
 			theApp.QueueDebugLogLineEx(LOG_ERROR, _T("Failed to open \"%s\" for overlapped read: %s"), (LPCTSTR)fullname, (LPCTSTR)GetErrorMessage(::GetLastError(), 1));
 			return false;
@@ -313,7 +312,7 @@ void CUploadDiskIOThread::ReadCompletionRoutine(DWORD dwRead, const OverlappedRe
 				CClientReqSocket *pSocket = pClient->socket;
 				if (pSocket && pSocket->IsConnected()) {
 					// Try to use compression whenever possible (see CreatePackedPackets notes)
-					if (pKnownFile->bCompress)
+					if (pKnownFile->bCompress && pOvRead->uEndOffset > pOvRead->uStartOffset + 31)
 						CreatePackedPackets(*pOvRead, packetsList);
 					else
 						CreateStandardPackets(*pOvRead, packetsList);
@@ -324,9 +323,9 @@ void CUploadDiskIOThread::ReadCompletionRoutine(DWORD dwRead, const OverlappedRe
 
 				lockUploadListRead.Unlock();
 
-				// now send out all packets we have made. By default, our socket object is not safe
-				// to use now either, because we have no lock on itself (to make sure it is not deleted)
-				// however the way we handle sockets, they cannot get deleted directly (takes 10s),
+				// Send out all packets we have made. By default, our socket object is not safe
+				// to use now either, because we have no lock on itself (to make sure it is not deleted).
+				// However the way we handle sockets, they cannot get deleted directly (takes 10s),
 				// so this isn't a problem in our case
 				while (!packetsList.IsEmpty() && pSocket != NULL) {
 					Packet *packet = packetsList.RemoveHead();
@@ -350,12 +349,19 @@ void CUploadDiskIOThread::ReadCompletionRoutine(DWORD dwRead, const OverlappedRe
 
 bool CUploadDiskIOThread::ShouldCompressBasedOnFilename(const CString &strFileName)
 {
-	LPCTSTR pDot = ::PathFindExtension(strFileName);
-	CString strExt(pDot + static_cast<int>(*pDot != _T('\0')));
+	LPCTSTR const pDot = ::PathFindExtension(strFileName);
+	if (!pDot[0] || !pDot[1])
+		return true; //no extension
+	CString strExt(&pDot[1]);
 	strExt.MakeLower();
 	if (strExt == _T("avi"))
 		return !thePrefs.GetDontCompressAvi();
-	return strExt != _T("zip") && strExt != _T("rar") && strExt != _T("7z") && strExt != _T("cbz") && strExt != _T("cbr") && strExt != _T("ace") && strExt != _T("ogm");
+
+	static LPCTSTR const exts[] = { _T("zip"), _T("rar"), _T("7z"), _T("cbz"), _T("cbr"), _T("ogm"), _T("ace"), NULL };
+	for (LPCTSTR ext = *exts; *ext; ++ext)
+		if (strExt == ext)
+			return false;
+	return true;
 }
 
 void CUploadDiskIOThread::CreateStandardPackets(const OverlappedRead_Struct &OverlappedRead, CPacketList &rOutPacketList)
@@ -411,7 +417,7 @@ void CUploadDiskIOThread::CreatePackedPackets(const OverlappedRead_Struct &Overl
 	bool bIsPartFile = OverlappedRead.pFile->IsPartFile();
 
 	uint32 togo = (uint32)(uEndOffset - uStartOffset);
-	uLongf newsize = togo + 300;
+	uLongf newsize = togo - 1; //not interested in the same or larger sizes
 	BYTE *output = new BYTE[newsize];
 
 	// Use the lowest compression level 1 instead of the highest 9 because typically for 10240 blocks:
@@ -419,7 +425,7 @@ void CUploadDiskIOThread::CreatePackedPackets(const OverlappedRead_Struct &Overl
 	// - time was 1.5-2.5 better
 	// Of course, throughput of the deflate() routine depends on processor and data bytes,
 	// but should not be the bottleneck because 50-70 MB/s rates were seen when using one CPU core.
-	if (compress2(output, &newsize, OverlappedRead.pBuffer, togo, 1) != Z_OK || togo <= newsize) {
+	if (compress2(output, &newsize, OverlappedRead.pBuffer, togo, Z_BEST_SPEED) != Z_OK) {
 		delete[] output;
 		CreateStandardPackets(OverlappedRead, rOutPacketList);
 		return;

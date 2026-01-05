@@ -91,9 +91,9 @@ protected:
 				, ADDRESS_FAMILY nFamily = AF_INET
 				, bool reusable = false);
 
-	virtual bool GetPeerName(CString &rPeerAddress, UINT &rPeerPort);
+	virtual BOOL GetPeerName(CString &rPeerAddress, UINT &rPeerPort);
 	virtual BOOL GetPeerName(LPSOCKADDR lpPeerAddr, int *lpPeerAddrLen);
-	virtual bool GetSockName(CString &rSockAddress, UINT &rSockPort);
+	virtual BOOL GetSockName(CString &rSockAddress, UINT &rSockPort);
 	virtual BOOL GetSockName(LPSOCKADDR lpSockAddr, int *lpSockAddrLen);
 
 	virtual BOOL Listen(int nConnectionBacklog);
@@ -109,9 +109,9 @@ protected:
 	BOOL ConnectNext(const LPSOCKADDR lpSockAddr, int nSockAddrLen);
 	bool CreateNext(UINT nSocketPort, int nSocketType, long lEvent, const CString &sSocketAddress, ADDRESS_FAMILY nFamily = AF_INET, bool reusable = false);
 
-	bool GetPeerNameNext(CString &rPeerAddress, UINT &rPeerPort);
+	BOOL GetPeerNameNext(CString &rPeerAddress, UINT &rPeerPort);
 	BOOL GetPeerNameNext(LPSOCKADDR lpPeerAddr, int *lpPeerAddrLen);
-	bool GetSockNameNext(CString &rSockAddress, UINT &rSockPort);
+	BOOL GetSockNameNext(CString &rSockAddress, UINT &rSockPort);
 	BOOL GetSockNameNext(LPSOCKADDR lpSockAddr, int *lpSockAddrLen);
 
 	BOOL ListenNext(int nConnectionBacklog);
@@ -121,13 +121,13 @@ protected:
 	CAsyncSocketEx *m_pOwnerSocket;
 
 	//Calls OnLayerCallback on owner socket
-	int DoLayerCallback(int nType, WPARAM wParam, LPARAM lParam, const char* const str = NULL);
+	int DoLayerCallback(int nType, WPARAM wParam, LPARAM lParam, const char *const str = NULL);
 
 	AsyncSocketExState GetLayerState() const		{ return m_nLayerState; }
 	BOOL TriggerEvent(long lEvent, int nErrorCode, BOOL bPassThrough = FALSE);
 
 	//Gets the socket family
-	ADDRESS_FAMILY GetFamily() const;
+	ADDRESS_FAMILY GetFamily() const				{ return m_nFamily; }
 
 	//Sets the socket family
 	bool SetFamily(ADDRESS_FAMILY nFamily);

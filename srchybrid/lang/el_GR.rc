@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "el_GR.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ELL)
 #ifdef _WIN32
 LANGUAGE LANG_GREEK, SUBLANG_DEFAULT
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -1512,7 +1512,6 @@ BEGIN
     IDS_NEWMSG              "Νέο μήνυμα από '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "μόνο από την ίδια κατηγορία"
     IDS_LOG_ULDL_EVENTS     "Καταγραφή ενεργειών ανεβάσματος/κατεβάσματος"
-//    IDS_PEERCACHE_ENABLED   "Ο ISP σας υποστηρίζει την τεχνολογία PeerCache, ενεργοποιείται η λήψη μέσω αυτής!"
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND "Επιτρέπεται να σας προσθέσουν σαν φίλο"
 END
 
@@ -1551,9 +1550,6 @@ BEGIN
     IDS_WIZ_STARTWITHWINDOWS "Ενεργοποιήστε αυτό για να εκκινεί το eMule όταν ξεκινάτε τα windows. (Προεπιλογή Όχι)"
     IDS_KAD_WAITCBK         "Αναμονή απάντησης (Kademlia)"
     IDS_KAD_TOOMANDYKADLKPS "Πάρα πολλές αναζητήσεις (Kademlia)"
-//    IDS_PCDS_CLIENTWAIT     "ClientWait" //!
-//    IDS_PCDS_CACHEWAIT      "CacheWait" //!
-//    IDS_CACHE               "Cache" //!
     IDS_INDEXED             "Καταχωρήσεις"
     IDS_KADINFO_SRC         "\tΠηγή: %u\r\n"
     IDS_KADINFO_KEYW        "\tΛέξη-κλειδί: %u\r\n"
@@ -1649,7 +1645,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_COMCTRL32_DLL_TOOOLD "Η βιβλιοθήκη Common Controls των Windows (COMCTL32.DLL) είναι πολύ παλιά!\r\n\r\nΤο eMule εντόπισε μια έκδοση ""Windows Common Controls library (COMCTL32.DLL)"" που είναι πολύ παλιά ώστε να λειτουργήσει σωστά με το eMule. Για να εξασφαλίσετε πλήρη και χωρίς προβλήματα λειτουργικότητα σας συνιστούμε να αναβαθμίσετε το ""Windows Common Controls library (COMCTL32.DLL)"" τουλάχιστον στην έκδοση 5.8.\r\n\r\nΚατεβάστε και εγκαταστείστε ενημερωμένη ""Windows Common Controls library (COMCTL32.DLL)"" στο κέντρο λήψεων της Microsoft (R). Θέλετε να επισκεφθείτε τώρα τον σχετικό τόπο;"
     IDS_ASREGEXPR           "Σαν Regular Expression"
     IDS_STATIC_REGEXP       "Regular expression για φιλτράρισμα προβολής:"
     IDS_CARE4ALL            "Αξιολόγηση όλων των αρχείων"
@@ -1729,7 +1724,7 @@ BEGIN
     IDS_COLLECTIONLIST      "Λίστα συλλογών"
     IDS_CREATECOLLECTION    "Δημιουργία συλλογής"
     IDS_DELETEAFTERALLOC    "Το αρχείο '%s' δεσμεύει χώρο στον δίσκο αυτή τη στιγμή γι' αυτό θα διαγραφεί αμέσως μετά"
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS "Κατέβασμα αρχικά των κομματιών που απαιτούνται για προεπισκόπηση"
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS "Κατέβασμα αρχικά των κομματιών που απαιτούνται για προεπισκόπηση"
     IDS_ERR_FAILEDTOLOAD    "Αποτυχία κατά το φόρτωμα του %s: %s "
     IDS_INCOMING_FILES      "Εισερχόμενα αρχεία"
     IDS_INCOMPLETE_FILES    "Ανολοκλήρωτα αρχεία"

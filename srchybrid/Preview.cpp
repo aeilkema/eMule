@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -18,12 +18,10 @@
 #include <io.h>
 #include <sys/stat.h>
 #include <share.h>
-#include "emule.h"
 #include "Preferences.h"
 #include "PartFile.h"
 #include "Preview.h"
 #include "MenuCmds.h"
-#include "opcodes.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -87,7 +85,7 @@ BOOL CPreviewThread::Run()
 
 			CString strArgs(m_strCommandArgs);
 			if (!strArgs.IsEmpty())
-				strArgs += _T(' ');
+				strArgs += _T(" ");
 			if (strPreviewName.Find(_T(' ')) >= 0)
 				strArgs.AppendFormat(_T("\"%s\""), (LPCTSTR)strPreviewName);
 			else
@@ -231,7 +229,7 @@ int CPreviewApps::GetAllMenuEntries(CMenu &rMenu, const CPartFile *file)
 {
 	UpdateApps();
 	int count = min((int)m_aApps.GetCount(), MP_PREVIEW_APP_MAX - MP_PREVIEW_APP_MIN + 1);
-	bool bEnabled = (file && (uint64)file->GetCompletedSize() >= 16ull * 1024);
+	bool bEnabled = (file && file->GetCompletedSize() >= 16ull * 1024);
 	for (int i = 0; i < count; ++i)
 		rMenu.AppendMenu(MF_STRING | (bEnabled ? MF_ENABLED : MF_GRAYED), MP_PREVIEW_APP_MIN + i, m_aApps[i].strTitle);
 	return count;
@@ -255,7 +253,7 @@ void ExecutePartFile(CPartFile *file, LPCTSTR pszCommand, LPCTSTR pszCommandArgs
 
 	CString strArgs(pszCommandArgs);
 	if (!strArgs.IsEmpty())
-		strArgs += _T(' ');
+		strArgs += _T(" ");
 
 	const CString &strQuotedPartFilePath(file->GetFilePath());
 	// if the path contains spaces, quote the entire path
@@ -287,7 +285,7 @@ void ExecutePartFile(CPartFile *file, LPCTSTR pszCommand, LPCTSTR pszCommandArgs
 	TRACE(_T("  Command =%s\n"), (LPCTSTR)strCommand);
 	TRACE(_T("  Args    =%s\n"), (LPCTSTR)strArgs);
 	TRACE(_T("  Dir     =%s\n"), (LPCTSTR)strCommandDir);
-	DWORD dwError = (DWORD)ShellExecute(NULL, pszVerb, strCommand, strArgs.IsEmpty() ? NULL : (LPCTSTR)strArgs, strCommandDir.IsEmpty() ? NULL : (LPCTSTR)strCommandDir, SW_SHOWNORMAL);
+	DWORD dwError = (DWORD)::ShellExecute(NULL, pszVerb, strCommand, strArgs.IsEmpty() ? NULL : (LPCTSTR)strArgs, strCommandDir.IsEmpty() ? NULL : (LPCTSTR)strCommandDir, SW_SHOWNORMAL);
 	if (dwError <= 32) {
 		//
 		// Unfortunately, Windows may already have shown an error dialog which tells
@@ -338,10 +336,10 @@ CPreviewApps::ECanPreviewRes CPreviewApps::CanPreview(const CPartFile *file)
 		return NotHandled;
 
 	const SPreviewApp &rApp = m_aApps[iApp];
-	if ((uint64)file->GetCompletedSize() < rApp.ullMinCompletedSize)
+	if (file->GetCompletedSize() < rApp.ullMinCompletedSize)
 		return No;
 
-	if (rApp.ullMinStartOfFile &&!file->IsComplete(0, min(rApp.ullMinStartOfFile, (uint64)file->GetFileSize()) - 1))
+	if (rApp.ullMinStartOfFile &&!file->IsComplete(0, min(rApp.ullMinStartOfFile, file->GetFileSize()) - 1))
 		return No;
 
 	return Yes;

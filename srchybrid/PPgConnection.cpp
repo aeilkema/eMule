@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -15,7 +15,6 @@
 //along with this program; if not, write to the Free Software
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
-#include <math.h>
 #include "emule.h"
 #include "PPgConnection.h"
 #include "wizard.h"
@@ -64,7 +63,7 @@ BEGIN_MESSAGE_MAP(CPPgConnection, CPropertyPage)
 	ON_WM_HSCROLL()
 	ON_BN_CLICKED(IDC_NETWORK_KADEMLIA, OnSettingsChange)
 	ON_WM_HELPINFO()
-	ON_BN_CLICKED(IDC_OPENPORTS, OnBnClickedOpenports)
+	ON_BN_CLICKED(IDC_OPENPORTS, OnBnClickedOpenPorts)
 	ON_BN_CLICKED(IDC_PREF_UPNPONSTART, OnSettingsChange)
 END_MESSAGE_MAP()
 
@@ -455,10 +454,10 @@ void CPPgConnection::ShowLimitValues()
 		buffer.Format(pszFmt, m_ctlMaxUp.GetPos(), (LPCTSTR)GetResString(IDS_KBYTESPERSEC));
 	SetDlgItemText(IDC_KBS4, buffer);
 
-	if (!IsDlgButtonChecked(IDC_DLIMIT_LBL))
-		buffer.Empty();
-	else
+	if (IsDlgButtonChecked(IDC_DLIMIT_LBL))
 		buffer.Format(pszFmt, m_ctlMaxDown.GetPos(), (LPCTSTR)GetResString(IDS_KBYTESPERSEC));
+	else
+		buffer.Empty();
 	SetDlgItemText(IDC_KBS1, buffer);
 }
 
@@ -487,7 +486,7 @@ BOOL CPPgConnection::OnHelpInfo(HELPINFO*)
 	return TRUE;
 }
 
-void CPPgConnection::OnBnClickedOpenports()
+void CPPgConnection::OnBnClickedOpenPorts()
 {
 	OnApply();
 	theApp.m_pFirewallOpener->RemoveRule(EMULE_DEFAULTRULENAME_UDP);
@@ -497,13 +496,10 @@ void CPPgConnection::OnBnClickedOpenports()
 	bool bResult = theApp.m_pFirewallOpener->OpenPort(thePrefs.GetPort(), NAT_PROTOCOL_TCP, EMULE_DEFAULTRULENAME_TCP, false);
 	if (thePrefs.GetUDPPort() != 0)
 		bResult = bResult && theApp.m_pFirewallOpener->OpenPort(thePrefs.GetUDPPort(), NAT_PROTOCOL_UDP, EMULE_DEFAULTRULENAME_UDP, false);
-	if (bResult) {
-		if (!bAlreadyExisted)
-			LocMessageBox(IDS_FO_PREF_SUCCCEEDED, MB_ICONINFORMATION | MB_OK, 0);
-		else
-			// TODO: actually we could offer the user to remove existing rules
-			LocMessageBox(IDS_FO_PREF_EXISTED, MB_ICONINFORMATION | MB_OK, 0);
-	} else
+	// TODO: actually, we could offer to remove the existing rules
+	if (bResult)
+		LocMessageBox(bAlreadyExisted ? IDS_FO_PREF_EXISTED : IDS_FO_PREF_SUCCCEEDED, MB_ICONINFORMATION | MB_OK, 0);
+	else
 		LocMessageBox(IDS_FO_PREF_FAILED, MB_ICONSTOP | MB_OK, 0);
 }
 

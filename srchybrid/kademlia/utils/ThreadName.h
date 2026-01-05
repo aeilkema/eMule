@@ -27,9 +27,11 @@ what all it does, can cause great harm to the network if released in mass form.
 Any mod that changes anything within the Kademlia side will not be allowed to advertise
 their client on the eMule forum.
 */
+#pragma once
 
 namespace Kademlia
 {
+#ifndef MS_VC_EXCEPTION
 #define MS_VC_EXCEPTION 0x406d1388
 
 #pragma pack(push, 8)
@@ -39,10 +41,10 @@ namespace Kademlia
 		LPCSTR szName;		// pointer to name (in same addr space)
 		DWORD dwThreadID;	// thread ID (-1 caller thread)
 		DWORD dwFlags;		// reserved for future use, must be zero
-	}
-	THREADNAME_INFO;
+	} THREADNAME_INFO;
 #pragma pack(pop)
+#endif //MS_VC_EXCEPTION
 
-	void SetThreadName(DWORD dwThreadID, LPCTSTR szThreadName, ...);
-	void SetThreadName(LPCTSTR szThreadName, ...);
+	void SetThreadName(DWORD dwThreadID, LPCSTR szThreadName, ...);
+	void SetThreadName(LPCSTR szThreadName, ...);
 }

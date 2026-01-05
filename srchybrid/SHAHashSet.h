@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -188,8 +188,8 @@ public:
 	CAICHUntrustedHash&	operator=(const CAICHUntrustedHash &k1)	{ m_adwIpsSigning.Copy(k1.m_adwIpsSigning); m_Hash = k1.m_Hash; return *this; }
 	bool	AddSigningIP(uint32 dwIP, bool bTestOnly);
 
-	CAICHHash				m_Hash;
-	CArray<uint32, uint32>	m_adwIpsSigning;
+	CAICHHash		m_Hash;
+	CArray<uint32>	m_adwIpsSigning;
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -226,7 +226,7 @@ public:
 	void			UntrustedHashReceived(const CAICHHash &Hash, uint32 dwFromIP);
 	bool			IsPartDataAvailable(uint64 nPartStartPos);
 	void			SetStatus(EAICHStatus bNewValue)			{ m_eStatus = bNewValue; }
-	EAICHStatus		GetStatus()	const							{ return m_eStatus; }
+	EAICHStatus		GetStatus() const							{ return m_eStatus; }
 	void			SetOwner(CKnownFile *val)					{ m_pOwner = val; }
 
 	void			FreeHashSet();

@@ -109,7 +109,7 @@ CColourPopup::CColourPopup(CPoint p, COLORREF crColour, CWnd *pParentWnd
 						 , LPCTSTR szDefaultText /* = NULL */
 						 , LPCTSTR szCustomText  /* = NULL */
 						 , const LPCOLORREF colourArray /* = NULL*/
-						 , int NumberOfColours /* = 0*/ )
+						 , int NumberOfColours /* = 0*/)
 {
 	if (colourArray && NumberOfColours) {
 		colourArrayPassed = colourArray;	//copy the pointer to the array of colours we will be using
@@ -117,7 +117,7 @@ CColourPopup::CColourPopup(CPoint p, COLORREF crColour, CWnd *pParentWnd
 	} else
 		colourArrayPassed = NULL;	//if an array is passed without a size parameter, ignore it and use the defaults
 
-	Initialise(); //If not a custom palette initialise as NORMAL!
+	Initialise(); //If not a custom palette, initialise as NORMAL!
 
 	m_crColour = m_crInitialColour = crColour;
 	m_pParent = pParentWnd;
@@ -460,7 +460,7 @@ void CColourPopup::OnLButtonUp(UINT nFlags, CPoint point)
 	CWnd::OnLButtonUp(nFlags, point);
 
 	DWORD pos = ::GetMessagePos();
-	EndSelection(m_WindowRect.PtInRect(POINT{ LOWORD(pos), HIWORD(pos) }) ? UM_CPN_SELENDOK : UM_CPN_SELENDCANCEL);
+	EndSelection(m_WindowRect.PtInRect(POINT{LOWORD(pos), HIWORD(pos)}) ? UM_CPN_SELENDOK : UM_CPN_SELENDCANCEL);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -521,15 +521,15 @@ void CColourPopup::FindCellFromColour(COLORREF crColour)
 BOOL CColourPopup::GetCellRect(int nIndex, const LPRECT &rect)
 {
 	if (nIndex == CUSTOM_BOX_VALUE) {
-		::SetRect(rect,
-			m_CustomTextRect.left, m_CustomTextRect.top,
-			m_CustomTextRect.right, m_CustomTextRect.bottom);
+		::SetRect(rect
+			, m_CustomTextRect.left, m_CustomTextRect.top
+			, m_CustomTextRect.right, m_CustomTextRect.bottom);
 		return TRUE;
 	}
 	if (nIndex == DEFAULT_BOX_VALUE) {
-		::SetRect(rect,
-			m_DefaultTextRect.left, m_DefaultTextRect.top,
-			m_DefaultTextRect.right, m_DefaultTextRect.bottom);
+		::SetRect(rect
+			, m_DefaultTextRect.left, m_DefaultTextRect.top
+			, m_DefaultTextRect.right, m_DefaultTextRect.bottom);
 		return TRUE;
 	}
 
@@ -580,7 +580,7 @@ void CColourPopup::SetWindowSize()
 	}
 
 	// Get the number of columns and rows
-	//m_nNumColumns = (int) sqrt((double)m_nNumColours);    // for a square window (yuk)
+	//m_nNumColumns = (int) sqrt((double)m_nNumColours);	// for a square window (yuk)
 	m_nNumColumns = 8;
 	m_nNumRows = m_nNumColours / m_nNumColumns;
 	if (m_nNumColours % m_nNumColumns)
@@ -590,9 +590,10 @@ void CColourPopup::SetWindowSize()
 	RECT rect;
 	GetWindowRect(&rect);
 
-	m_WindowRect.SetRect(rect.left, rect.top,
-		rect.left + m_nNumColumns * m_nBoxSize + 2 * m_nMargin,
-		rect.top + m_nNumRows * m_nBoxSize + 2 * m_nMargin);
+	m_WindowRect.SetRect(rect.left
+						, rect.top
+						, rect.left + m_nNumColumns * m_nBoxSize + 2 * m_nMargin
+						, rect.top + m_nNumRows * m_nBoxSize + 2 * m_nMargin);
 
 // if custom text, then expand window if necessary, and set text width as
 // window width
@@ -602,8 +603,8 @@ void CColourPopup::SetWindowSize()
 		TextSize.cx = m_WindowRect.Width() - 2 * m_nMargin;
 
 		// Work out the text area
-		m_DefaultTextRect.SetRect(m_nMargin, m_nMargin,
-			m_nMargin + TextSize.cx, 2 * m_nMargin + TextSize.cy);
+		m_DefaultTextRect.SetRect(m_nMargin, m_nMargin
+				, m_nMargin + TextSize.cx, 2 * m_nMargin + TextSize.cy);
 		m_WindowRect.bottom += m_DefaultTextRect.Height() + 2 * m_nMargin;
 	}
 
@@ -615,9 +616,9 @@ void CColourPopup::SetWindowSize()
 		TextSize.cx = m_WindowRect.Width() - 2 * m_nMargin;
 
 		// Work out the text area
-		m_CustomTextRect.SetRect(m_nMargin, m_WindowRect.Height(),
-			m_nMargin + TextSize.cx,
-			m_WindowRect.Height() + m_nMargin + TextSize.cy);
+		m_CustomTextRect.SetRect(m_nMargin, m_WindowRect.Height()
+			, m_nMargin + TextSize.cx
+			, m_WindowRect.Height() + m_nMargin + TextSize.cy);
 		m_WindowRect.bottom += m_CustomTextRect.Height() + 2 * m_nMargin;
 	}
 

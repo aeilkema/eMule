@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -16,11 +16,12 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #include "stdafx.h"
 #include "emule.h"
+#include "emuledlg.h"
 #include "FileDetailDialogName.h"
 #include "UserMsgs.h"
 #include "PartFile.h"
 #include "UpDownClient.h"
-#include "TitleMenu.h"
+#include "TitledMenu.h"
 #include "MenuCmds.h"
 #include "StringConversion.h"
 
@@ -78,14 +79,14 @@ BOOL CFileDetailDialogName::OnInitDialog()
 
 	AddAnchor(IDC_FD_SN, TOP_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_LISTCTRLFILENAMES, TOP_LEFT, BOTTOM_RIGHT);
-	AddAnchor(IDC_TAKEOVER, BOTTOM_LEFT);
 	AddAnchor(IDC_BUTTONSTRIP, BOTTOM_RIGHT);
 	AddAnchor(IDC_FILENAME, BOTTOM_LEFT, BOTTOM_RIGHT);
+	AddAnchor(IDC_TAKEOVER, BOTTOM_LEFT);
 
 	m_listFileNames.SetPrefsKey(_T("FileDetailDlgName"));
 	m_listFileNames.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_INFOTIP);
-	m_listFileNames.InsertColumn(0, GetResString(IDS_DL_FILENAME), LVCFMT_LEFT, /*DFLT_FILENAME_COL_WIDTH*/450);
-	m_listFileNames.InsertColumn(1, GetResString(IDS_DL_SOURCES), LVCFMT_LEFT, 60);
+	m_listFileNames.InsertColumn(0, _T(""), LVCFMT_LEFT, /*DFLT_FILENAME_COL_WIDTH*/450);	//IDS_DL_FILENAME
+	m_listFileNames.InsertColumn(1, _T(""), LVCFMT_LEFT, 60);								//IDS_DL_SOURCES
 	ASSERT((m_listFileNames.GetStyle() & LVS_SHAREIMAGELISTS) != 0);
 	m_listFileNames.LoadSettings();
 
@@ -145,9 +146,15 @@ void CFileDetailDialogName::OnDestroy()
 
 void CFileDetailDialogName::Localize()
 {
+	static const UINT uids[] =
+	{
+		IDS_DL_FILENAME, IDS_DL_SOURCES, 0
+	};
+
 	if (!m_hWnd)
 		return;
 	SetTabTitle(IDS_SW_NAME, this);
+	LocaliseHeaderCtrl(m_listFileNames.GetHeaderCtrl(), uids);
 
 	SetDlgItemText(IDC_TAKEOVER, GetResString(IDS_TAKEOVER));
 	SetDlgItemText(IDC_BUTTONSTRIP, GetResString(IDS_CLEANUP));
@@ -218,7 +225,7 @@ void CFileDetailDialogName::Copy()
 {
 	int iSel = m_listFileNames.GetNextItem(-1, LVIS_SELECTED | LVIS_FOCUSED);
 	if (iSel >= 0)
-		theApp.CopyTextToClipboard(m_listFileNames.GetItemText(iSel, 0));
+		theApp.emuledlg->CopyTextToClipboard(m_listFileNames.GetItemText(iSel, 0));
 }
 
 void CFileDetailDialogName::OnBnClickedButtonStrip()
@@ -230,7 +237,7 @@ void CFileDetailDialogName::OnBnClickedButtonStrip()
 
 void CFileDetailDialogName::OnLvnColumnClick(LPNMHDR pNMHDR, LRESULT *pResult)
 {
-	NMLISTVIEW *pNMListView = reinterpret_cast<NMLISTVIEW*>(pNMHDR);
+	LPNMLISTVIEW pNMListView = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 	bool sortAscending;
 	if (m_listFileNames.GetSortItem() == pNMListView->iSubItem)
 		sortAscending = !m_listFileNames.GetSortAscending();
@@ -283,7 +290,7 @@ void CFileDetailDialogName::OnNmRClickList(LPNMHDR, LRESULT *pResult)
 
 	POINT point;
 	::GetCursorPos(&point);
-	CTitleMenu popupMenu;
+	CTitledMenu popupMenu;
 	popupMenu.CreatePopupMenu();
 	popupMenu.AppendMenu(flag, MP_MESSAGE, GetResString(IDS_TAKEOVER));
 	popupMenu.AppendMenu(flag, MP_COPYSELECTED, GetResString(IDS_COPY));
@@ -332,7 +339,7 @@ void CFileDetailDialogName::RenameFile()
 bool CFileDetailDialogName::CanRenameFile() const
 {
 	const CPartFile *file = static_cast<CPartFile*>((*m_paFiles)[0]);
-	return (file->GetStatus() != PS_COMPLETE && file->GetStatus() != PS_COMPLETING);
+	return file->GetStatus() != PS_COMPLETE && file->GetStatus() != PS_COMPLETING;
 }
 
 void CFileDetailDialogName::OnEnChangeFilename()

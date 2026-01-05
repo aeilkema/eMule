@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -21,10 +21,7 @@
 #include "HTRichEditCtrl.h"
 #include "ED2KLink.h"
 #include "kademlia/kademlia/kademlia.h"
-#include "kademlia/kademlia/prefs.h"
-#include "kademlia/utils/MiscUtils.h"
 #include "emuledlg.h"
-#include "WebServer.h"
 #include "CustomAutoComplete.h"
 #include "Server.h"
 #include "ServerList.h"
@@ -56,7 +53,6 @@ BEGIN_MESSAGE_MAP(CServerWnd, CResizableDialog)
 	ON_BN_CLICKED(IDC_UPDATESERVERMETFROMURL, OnBnClickedUpdateServerMetFromUrl)
 	ON_BN_CLICKED(IDC_LOGRESET, OnBnClickedResetLog)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB3, OnTcnSelchangeTab3)
-	ON_NOTIFY(EN_LINK, IDC_SERVMSG, OnEnLinkServerBox)
 	ON_BN_CLICKED(IDC_ED2KCONNECT, OnBnConnect)
 	ON_WM_SYSCOLORCHANGE()
 	ON_WM_CTLCOLOR()
@@ -108,7 +104,6 @@ BOOL CServerWnd::OnInitDialog()
 		theApp.m_fontLog.CreateFontIndirect(&lf);
 	}
 
-	ReplaceRichEditCtrl(GetDlgItem(IDC_MYINFOLIST), this, GetDlgItem(IDC_SSTATIC)->GetFont());
 	CResizableDialog::OnInitDialog();
 
 	// using ES_NOHIDESEL is actually not needed, but it helps to get around a tricky window update problem!
@@ -133,7 +128,8 @@ BOOL CServerWnd::OnInitDialog()
 		servermsgbox->AppendText(_T("\n"));
 		// MOD Note: Do not remove this part - Merkur
 		m_strClickNewVersion.Format(_T("%s %s %s"), (LPCTSTR)GetResString(IDS_EMULEW), (LPCTSTR)GetResString(IDS_EMULEW3), (LPCTSTR)GetResString(IDS_EMULEW2));
-		servermsgbox->AppendHyperLink(NULL, NULL, m_strClickNewVersion, NULL);
+		servermsgbox->SetAutoURLDetect(TRUE);
+		servermsgbox->AppendHyperLink(m_strClickNewVersion, NULL, thePrefs.GetVersionCheckURL(), NULL);
 		// MOD Note: end
 		servermsgbox->AppendText(_T("\n\n"));
 	}
@@ -202,11 +198,11 @@ BOOL CServerWnd::OnInitDialog()
 	AddAnchor(m_MyInfo, TOP_RIGHT, BOTTOM_RIGHT);
 	AddAnchor(IDC_UPDATESERVERMETFROMURL, TOP_RIGHT);
 	AddAnchor(StatusSelector, MIDDLE_LEFT, BOTTOM_RIGHT);
-	AddAnchor(IDC_LOGRESET, MIDDLE_RIGHT); // avoid resizing GUI glitches with the tab control by adding this control as the last one (Z-order)
 	// The resizing of those log controls (rich edit controls) works 'better' when added as last anchors (?)
 	AddAnchor(*servermsgbox, MIDDLE_LEFT, BOTTOM_RIGHT);
 	AddAnchor(*logbox, MIDDLE_LEFT, BOTTOM_RIGHT);
 	AddAnchor(*debuglog, MIDDLE_LEFT, BOTTOM_RIGHT);
+	AddAnchor(IDC_LOGRESET, MIDDLE_RIGHT); // avoid resizing GUI glitches with the tab control by adding this control as the last one (Z-order)
 
 	AddAllOtherAnchors(TOP_RIGHT);
 
@@ -445,7 +441,7 @@ void CServerWnd::OnBnClickedAddserver()
 
 void CServerWnd::PasteServerFromClipboard()
 {
-	CString strServer(theApp.CopyTextFromClipboard());
+	CString strServer(CopyTextFromClipboard());
 	if (strServer.Trim().IsEmpty())
 		return;
 
@@ -679,23 +675,6 @@ void CServerWnd::ShowNetworkInfo()
 	dlg.DoModal();
 }
 
-void CServerWnd::OnEnLinkServerBox(LPNMHDR pNMHDR, LRESULT *pResult)
-{
-	ENLINK *pEnLink = reinterpret_cast<ENLINK*>(pNMHDR);
-	if (pEnLink && pEnLink->msg == WM_LBUTTONDOWN) {
-		CString strUrl;
-		servermsgbox->GetTextRange(pEnLink->chrg.cpMin, pEnLink->chrg.cpMax, strUrl);
-		if (strUrl == m_strClickNewVersion) {
-			// MOD Note: Do not remove this part - Merkur
-			strUrl = thePrefs.GetVersionCheckURL();
-			// MOD Note: end
-		}
-		BrowserOpen(strUrl, NULL);
-		*pResult = 1;
-	} else
-		*pResult = 0;
-}
-
 void CServerWnd::UpdateControlsState()
 {
 	UINT uid;
@@ -825,17 +804,17 @@ void CServerWnd::ReattachAnchors()
 {
 	RemoveAnchor(serverlistctrl);
 	RemoveAnchor(StatusSelector);
-	RemoveAnchor(IDC_LOGRESET);
 	RemoveAnchor(*servermsgbox);
 	RemoveAnchor(*logbox);
 	RemoveAnchor(*debuglog);
+	RemoveAnchor(IDC_LOGRESET);
 
 	AddAnchor(serverlistctrl, TOP_LEFT, ANCHOR(100, thePrefs.GetSplitterbarPositionServer()));
 	AddAnchor(StatusSelector, ANCHOR(0, thePrefs.GetSplitterbarPositionServer()), BOTTOM_RIGHT);
-	AddAnchor(IDC_LOGRESET, MIDDLE_RIGHT);
 	AddAnchor(*servermsgbox, ANCHOR(0, thePrefs.GetSplitterbarPositionServer()), BOTTOM_RIGHT);
 	AddAnchor(*logbox, ANCHOR(0, thePrefs.GetSplitterbarPositionServer()), BOTTOM_RIGHT);
 	AddAnchor(*debuglog, ANCHOR(0, thePrefs.GetSplitterbarPositionServer()), BOTTOM_RIGHT);
+	AddAnchor(IDC_LOGRESET, MIDDLE_RIGHT);
 
 	GetDlgItem(IDC_LOGRESET)->Invalidate();
 
@@ -860,7 +839,7 @@ void CServerWnd::UpdateSplitterRange()
 	m_wndSplitter.SetRange(rcWnd.top + 100, rcWnd.bottom - 50);
 
 	LONG splitpos = rcDlgItem.bottom + SVWND_SPLITTER_YOFF;
-	thePrefs.SetSplitterbarPositionServer((splitpos * 100) / rcWnd.Height());
+	thePrefs.SetSplitterbarPositionServer(100 * splitpos / rcWnd.Height());
 
 	GetDlgItem(IDC_LOGRESET)->GetWindowRect(&rcDlgItem);
 	ScreenToClient(&rcDlgItem);

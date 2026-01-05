@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -29,16 +29,22 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 CGZIPFile::CGZIPFile()
+	: m_gzFile()
 {
-	m_gzFile = 0;
 }
+
+#ifdef UNICODE
+#define GZOPEN gzopen_w
+#else
+#define GZOPEN gzopen
+#endif //UNICODE
 
 bool CGZIPFile::Open(LPCTSTR pszFilePath)
 {
 	ASSERT(m_gzFile == 0);
 	Close();
 
-	m_gzFile = gzopen(CStringA(pszFilePath), "rb");
+	m_gzFile = GZOPEN(pszFilePath, "rb");
 	if (m_gzFile) {
 		// Use gzip-uncompress only for real gzip-compressed files and do not let handle it also uncompressed files.
 		// This way the 'Open' function can be used to check if that file is a 'gzip' file at all.
@@ -64,14 +70,14 @@ CString CGZIPFile::GetUncompressedFilePath() const
 	// return path of input file without ".gz" extension
 	LPCTSTR pDot = ::PathFindExtension(m_strGzFilePath);
 	if (_tcsicmp(pDot, _T(".gz")) != 0)
-		pDot = m_strGzFilePath; //empty string if not .gz
-	return m_strGzFilePath.Left((int)((LPCTSTR)m_strGzFilePath - pDot));
+		pDot = m_strGzFilePath; //return an empty string if not .gz
+	return m_strGzFilePath.Left((int)(pDot - (LPCTSTR)m_strGzFilePath));
 }
 
 CString CGZIPFile::GetUncompressedFileName() const
 {
 	// return name (without path) of input file without ".gz" extension
-	const CString &strUncompressedFileName = GetUncompressedFilePath();
+	const CString &strUncompressedFileName(GetUncompressedFilePath());
 	if (!strUncompressedFileName.IsEmpty()) {
 		// skip any possible available directories
 		LPCTSTR pszFileName = ::PathFindFileName(strUncompressedFileName);

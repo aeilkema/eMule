@@ -1,5 +1,6 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
+#pragma code_page(65001)
 #include "de_DE.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -19,7 +20,6 @@
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_DEU)
 #ifdef _WIN32
 LANGUAGE LANG_GERMAN, SUBLANG_GERMAN
-#pragma code_page(65001)
 #endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
@@ -755,7 +755,7 @@ BEGIN
     IDS_IRC_PRIVMESSAGE     "Private Nachricht"
     IDS_WEB_REMOTE_LINK_ADDED "Link hinzugefügt: "
     IDS_WEB_REMOTE_LINK_NOT_ADDED "Link nicht hinzugefügt. Falsches Passwort."
-    IDS_DL_TRY_TO_GET_PREVIEW_PARTS
+    IDS_DL_PRIO_FOR_PREVIEW_CHUNKS
                             "Zuerst Teile für eine Vorschau downloaden"
     IDS_IRC_KICK            "Kick" //!
     IDS_IRC_SLAP            "Slap" //!
@@ -1540,7 +1540,6 @@ BEGIN
     IDS_NEWMSG              "Neue Nachricht von '%s' (IP:%s)"
     IDS_PREF_STARTNEXTFILECATONLY "Nur aus gleicher Kategorie"
     IDS_LOG_ULDL_EVENTS     "Logge Upload/Download Ereignisse"
-//    IDS_PEERCACHE_ENABLED   "Dein ISP unterstützt die PeerCache Technologie. Cache Downloads aktiviert."
     IDS_IRC_EMULEPROTO_ALLOWADDFRIEND
                             "Erlaube dem Benutzer, dich als Freund aufzunehmen."
     IDS_SOURCESWAPBLOCKED   "Swap blockiert"
@@ -1583,9 +1582,6 @@ BEGIN
                             "Aktiviere dies, wenn eMule beim Windowsstart automatisch starten soll."
     IDS_KAD_WAITCBK         "Warte auf Kad Rückruf"
     IDS_KAD_TOOMANDYKADLKPS "Zu viele Kad Suchen"
-//    IDS_PCDS_CLIENTWAIT     "ClientWarte"
-//    IDS_PCDS_CACHEWAIT      "CacheWarte"
-//    IDS_CACHE               "Cache" //!
     IDS_INDEXED             "Indexiert"
     IDS_KADINFO_SRC         "\tQuelle: %u\r\n"
     IDS_KADINFO_KEYW        "\tSchlüsselwort: %u\r\n"
@@ -1668,8 +1664,6 @@ BEGIN
     IDS_EXTRACT_META_DATA   "Metadaten extrahieren"
     IDS_META_DATA_MEDIADET  "DirectShow (für alle anderen Audio-/Videodateien)"
     IDS_META_DATA_ID3LIB    "ID3 Bibliothek (nur für MPEG Audiodateien)"
-    IDS_COMCTRL32_DLL_TOOOLD
-                            "Die ""Windows Common Controls"" Bibliothek (COMCTL32.DLL) ist zu alt!\r\n\r\neMule hat eine Version der ""Windows Common Controls Bibliothek (COMCTL32.DLL)"" gefunden, welche zu alt ist um von eMule korrekt verwendet zu werden. Um volle und korrekte Funktionalität von eMule zu sichern, raten wir dringend, diese Bibliothek mindestens auf die Version 5.8 zu aktualisieren.\r\n\r\nDer Download dieser Bibliothek (COMCTL32.DLL) kann vom Microsoft(R) Download Center erfolgen. Soll die entsprechende WWW-Seite im Browser geöffnet werden?"
     IDS_ASREGEXPR           "als regulärer Ausdruck"
     IDS_STATIC_REGEXP       "Regulärer Ausdruck für die Ansichtsfilterung:"
     IDS_CARE4ALL            "alle Dateien betrachten"

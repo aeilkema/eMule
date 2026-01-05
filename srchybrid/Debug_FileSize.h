@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( devs@emule-project.net / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( devs@emule-project.net / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -31,69 +31,70 @@ public:
 	CEMFileSize()																{ m_nSize = _UI64_MAX; }
 	CEMFileSize(uint64 nSize)													{ m_nSize = nSize; Check(); }
 	CEMFileSize(const CEMFileSize &k1)											{ m_nSize = k1.m_nSize; Check(); }
-	__declspec(deprecated) CEMFileSize(uint32 nSize)							{ m_nSize = nSize; Check(); }
+	//__declspec(deprecated) CEMFileSize(uint32 nSize)							{ m_nSize = nSize; Check(); }
 
 	CEMFileSize& operator=(const CEMFileSize &k1)								{ m_nSize = k1.m_nSize; Check(); return *this; }
 	CEMFileSize& operator=(uint64 k1)											{ m_nSize = k1; Check(); return *this; }
-	__declspec(deprecated) CEMFileSize& operator=(sint64 k1)					{ m_nSize = k1; Check(); return *this; }
-	__declspec(deprecated) CEMFileSize& operator=(uint32 k1)					{ m_nSize = k1; Check(); return *this; }
-	__declspec(deprecated) CEMFileSize& operator=(sint32 k1)					{ m_nSize = k1; Check(); return *this; }
+	//__declspec(deprecated) CEMFileSize& operator=(sint64 k1)					{ m_nSize = k1; Check(); return *this; }
+	//__declspec(deprecated) CEMFileSize& operator=(uint32 k1)					{ m_nSize = k1; Check(); return *this; }
+	//__declspec(deprecated) CEMFileSize& operator=(sint32 k1)					{ m_nSize = k1; Check(); return *this; }
 
 	CEMFileSize& operator-=(const CEMFileSize &k1)								{ Check(); m_nSize -= k1.m_nSize; Check(); return *this; }
 	CEMFileSize& operator-=(uint64 k1)											{ Check(); m_nSize -= k1; Check(); return *this; }
-	__declspec(deprecated) CEMFileSize& operator-=(sint64 k1)					{ Check(); m_nSize -= k1; Check(); return *this; }
-	__declspec(deprecated) CEMFileSize& operator-=(uint32 k1)					{ Check(); m_nSize -= k1; Check(); return *this; }
-	__declspec(deprecated) CEMFileSize& operator-=(sint32 k1)					{ Check(); m_nSize -= k1; Check(); return *this; }
+	//__declspec(deprecated) CEMFileSize& operator-=(sint64 k1)					{ Check(); m_nSize -= k1; Check(); return *this; }
+	//__declspec(deprecated) CEMFileSize& operator-=(uint32 k1)					{ Check(); m_nSize -= k1; Check(); return *this; }
+	//__declspec(deprecated) CEMFileSize& operator-=(sint32 k1)					{ Check(); m_nSize -= k1; Check(); return *this; }
 
 	CEMFileSize& operator+=(const CEMFileSize &k1)								{ Check(); m_nSize += k1.m_nSize; Check(); return *this; }
 	CEMFileSize& operator+=(uint64 k1)											{ Check(); m_nSize += k1; Check(); return *this; }
-	__declspec(deprecated) CEMFileSize& operator+=(sint64 k1)					{ Check(); m_nSize += k1; Check(); return *this; }
-	__declspec(deprecated) CEMFileSize& operator+=(uint32 k1)					{ Check(); m_nSize += k1; Check(); return *this; }
-	__declspec(deprecated) CEMFileSize& operator+=(sint32 k1)					{ Check(); m_nSize += k1; Check(); return *this; }
+	//__declspec(deprecated) CEMFileSize& operator+=(sint64 k1)					{ Check(); m_nSize += k1; Check(); return *this; }
+	//__declspec(deprecated) CEMFileSize& operator+=(uint32 k1)					{ Check(); m_nSize += k1; Check(); return *this; }
+	//__declspec(deprecated) CEMFileSize& operator+=(sint32 k1)					{ Check(); m_nSize += k1; Check(); return *this; }
 
 
 	operator uint64() const														{ return m_nSize; }
 	operator double() const														{ return (double)m_nSize; }
-	/*__declspec(deprecated)*/ operator float() const							{ return (float)m_nSize; }
-	/*__declspec(deprecated)*/ operator sint64() const							{ return (sint64)m_nSize; }
-	__declspec(deprecated) operator uint32() const								{ ASSERT(m_nSize < _UI32_MAX); return (uint32)m_nSize; }
-	__declspec(deprecated) operator sint32() const								{ ASSERT(m_nSize < _I32_MAX); return (sint32)m_nSize; }
+	operator float() const														{ return (float)m_nSize; }
+	operator sint64() const														{ return (sint64)m_nSize; }
+	//__declspec(deprecated) operator uint32() const							{ ASSERT(m_nSize < _UI32_MAX); return (uint32)m_nSize; }
+	//__declspec(deprecated) operator sint32() const							{ ASSERT(m_nSize < _I32_MAX); return (sint32)m_nSize; }
 
+	friend bool operator!(const CEMFileSize &k1)								{ return k1.m_nSize == 0; }
 	friend bool operator==(const CEMFileSize &k1, const CEMFileSize &k2)		{ return k1.m_nSize == k2.m_nSize; }
 	friend bool operator==(const CEMFileSize &k1, uint64 k2)					{ return k1.m_nSize == k2; }
 	friend bool operator==(uint64 k1, const CEMFileSize &k2)					{ return k1 == k2.m_nSize; }
-	__declspec(deprecated) friend bool operator==(uint32 k1, const CEMFileSize &k2)	{ return k1 == k2.m_nSize; }
-	__declspec(deprecated) friend bool operator==(const CEMFileSize &k1, uint32 k2)	{ return k1.m_nSize == k2; }
+	//__declspec(deprecated) friend bool operator==(uint32 k1, const CEMFileSize &k2)	{ return k1 == k2.m_nSize; }
+	//__declspec(deprecated) friend bool operator==(const CEMFileSize &k1, uint32 k2)	{ return k1.m_nSize == k2; }
 
 	friend bool operator!=(const CEMFileSize &k1, const CEMFileSize &k2)		{ return k1.m_nSize != k2.m_nSize; }
 	friend bool operator!=(const CEMFileSize &k1, uint64 k2)					{ return k1.m_nSize != k2; }
 	friend bool operator!=(uint64 k1, const CEMFileSize &k2)					{ return k1 != k2.m_nSize; }
-	__declspec(deprecated) friend bool operator!=(uint32 k1, const CEMFileSize &k2)	{ return k1 != k2.m_nSize; }
-	__declspec(deprecated) friend bool operator!=(const CEMFileSize &k1, uint32 k2)	{ return k1.m_nSize != k2; }
+	//__declspec(deprecated) friend bool operator!=(uint32 k1, const CEMFileSize &k2)	{ return k1 != k2.m_nSize; }
+	//__declspec(deprecated) friend bool operator!=(const CEMFileSize &k1, uint32 k2)	{ return k1.m_nSize != k2; }
 
 	friend bool operator>(const CEMFileSize &k1, const CEMFileSize &k2)			{ return k1.m_nSize > k2.m_nSize; }
 	friend bool operator>(const CEMFileSize &k1, uint64 k2)						{ return k1.m_nSize > k2; }
 	friend bool operator>(uint64 k1, const CEMFileSize &k2)						{ return k1 > k2.m_nSize; }
-	__declspec(deprecated) friend bool operator>(uint32 k1, const CEMFileSize &k2)	{ return k1 > k2.m_nSize; }
-	__declspec(deprecated) friend bool operator>(const CEMFileSize &k1, uint32 k2)	{ return k1.m_nSize > k2; }
+	//__declspec(deprecated) friend bool operator>(uint32 k1, const CEMFileSize &k2)	{ return k1 > k2.m_nSize; }
+	//__declspec(deprecated) friend bool operator>(const CEMFileSize &k1, uint32 k2)	{ return k1.m_nSize > k2; }
 
 	friend bool operator<(const CEMFileSize &k1, const CEMFileSize &k2)			{ return k1.m_nSize < k2.m_nSize; }
 	friend bool operator<(const CEMFileSize &k1, uint64 k2)						{ return k1.m_nSize < k2; }
 	friend bool operator<(uint64 k1, const CEMFileSize &k2)						{ return k1 < k2.m_nSize; }
-	__declspec(deprecated) friend bool operator<(uint32 k1, const CEMFileSize &k2)	{ return k1 < k2.m_nSize; }
-	__declspec(deprecated) friend bool operator<(const CEMFileSize &k1, uint32 k2)	{ return k1.m_nSize < k2; }
+	//__declspec(deprecated) friend bool operator<(uint32 k1, const CEMFileSize &k2)	{ return k1 < k2.m_nSize; }
+	//__declspec(deprecated) friend bool operator<(const CEMFileSize &k1, uint32 k2)	{ return k1.m_nSize < k2; }
 
 	friend bool operator>=(const CEMFileSize &k1, const CEMFileSize &k2)			{ return k1.m_nSize >= k2.m_nSize; }
 	friend bool operator>=(const CEMFileSize &k1, uint64 k2)						{ return k1.m_nSize >= k2; }
 	friend bool operator>=(uint64 k1, const CEMFileSize &k2)						{ return k1 >= k2.m_nSize; }
-	__declspec(deprecated) friend bool operator>=(uint32 k1,const CEMFileSize &k2)	{ return k1 >= k2.m_nSize; }
-	__declspec(deprecated) friend bool operator>=(const CEMFileSize &k1,uint32 k2)	{ return k1.m_nSize >= k2; }
+	//__declspec(deprecated) friend bool operator>=(uint32 k1,const CEMFileSize &k2)	{ return k1 >= k2.m_nSize; }
+	//__declspec(deprecated) friend bool operator>=(const CEMFileSize &k1,uint32 k2)	{ return k1.m_nSize >= k2; }
 
 	friend bool operator<=(const CEMFileSize &k1, const CEMFileSize &k2)			{ return k1.m_nSize <= k2.m_nSize; }
 	friend bool operator<=(const CEMFileSize &k1, uint64 k2)						{ return k1.m_nSize <= k2; }
 	friend bool operator<=(uint64 k1, const CEMFileSize &k2)						{ return k1 <= k2.m_nSize; }
-	__declspec(deprecated) friend bool operator<=(uint32 k1, const CEMFileSize &k2)	{ return k1 <= k2.m_nSize; }
-	__declspec(deprecated) friend bool operator<=(const CEMFileSize &k1, uint32 k2)	{ return k1.m_nSize <= k2; }
+	//__declspec(deprecated) friend bool operator<=(uint32 k1, const CEMFileSize &k2)	{ return k1 <= k2.m_nSize; }
+	//__declspec(deprecated) friend bool operator<=(const CEMFileSize &k1, uint32 k2)	{ return k1.m_nSize <= k2; }
 
 	friend CEMFileSize operator+(const CEMFileSize &k1, const CEMFileSize &k2)	{ return CEMFileSize(k1.m_nSize, k2.m_nSize, DFSA_ADD); }
 	friend CEMFileSize operator+(const CEMFileSize &k1, uint64 k2)				{ return CEMFileSize(k1.m_nSize, k2, DFSA_ADD); }
@@ -102,7 +103,7 @@ public:
 	friend CEMFileSize operator-(const CEMFileSize &k1, const CEMFileSize &k2)	{ return CEMFileSize(k1.m_nSize, k2.m_nSize, DFSA_SUB); }
 	friend CEMFileSize operator-(const CEMFileSize &k1, uint64 k2)				{ return CEMFileSize(k1.m_nSize, k2, DFSA_SUB); }
 	friend CEMFileSize operator-(uint64 k1, const CEMFileSize &k2)				{ return CEMFileSize(k1, k2.m_nSize, DFSA_SUB); }
-	__declspec(deprecated) friend CEMFileSize operator-(uint32 k1, const CEMFileSize &k2)	{ return CEMFileSize(k1, k2.m_nSize, DFSA_SUB); }
+	//__declspec(deprecated) friend CEMFileSize operator-(uint32 k1, const CEMFileSize &k2)	{ return CEMFileSize(k1, k2.m_nSize, DFSA_SUB); }
 
 	friend CEMFileSize operator*(const CEMFileSize &k1, const CEMFileSize &k2)	{ return CEMFileSize(k1.m_nSize, k2.m_nSize, DFSA_MUL); }
 	friend CEMFileSize operator*(const CEMFileSize &k1, uint64 k2)				{ return CEMFileSize(k1.m_nSize, k2, DFSA_MUL); }

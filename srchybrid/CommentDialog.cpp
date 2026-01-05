@@ -1,5 +1,5 @@
 //this file is part of eMule
-//Copyright (C)2002-2024 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
+//Copyright (C)2002-2026 Merkur ( strEmail.Format("%s@%s", "devteam", "emule-project.net") / https://www.emule-project.net )
 //
 //This program is free software; you can redistribute it and/or
 //modify it under the terms of the GNU General Public License
@@ -17,7 +17,6 @@
 #include "stdafx.h"
 #include "emule.h"
 #include "CommentDialog.h"
-#include "KnownFile.h"
 #include "PartFile.h"
 #include "Opcodes.h"
 #include "UpDownClient.h"
@@ -83,15 +82,15 @@ BOOL CCommentDialog::OnInitDialog()
 	CResizablePage::OnInitDialog();
 	InitWindowStyles(this);
 
-	AddAnchor(IDC_LST, TOP_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_CMT_LQUEST, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_CMT_LAIDE, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_CMT_TEXT, TOP_LEFT, TOP_RIGHT);
-	AddAnchor(IDC_RATEQUEST, TOP_LEFT, TOP_RIGHT);
-	AddAnchor(IDC_RATEHELP, TOP_LEFT, TOP_RIGHT);
-	AddAnchor(IDC_USERCOMMENTS, TOP_LEFT, BOTTOM_RIGHT);
-	AddAnchor(IDC_RESET, TOP_RIGHT);
 	AddAnchor(IDC_SEARCHKAD, BOTTOM_RIGHT);
+	AddAnchor(IDC_USERCOMMENTS, TOP_LEFT, BOTTOM_RIGHT);
+	AddAnchor(IDC_LST, TOP_LEFT, BOTTOM_RIGHT);
+	AddAnchor(IDC_RATEQUEST, TOP_LEFT, TOP_RIGHT);
+	AddAnchor(IDC_RESET, TOP_RIGHT);
+	AddAnchor(IDC_RATEHELP, TOP_LEFT, TOP_RIGHT);
 
 	AddAllOtherAnchors();
 

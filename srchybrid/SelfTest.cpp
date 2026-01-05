@@ -14,9 +14,9 @@ static BOOL CALLBACK EnumResNameProc(HMODULE hModule, LPCTSTR lpszType, LPTSTR l
 {
 	++g_uResNumber;
 	UINT uSize = 0;
-	HRSRC hResInfo = FindResource(hModule, lpszName, lpszType);
+	HRSRC hResInfo = ::FindResource(hModule, lpszName, lpszType);
 	if (hResInfo) {
-		uSize = SizeofResource(hModule, hResInfo);
+		uSize = ::SizeofResource(hModule, hResInfo);
 		g_uTotalSize += uSize;
 	}
 #if 0
