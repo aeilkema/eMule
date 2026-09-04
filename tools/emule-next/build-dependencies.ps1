@@ -76,6 +76,55 @@ function Resolve-Perl {
     throw 'Perl is required to generate Mbed TLS sources but perl.exe was not found'
 }
 
+function Resolve-Python {
+    foreach ($name in @('python.exe', 'python3.exe', 'py.exe')) {
+        $command = Get-Command $name -ErrorAction SilentlyContinue
+        if ($null -eq $command) { continue }
+        if ($name -eq 'py.exe') {
+            # py.exe is a launcher, not the interpreter path CMake expects.
+            $path = & $command.Source -3 -c 'import sys; print(sys.executable)'
+            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($path)) {
+                return $path.Trim()
+            }
+            continue
+        }
+        return $command.Source
+    }
+    throw 'Python 3 is required to generate Mbed TLS sources but no interpreter was found'
+}
+
+function Ensure-MbedTlsPythonPackages {
+    param([Parameter(Mandatory = $true)][string]$PythonExe)
+
+    # The pinned TF-PSA generator imports exactly jsonschema and jinja2. Install
+    # modern, deterministic versions instead of the historical full requirements
+    # file, which pins an obsolete MarkupSafe release incompatible with new Python.
+    $probe = @'
+import jsonschema
+import jinja2
+assert jsonschema.__version__
+assert jinja2.__version__
+'@
+    & $PythonExe -c $probe 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host 'Mbed TLS Python generator packages already available.'
+        return
+    }
+
+    Write-Host 'Installing pinned Mbed TLS Python generator packages...'
+    Invoke-Checked -FilePath $PythonExe -Arguments @(
+        '-m', 'pip', 'install',
+        '--disable-pip-version-check',
+        '--no-input',
+        'Jinja2==3.1.6',
+        'jsonschema==4.25.1'
+    )
+
+    Invoke-Checked -FilePath $PythonExe -Arguments @(
+        '-c', 'import jsonschema, jinja2; print("Mbed TLS Python generator packages OK")'
+    )
+}
+
 function Ensure-Id3ZlibCompatibility {
     # The maintained id3lib project still names its sibling include folder
     # "emulebb-zlib", while eMule's own project expects the sibling as "zlib".
@@ -132,7 +181,10 @@ function Build-MbedTls {
     $build = Join-Path $source "cmake-emule-next-$Platform"
     $generator = Resolve-CMakeGenerator
     $perl = Resolve-Perl
+    $python = Resolve-Python
     $runtime = if ($Configuration -eq 'Debug') { 'MultiThreadedDebug' } else { 'MultiThreaded' }
+
+    Ensure-MbedTlsPythonPackages -PythonExe $python
 
     if (Test-Path -LiteralPath $build) {
         Remove-Item -LiteralPath $build -Recurse -Force
@@ -151,7 +203,8 @@ function Build-MbedTls {
         '-DCMAKE_POLICY_VERSION_MINIMUM=3.5',
         '-DCMAKE_POLICY_DEFAULT_CMP0091=NEW',
         "-DCMAKE_MSVC_RUNTIME_LIBRARY=$runtime",
-        "-DPERL_EXECUTABLE=$perl"
+        "-DPERL_EXECUTABLE=$perl",
+        "-DPython3_EXECUTABLE=$python"
     )
     Invoke-Checked -FilePath 'cmake.exe' -WorkingDirectory $source -Arguments @(
         '--build', $build,
