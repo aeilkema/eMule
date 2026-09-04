@@ -76,6 +76,27 @@ function Resolve-Perl {
     throw 'Perl is required to generate Mbed TLS sources but perl.exe was not found'
 }
 
+function Ensure-Id3ZlibCompatibility {
+    # The maintained id3lib project still names its sibling include folder
+    # "emulebb-zlib", while eMule's own project expects the sibling as "zlib".
+    # A directory junction keeps one pinned zlib tree and satisfies both build
+    # layouts without copying or modifying third-party source files.
+    $zlib = Join-Path $Root 'zlib'
+    $alias = Join-Path $Root 'emulebb-zlib'
+    if (-not (Test-Path -LiteralPath $zlib -PathType Container)) {
+        throw "Pinned zlib source directory not found: $zlib"
+    }
+    if (Test-Path -LiteralPath $alias) {
+        return
+    }
+
+    New-Item -ItemType Junction -Path $alias -Target $zlib | Out-Null
+    if (-not (Test-Path -LiteralPath (Join-Path $alias 'zlib.h') -PathType Leaf)) {
+        throw 'id3lib zlib compatibility junction was created but zlib.h is not visible'
+    }
+    Write-Host "Created id3lib zlib include alias: $alias -> $zlib"
+}
+
 function Find-Library {
     param(
         [Parameter(Mandatory = $true)][string]$SearchRoot,
@@ -200,6 +221,7 @@ function Build-Zlib {
 }
 
 # Build the projects which already have modern eMule-compatible VS wrappers.
+Ensure-Id3ZlibCompatibility
 Invoke-MSBuildProject -Project (Join-Path $Root 'cryptopp\cryptlib.vcxproj')
 Invoke-MSBuildProject -Project (Join-Path $Root 'id3lib\libprj\id3lib.vcxproj')
 Invoke-MSBuildProject -Project (Join-Path $Root 'miniupnpc\msvc\miniupnpc.vcxproj')
