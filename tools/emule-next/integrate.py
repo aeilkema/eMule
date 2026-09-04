@@ -197,7 +197,7 @@ def patch_client_list_cpp() -> None:
     )
     text = replace_once(text, old_remove, new_remove, path)
 
-    # Use the index as the fast path.  Keep the legacy scan as a fallback while
+    # Use the index as the fast path. Keep the legacy scan as a fallback while
     # handshake-time identity refresh hooks are being validated.
     conn_pattern = re.compile(
         r'CUpDownClient \*CClientList::FindClientByConnIP\(uint32 clientip, UINT port\) const\n\{.*?\n\}',
@@ -273,18 +273,20 @@ def patch_download_queue_cpp() -> None:
     text = insert_after(text, '#include "Log.h"\n', '#include "EmuleNextRuntime.h"\n', path)
 
     # Every loaded/new part file enters the index and historical file store.
-    text = text.replace(
-        '\t\t\t\tfilelist.AddTail(toadd); // to download queue\n',
-        '\t\t\t\tfilelist.AddTail(toadd); // to download queue\n'
-        '\t\t\t\tm_index.RegisterFile(toadd, toadd->GetFileHash(), toadd->GetKadFileSearchID());\n'
-        '\t\t\t\ttheEmuleNext.RecordFileSeen(toadd->GetFileHash(), toadd->GetFileSize(), toadd->GetFileName());\n'
-    )
-    text = text.replace(
-        '\t\t\t\t\tfilelist.AddTail(toadd);\t\t\t// to download queue\n',
-        '\t\t\t\t\tfilelist.AddTail(toadd);\t\t\t// to download queue\n'
-        '\t\t\t\t\tm_index.RegisterFile(toadd, toadd->GetFileHash(), toadd->GetKadFileSearchID());\n'
-        '\t\t\t\t\ttheEmuleNext.RecordFileSeen(toadd->GetFileHash(), toadd->GetFileSize(), toadd->GetFileName());\n'
-    )
+    # Guard the pair as a unit so a second integrator run is byte-identical.
+    if 'm_index.RegisterFile(toadd, toadd->GetFileHash()' not in text:
+        text = text.replace(
+            '\t\t\t\tfilelist.AddTail(toadd); // to download queue\n',
+            '\t\t\t\tfilelist.AddTail(toadd); // to download queue\n'
+            '\t\t\t\tm_index.RegisterFile(toadd, toadd->GetFileHash(), toadd->GetKadFileSearchID());\n'
+            '\t\t\t\ttheEmuleNext.RecordFileSeen(toadd->GetFileHash(), toadd->GetFileSize(), toadd->GetFileName());\n'
+        )
+        text = text.replace(
+            '\t\t\t\t\tfilelist.AddTail(toadd);\t\t\t// to download queue\n',
+            '\t\t\t\t\tfilelist.AddTail(toadd);\t\t\t// to download queue\n'
+            '\t\t\t\t\tm_index.RegisterFile(toadd, toadd->GetFileHash(), toadd->GetKadFileSearchID());\n'
+            '\t\t\t\t\ttheEmuleNext.RecordFileSeen(toadd->GetFileHash(), toadd->GetFileSize(), toadd->GetFileName());\n'
+        )
 
     add_anchor = '\tfilelist.AddTail(newfile);\n'
     if 'm_index.RegisterFile(newfile, newfile->GetFileHash()' not in text:
