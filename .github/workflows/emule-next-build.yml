@@ -55,45 +55,123 @@ jobs:
       - name: Build and stage dependencies
         shell: pwsh
         run: |
+          $depLog = Join-Path $env:RUNNER_TEMP 'emule-dependencies.log'
           & .\tools\emule-next\build-dependencies.ps1 `
             -SourceDir $env:EMULE_SOURCE_DIR `
             -MSBuildExe $env:MSBUILD_EXE `
             -Configuration Release `
             -Platform x64 `
-            -PlatformToolset v145
-          if ($LASTEXITCODE -ne 0) { throw 'Dependency build failed' }
+            -PlatformToolset v145 *> $depLog
+          $depExit = $LASTEXITCODE
+          if ($depExit -ne 0) {
+            Write-Host 'Dependency build failed. Last 120 log lines:'
+            Get-Content -LiteralPath $depLog -Tail 120
+            throw "Dependency build failed with exit code $depExit"
+          }
+          Write-Host 'Dependency build succeeded; verbose output retained in runner temp log.'
 
       - name: Build eMule Next Release x64
         shell: pwsh
         run: |
           $target = Join-Path $env:EMULE_SOURCE_DIR 'emule.vcxproj'
+          $buildLog = Join-Path $env:RUNNER_TEMP 'emule-msbuild.log'
           Write-Host "MSBuild target: $target"
-          & $env:MSBUILD_EXE $target /m /t:Build /p:BuildProjectReferences=false /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 /verbosity:minimal
-          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE" }
+          Write-Host "Full MSBuild output: $buildLog"
 
-      - name: Collect executable and diagnostics
+          & $env:MSBUILD_EXE $target /m /t:Build /p:BuildProjectReferences=false /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 /verbosity:minimal *> $buildLog
+          $buildExit = $LASTEXITCODE
+
+          "EMULE_BUILD_EXIT_CODE=$buildExit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "MSBuild exit code: $buildExit"
+
+      - name: Extract first real compiler diagnostic
+        if: always()
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          $buildLog = Join-Path $env:RUNNER_TEMP 'emule-msbuild.log'
+          New-Item -ItemType Directory -Force -Path artifacts\diagnostics | Out-Null
+
+          if (-not (Test-Path -LiteralPath $buildLog)) {
+            'MSBuild log was not created.' | Out-File 'artifacts\diagnostics\first-error.txt'
+            Write-Host 'MSBuild log was not created.'
+            exit 0
+          }
+
+          Copy-Item -LiteralPath $buildLog -Destination 'artifacts\diagnostics\emule-msbuild.log'
+          $lines = @(Get-Content -LiteralPath $buildLog)
+          $matches = @(Select-String -LiteralPath $buildLog -Pattern ':\s+(fatal\s+)?error\s+C\d{4}\s*:|:\s+error\s+LNK\d{4}\s*:|error\s+MSB\d{4}\s*:' -CaseSensitive:$false)
+
+          if ($matches.Count -gt 0) {
+            $first = $matches[0]
+            $first.Line | Out-File 'artifacts\diagnostics\first-error.txt'
+
+            $start = [Math]::Max(0, $first.LineNumber - 5)
+            $end = [Math]::Min($lines.Count - 1, $first.LineNumber + 5)
+            $context = $lines[$start..$end]
+            $context | Out-File 'artifacts\diagnostics\first-error-context.txt'
+
+            Write-Host '=== FIRST REAL COMPILER/LINKER/MSBUILD ERROR ==='
+            Write-Host $first.Line
+            Write-Host '=== CONTEXT ==='
+            $context | ForEach-Object { Write-Host $_ }
+            Write-Host '=== END DIAGNOSTIC ==='
+
+            @(
+              '## First eMule build diagnostic',
+              '',
+              '```text',
+              $first.Line,
+              '```'
+            ) | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+          else {
+            $tail = @($lines | Select-Object -Last 80)
+            $tail | Out-File 'artifacts\diagnostics\first-error.txt'
+            Write-Host 'No C/C++/linker/MSBuild error pattern matched. Last 80 lines follow:'
+            $tail | ForEach-Object { Write-Host $_ }
+          }
+
+      - name: Upload compact build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eMule-build-diagnostics
+          path: artifacts/diagnostics/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Fail after diagnostics when MSBuild failed
+        if: env.EMULE_BUILD_EXIT_CODE != '0'
+        shell: pwsh
+        run: |
+          throw "MSBuild failed with exit code $env:EMULE_BUILD_EXIT_CODE; compact diagnostics were emitted above."
+
+      - name: Collect executable and diagnostics
+        if: env.EMULE_BUILD_EXIT_CODE == '0'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts\release | Out-Null
           $exe = Get-ChildItem -LiteralPath (Split-Path -Parent $env:EMULE_SOURCE_DIR) -Recurse -Filter 'emule.exe' -File |
             Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
           if ($null -eq $exe) { throw 'Build succeeded but eMule.exe was not found' }
-          Copy-Item -LiteralPath $exe.FullName -Destination 'artifacts\eMule-Next-x64.exe'
-          Get-FileHash -LiteralPath 'artifacts\eMule-Next-x64.exe' -Algorithm SHA256 |
-            Format-List | Out-File 'artifacts\SHA256.txt'
-          & dumpbin /headers 'artifacts\eMule-Next-x64.exe' |
+          Copy-Item -LiteralPath $exe.FullName -Destination 'artifacts\release\eMule-Next-x64.exe'
+          Get-FileHash -LiteralPath 'artifacts\release\eMule-Next-x64.exe' -Algorithm SHA256 |
+            Format-List | Out-File 'artifacts\release\SHA256.txt'
+          & dumpbin /headers 'artifacts\release\eMule-Next-x64.exe' |
             Select-String -Pattern 'machine|subsystem|image version' |
-            Out-File 'artifacts\PE-info.txt'
+            Out-File 'artifacts\release\PE-info.txt'
 
           $bootstrapManifest = Get-ChildItem -LiteralPath (Split-Path -Parent $env:EMULE_SOURCE_DIR) -Recurse -Filter 'emule-next-bootstrap.json' -File |
             Select-Object -First 1
           if ($null -ne $bootstrapManifest) {
-            Copy-Item -LiteralPath $bootstrapManifest.FullName -Destination 'artifacts\emule-next-bootstrap.json'
+            Copy-Item -LiteralPath $bootstrapManifest.FullName -Destination 'artifacts\release\emule-next-bootstrap.json'
           }
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload eMule Next x64
+        if: env.EMULE_BUILD_EXIT_CODE == '0'
+        uses: actions/upload-artifact@v4
         with:
           name: eMule-Next-x64
-          path: artifacts/
+          path: artifacts/release/
           if-no-files-found: error
           retention-days: 14
