@@ -4,6 +4,12 @@
 This script intentionally edits the legacy MFC files in one audited place.  It
 fails if expected anchors disappear instead of silently producing a partial
 integration.  It can be run repeatedly; a second run should produce no diff.
+
+The historic eMule sources are a mixture of ANSI/Windows-1252 and UTF-8 files.
+All injected source text is ASCII, so the integrator uses a Latin-1 round-trip
+for target files.  That maps every input byte 1:1 and prevents an integration
+run from corrupting or needlessly re-encoding untouched legacy source text.
+Original CRLF/LF line endings are preserved as well.
 """
 from __future__ import annotations
 
@@ -35,13 +41,36 @@ HEADER_FILES = [
     "DownloadIndex.h",
 ]
 
+# load() normalizes newlines for deterministic anchors. save() restores the
+# dominant newline sequence seen in the original byte stream.
+_NEWLINES: dict[pathlib.Path, str] = {}
+
 
 def load(path: pathlib.Path) -> str:
-    return path.read_text(encoding="utf-8-sig")
+    raw = path.read_bytes()
+    crlf = raw.count(b"\r\n")
+    lf = raw.count(b"\n") - crlf
+    cr = raw.count(b"\r") - crlf
+    if crlf >= lf and crlf >= cr and crlf:
+        newline = "\r\n"
+    elif cr > lf and cr:
+        newline = "\r"
+    else:
+        newline = "\n"
+    _NEWLINES[path] = newline
+
+    # Latin-1 is deliberately used as a byte-preserving transport encoding.
+    # Existing UTF-8 multibyte sequences/BOMs are not interpreted and therefore
+    # survive unchanged. All additions below are 7-bit ASCII.
+    text = raw.decode("latin-1")
+    return text.replace("\r\n", "\n").replace("\r", "\n")
 
 
 def save(path: pathlib.Path, text: str) -> None:
-    path.write_text(text, encoding="utf-8", newline="")
+    newline = _NEWLINES.get(path, "\n")
+    if newline != "\n":
+        text = text.replace("\n", newline)
+    path.write_bytes(text.encode("latin-1"))
 
 
 def require(text: str, needle: str, path: pathlib.Path) -> None:
