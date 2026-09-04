@@ -19,7 +19,7 @@ $CacheDir = Join-Path $RepoRoot 'build\cache'
 $Archive = Join-Path $CacheDir 'eMule0.72a-Sources.zip'
 
 # The official eMule source package intentionally does not contain the sibling
-# third-party projects referenced by emule.sln/emule.vcxproj.  Pin every build
+# third-party projects referenced by emule.sln/emule.vcxproj. Pin every build
 # dependency to an exact commit so CI and local builds do not drift when a
 # dependency branch advances.
 $Dependencies = @(
@@ -95,7 +95,7 @@ function Invoke-GitChecked {
 
     & git -C $WorkingDirectory @Arguments
     if ($LASTEXITCODE -ne 0) {
-        throw "git failed in $WorkingDirectory: git $($Arguments -join ' ')"
+        throw "git failed in ${WorkingDirectory}: git $($Arguments -join ' ')"
     }
 }
 
