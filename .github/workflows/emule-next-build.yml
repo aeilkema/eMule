@@ -5,6 +5,7 @@ on:
     branches: [develop]
     paths:
       - 'srchybrid/**'
+      - 'mbedtls/**'
       - 'tools/emule-next/**'
       - '.github/workflows/emule-next-build.yml'
   pull_request:
@@ -17,7 +18,7 @@ permissions:
 jobs:
   build-x64:
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +31,7 @@ jobs:
           python tools/emule-next/integrate.py
           if ($LASTEXITCODE -ne 0) { throw 'eMule Next integration failed' }
 
-      - name: Bootstrap official v0.72a full source
+      - name: Bootstrap official v0.72a source and pinned dependencies
         shell: pwsh
         run: |
           $lines = & .\tools\emule-next\bootstrap-source.ps1 -SkipIntegration
@@ -49,14 +50,25 @@ jobs:
           $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
           if ([string]::IsNullOrWhiteSpace($msbuild)) { throw 'MSBuild not found' }
           "MSBUILD_EXE=$msbuild" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "MSBuild: $msbuild"
 
-      - name: Build Release x64
+      - name: Build and stage dependencies
         shell: pwsh
         run: |
-          $solution = Get-ChildItem -LiteralPath $env:EMULE_SOURCE_DIR -Filter '*.sln' -File | Select-Object -First 1
-          $target = if ($null -ne $solution) { $solution.FullName } else { Join-Path $env:EMULE_SOURCE_DIR 'emule.vcxproj' }
+          & .\tools\emule-next\build-dependencies.ps1 `
+            -SourceDir $env:EMULE_SOURCE_DIR `
+            -MSBuildExe $env:MSBUILD_EXE `
+            -Configuration Release `
+            -Platform x64 `
+            -PlatformToolset v143
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency build failed' }
+
+      - name: Build eMule Next Release x64
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:EMULE_SOURCE_DIR 'emule.vcxproj'
           Write-Host "MSBuild target: $target"
-          & $env:MSBUILD_EXE $target /m /restore /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=10.0 /verbosity:minimal
+          & $env:MSBUILD_EXE $target /m /t:Build /p:BuildProjectReferences=false /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=10.0 /verbosity:minimal
           if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE" }
 
       - name: Collect executable and diagnostics
@@ -72,6 +84,12 @@ jobs:
           & dumpbin /headers 'artifacts\eMule-Next-x64.exe' |
             Select-String -Pattern 'machine|subsystem|image version' |
             Out-File 'artifacts\PE-info.txt'
+
+          $bootstrapManifest = Get-ChildItem -LiteralPath (Split-Path -Parent $env:EMULE_SOURCE_DIR) -Recurse -Filter 'emule-next-bootstrap.json' -File |
+            Select-Object -First 1
+          if ($null -ne $bootstrapManifest) {
+            Copy-Item -LiteralPath $bootstrapManifest.FullName -Destination 'artifacts\emule-next-bootstrap.json'
+          }
 
       - uses: actions/upload-artifact@v4
         with:
