@@ -60,7 +60,7 @@ jobs:
             -MSBuildExe $env:MSBUILD_EXE `
             -Configuration Release `
             -Platform x64 `
-            -PlatformToolset v143
+            -PlatformToolset v145
           if ($LASTEXITCODE -ne 0) { throw 'Dependency build failed' }
 
       - name: Build eMule Next Release x64
@@ -68,7 +68,7 @@ jobs:
         run: |
           $target = Join-Path $env:EMULE_SOURCE_DIR 'emule.vcxproj'
           Write-Host "MSBuild target: $target"
-          & $env:MSBUILD_EXE $target /m /t:Build /p:BuildProjectReferences=false /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143 /p:WindowsTargetPlatformVersion=10.0 /verbosity:minimal
+          & $env:MSBUILD_EXE $target /m /t:Build /p:BuildProjectReferences=false /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 /verbosity:minimal
           if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE" }
 
       - name: Collect executable and diagnostics
