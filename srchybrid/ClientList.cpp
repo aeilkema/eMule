@@ -39,6 +39,7 @@
 #include "Log.h"
 #include "packets.h"
 #include "Statistics.h"
+#include "EmuleNextRuntime.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -155,6 +156,10 @@ void CClientList::AddClient(CUpDownClient *toadd, bool bSkipDupTest)
 	if (bSkipDupTest || list.Find(toadd) == NULL) {
 		theApp.emuledlg->transferwnd->GetClientList().AddClient(toadd);
 		list.AddTail(toadd);
+		m_index.RegisterClient(toadd, toadd->GetUserHash(), toadd->GetConnectIP(),
+			toadd->GetUserPort(), toadd->GetUDPPort(), toadd->GetKadPort());
+		theEmuleNext.RecordPeerSeen(toadd->GetUserHash(), toadd->GetUserName(), CString(), CString(),
+			toadd->GetConnectIP(), toadd->GetUserPort(), toadd->GetUDPPort(), toadd->GetKadPort());
 	}
 }
 
@@ -174,6 +179,7 @@ void CClientList::RemoveClient(CUpDownClient *toremove, LPCTSTR pszReason)
 		theApp.uploadqueue->RemoveFromWaitingQueue(toremove);
 		theApp.downloadqueue->RemoveSource(toremove);
 		theApp.emuledlg->transferwnd->GetClientList().RemoveClient(toremove);
+		m_index.UnregisterClient(toremove);
 		list.RemoveAt(pos);
 	}
 	RemoveFromKadList(toremove);
@@ -241,6 +247,9 @@ bool CClientList::AttachToAlreadyKnown(CUpDownClient **client, CClientReqSocket 
 
 CUpDownClient *CClientList::FindClientByConnIP(uint32 clientip, UINT port) const
 {
+	CUpDownClient *indexed = m_index.FindByTcpEndpoint(clientip, static_cast<uint16>(port));
+	if (indexed != NULL)
+		return indexed;
 	for (POSITION pos = list.GetHeadPosition(); pos != NULL;) {
 		CUpDownClient *cur_client = list.GetNext(pos);
 		if (cur_client->GetConnectIP() == clientip && cur_client->GetUserPort() == port)
@@ -312,10 +321,17 @@ CUpDownClient* CClientList::FindClientByServerID(uint32 uServerIP, uint32 uED2KU
 
 CUpDownClient* CClientList::FindClientByUserHash(const uchar *clienthash, uint32 dwIP, uint16 nTCPPort) const
 {
+	CUpDownClient *indexed = m_index.FindByUserHash(clienthash, dwIP, nTCPPort);
+	if (indexed != NULL)
+		return indexed;
+
 	CUpDownClient *pFound = NULL;
 	for (POSITION pos = list.GetHeadPosition(); pos != NULL;) {
 		CUpDownClient *cur_client = list.GetNext(pos);
 		if (md4equ(cur_client->GetUserHash(), clienthash)) {
+			// Warm/refresh the index when a client acquired its hash after AddClient.
+			const_cast<CClientList*>(this)->m_index.UpdateClient(cur_client, cur_client->GetUserHash(),
+				cur_client->GetConnectIP(), cur_client->GetUserPort(), cur_client->GetUDPPort(), cur_client->GetKadPort());
 			if ((dwIP == 0 || dwIP == cur_client->GetConnectIP()) && (nTCPPort == 0 || nTCPPort == cur_client->GetUserPort()))
 				return cur_client;
 			if (pFound == NULL)

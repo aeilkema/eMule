@@ -38,6 +38,7 @@
 #include "TaskbarNotifier.h"
 #include "MenuCmds.h"
 #include "Log.h"
+#include "EmuleNextRuntime.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -106,6 +107,8 @@ void CDownloadQueue::Init()
 			if (eResult == PLR_LOADSUCCESS) {
 				++count;
 				filelist.AddTail(toadd); // to download queue
+				m_index.RegisterFile(toadd, toadd->GetFileHash(), toadd->GetKadFileSearchID());
+				theEmuleNext.RecordFileSeen(toadd->GetFileHash(), toadd->GetFileSize(), toadd->GetFileName());
 				if (toadd->GetStatus(true) == PS_READY)
 					theApp.sharedfiles->SafeAddKFile(toadd); // part files are always shared files
 				theApp.emuledlg->transferwnd->GetDownloadList().AddFile(toadd); // show in download window
@@ -127,8 +130,10 @@ void CDownloadQueue::Init()
 				if (afile && afile->IsKindOf(RUNTIME_CLASS(CPartFile)) && toadd->GetCompletedSize() > afile->GetCompletedSize()) {
 					--count;
 					POSITION pos = filelist.Find(afile);
-					if (pos)
+					if (pos) {
+						m_index.UnregisterFile(afile);
 						filelist.RemoveAt(pos);
+					}
 					theApp.sharedfiles->RemoveFile(afile, false);
 					theApp.emuledlg->transferwnd->GetDownloadList().RemoveFile(afile);
 					afile = NULL;
@@ -136,6 +141,8 @@ void CDownloadQueue::Init()
 				if (!afile) {
 					++count;
 					filelist.AddTail(toadd);			// to download queue
+					m_index.RegisterFile(toadd, toadd->GetFileHash(), toadd->GetKadFileSearchID());
+					theEmuleNext.RecordFileSeen(toadd->GetFileHash(), toadd->GetFileSize(), toadd->GetFileName());
 					if (toadd->GetStatus(true) == PS_READY)
 						theApp.sharedfiles->SafeAddKFile(toadd); // part files are always shared files
 					theApp.emuledlg->transferwnd->GetDownloadList().AddFile(toadd);// show in downloads window
@@ -325,6 +332,8 @@ void CDownloadQueue::AddDownload(CPartFile *newfile, bool paused)
 	SetAutoCat(newfile);// HoaX_69 / Slugfiller: AutoCat
 
 	filelist.AddTail(newfile);
+	m_index.RegisterFile(newfile, newfile->GetFileHash(), newfile->GetKadFileSearchID());
+	theEmuleNext.RecordFileSeen(newfile->GetFileHash(), newfile->GetFileSize(), newfile->GetFileName());
 	SortByPriority();
 	CheckDiskspace();
 	theApp.emuledlg->transferwnd->GetDownloadList().AddFile(newfile);
@@ -446,20 +455,34 @@ CPartFile* CDownloadQueue::GetFileNext(POSITION &pos) const
 
 CPartFile* CDownloadQueue::GetFileByID(const uchar *filehash) const
 {
+	CPartFile *indexed = m_index.FindByHash(filehash);
+	if (indexed != NULL)
+		return indexed;
+
+	// Compatibility fallback also warms files loaded before the index was
+	// introduced. Once migration telemetry shows no fallbacks this scan can go.
 	for (POSITION pos = filelist.GetHeadPosition(); pos != NULL;) {
 		CPartFile *cur_file = filelist.GetNext(pos);
-		if (md4equ(filehash, cur_file->GetFileHash()))
+		if (md4equ(filehash, cur_file->GetFileHash())) {
+			m_index.RegisterFile(cur_file, cur_file->GetFileHash(), cur_file->GetKadFileSearchID());
 			return cur_file;
+		}
 	}
 	return NULL;
 }
 
 CPartFile* CDownloadQueue::GetFileByKadFileSearchID(uint32 id) const
 {
+	CPartFile *indexed = m_index.FindByKadSearchId(id);
+	if (indexed != NULL)
+		return indexed;
+
 	for (POSITION pos = filelist.GetHeadPosition(); pos != NULL;) {
 		CPartFile *cur_file = filelist.GetNext(pos);
-		if (id == cur_file->GetKadFileSearchID())
+		if (id == cur_file->GetKadFileSearchID()) {
+			m_index.UpdateKadSearchId(cur_file, id);
 			return cur_file;
+		}
 	}
 	return NULL;
 }
@@ -691,8 +714,10 @@ void CDownloadQueue::RemoveFile(CPartFile *toremove)
 	RemoveLocalServerRequest(toremove);
 
 	POSITION pos = filelist.Find(toremove);
-	if (pos != NULL)
+	if (pos != NULL) {
+		m_index.UnregisterFile(toremove);
 		filelist.RemoveAt(pos);
+	}
 	SortByPriority();
 	CheckDiskspace();
 	ExportPartMetFilesOverview();

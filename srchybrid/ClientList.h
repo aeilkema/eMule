@@ -16,6 +16,7 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #pragma once
 #include "DeadSourceList.h"
+#include "ClientIndex.h"
 
 class CClientReqSocket;
 class CUpDownClient;
@@ -154,6 +155,8 @@ protected:
 	void	ProcessConnectingClientsList();
 
 private:
+	// Fast identity/endpoint lookup kept in lock-step with the canonical MFC list.
+	CClientIndex m_index;
 	CUpDownClientPtrList list;
 	CUpDownClientPtrList m_KadList;
 	CMap<uint32, uint32, DWORD, DWORD> m_bannedList;

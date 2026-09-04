@@ -15,6 +15,7 @@
 //Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 #pragma once
 #include "ring.h"
+#include "DownloadIndex.h"
 
 class CSafeMemFile;
 class CSearchFile;
@@ -162,6 +163,8 @@ private:
 	bool	CompareParts(POSITION pos1, POSITION pos2);
 	void	SwapParts(POSITION pos1, POSITION pos2);
 	void	HeapSort(UINT first, UINT last);
+	// Hash/Kad lookup index; the MFC list remains canonical during migration.
+	mutable CDownloadIndex m_index;
 	CTypedPtrList<CPtrList, CPartFile*> filelist;
 	CTypedPtrList<CPtrList, CPartFile*> m_localServerReqQueue;
 

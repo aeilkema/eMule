@@ -55,6 +55,7 @@
 #include "Server.h"
 #include "ED2KLink.h"
 #include "Preferences.h"
+#include "EmuleNextRuntime.h"
 #include "secrunasuser.h"
 #include "SafeFile.h"
 #include "emuleDlg.h"
@@ -492,6 +493,8 @@ BOOL CemuleApp::InitInstance()
 
 	// create & initialize all the important stuff
 	thePrefs.Init();
+	// eMule Next is additive: failure disables history/intelligence but never core networking.
+	theEmuleNext.Start();
 	theStats.Init();
 
 	// check if we have to restart eMule as Secure user
@@ -611,6 +614,8 @@ BOOL CemuleApp::InitInstance()
 
 	thePerfLog.Startup();
 	emuledlg->DoModal();
+	// Drain the async intelligence queue while core objects are still valid.
+	theEmuleNext.Stop();
 
 	DisableRTLWindowsLayout();
 
