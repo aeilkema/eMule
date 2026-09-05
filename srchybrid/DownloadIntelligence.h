@@ -19,6 +19,23 @@ enum EmuleNextStallReason
     ENSR_A4AF_CONFLICT
 };
 
+enum EmuleNextSchedulingMode
+{
+    ENSM_ANALYSIS_ONLY = 0,
+    ENSM_ASSIST = 1,
+    ENSM_AUTOMATIC = 2
+};
+
+enum EmuleNextSchedulingAction
+{
+    ENSA_NONE = 0,
+    ENSA_DISCOVERY_BOOST,
+    ENSA_DISCOVERY_REDUCE,
+    ENSA_A4AF_PREFER,
+    ENSA_RARE_PART_PROTECT,
+    ENSA_HOLD_STEADY
+};
+
 struct EmuleNextSourceSignals
 {
     double currentBytesPerSecond;
@@ -79,6 +96,39 @@ struct EmuleNextEta
     EmuleNextEta();
 };
 
+struct EmuleNextSchedulingSettings
+{
+    EmuleNextSchedulingMode mode;
+    bool sourceDiscovery;
+    bool a4af;
+    bool rareParts;
+    bool etaHealthDisplay;
+    uint32 normalDiscoveryBudget;
+    uint32 maxDiscoveryBudget;
+    uint32 minimumA4AFScore;
+    uint32 minimumSourceQuality;
+    uint32 interventionCooldownSeconds;
+
+    EmuleNextSchedulingSettings();
+};
+
+struct EmuleNextSchedulingDecision
+{
+    EmuleNextSchedulingAction primaryAction;
+    uint32 discoveryBudget;
+    uint32 a4afScore;
+    uint32 rarePartIndex;
+    uint32 health;
+    uint32 attention;
+    bool mayIntervene;
+    bool discoveryChanged;
+    bool a4afPreferred;
+    bool rarePartPreferred;
+    CString reason;
+
+    EmuleNextSchedulingDecision();
+};
+
 class CDownloadIntelligence
 {
 public:
@@ -91,6 +141,21 @@ public:
     static uint32 A4AFPriority(const EmuleNextFileSignals& file, uint32 sourceQuality);
     static EmuleNextStallReason DiagnoseStall(const EmuleNextFileSignals& file);
     static EmuleNextEta EstimateEta(const EmuleNextFileSignals& file, uint64 bytesRemaining);
-
     static uint32 ChooseRarestRiskPart(const std::vector<EmuleNextPartSignals>& parts);
+
+    // Smart Scheduling policy layer. This intentionally returns a decision and
+    // never mutates legacy networking state itself. Call sites remain explicit,
+    // auditable and individually feature-gated.
+    static uint32 AttentionScore(const EmuleNextFileSignals& file);
+    static EmuleNextSchedulingDecision EvaluateScheduling(
+        const EmuleNextFileSignals& file,
+        const std::vector<EmuleNextPartSignals>& parts,
+        uint32 bestSourceQuality,
+        const EmuleNextSchedulingSettings& settings);
+    static bool ShouldApplyDecision(
+        const EmuleNextSchedulingDecision& decision,
+        const EmuleNextSchedulingSettings& settings,
+        uint32 secondsSinceLastIntervention);
+    static CString SchedulingModeText(EmuleNextSchedulingMode mode);
+    static CString SchedulingActionText(EmuleNextSchedulingAction action);
 };

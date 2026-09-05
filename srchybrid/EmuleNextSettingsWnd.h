@@ -10,7 +10,6 @@ class CEmuleNextSettingsWnd : public CWnd
 public:
     CEmuleNextSettingsWnd();
     virtual ~CEmuleNextSettingsWnd();
-
     bool Create(CWnd* parent);
     void Refresh();
 
@@ -21,9 +20,11 @@ protected:
     afx_msg BOOL OnEraseBkgnd(CDC* dc);
     afx_msg HBRUSH OnCtlColor(CDC* dc, CWnd* wnd, UINT ctlColor);
     afx_msg void OnApplyClicked();
+    afx_msg void OnSchedulingModeChanged();
 
 private:
     void LayoutControls(int cx, int cy);
+    void UpdateSchedulingControls();
 
     CStatic m_heading;
     CStatic m_themeLabel;
@@ -32,6 +33,16 @@ private:
     CButton m_discoveryEnabled;
     CStatic m_concurrencyLabel;
     CComboBox m_maxConcurrent;
+
+    CStatic m_schedulerHeading;
+    CStatic m_schedulerModeLabel;
+    CComboBox m_schedulerMode;
+    CButton m_sourceDiscoveryIntelligence;
+    CButton m_a4afIntelligence;
+    CButton m_rarePartIntelligence;
+    CButton m_etaHealthDisplay;
+    CStatic m_schedulerSafety;
+
     CButton m_apply;
     CStatic m_status;
     CBrush m_darkBrush;
