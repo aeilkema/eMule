@@ -12,6 +12,14 @@
 
 CEmuleNextRuntime theEmuleNext;
 
+namespace
+{
+    uint64 RuntimeNowSeconds()
+    {
+        return static_cast<uint64>(time(NULL));
+    }
+}
+
 CEmuleNextRuntime::CEmuleNextRuntime()
 {
 }
@@ -37,6 +45,10 @@ bool CEmuleNextRuntime::Start()
 
 void CEmuleNextRuntime::Stop()
 {
+    {
+        std::lock_guard<std::mutex> lock(m_autoShareMutex);
+        m_autoShareRequests.clear();
+    }
     m_database.Stop();
 }
 
@@ -114,4 +126,45 @@ void CEmuleNextRuntime::RecordPeerFileSeen(const unsigned char* peerHash,
     if (sourceKind != NULL)
         observation.sourceKind = CStringW(sourceKind);
     m_database.RecordPeerFileSeen(observation);
+}
+
+void CEmuleNextRuntime::MarkAutomaticPeerShareRequest(const unsigned char* peerHash, uint64 ttlSeconds)
+{
+    EmuleNextHash16 hash(peerHash);
+    if (!hash.valid)
+        return;
+
+    if (ttlSeconds < 30)
+        ttlSeconds = 30;
+
+    std::lock_guard<std::mutex> lock(m_autoShareMutex);
+    m_autoShareRequests[hash.bytes] = RuntimeNowSeconds() + ttlSeconds;
+}
+
+bool CEmuleNextRuntime::IsAutomaticPeerShareRequest(const unsigned char* peerHash) const
+{
+    EmuleNextHash16 hash(peerHash);
+    if (!hash.valid)
+        return false;
+
+    const uint64 now = RuntimeNowSeconds();
+    std::lock_guard<std::mutex> lock(m_autoShareMutex);
+    const std::map<std::array<unsigned char, 16>, uint64>::iterator it = m_autoShareRequests.find(hash.bytes);
+    if (it == m_autoShareRequests.end())
+        return false;
+    if (it->second < now) {
+        m_autoShareRequests.erase(it);
+        return false;
+    }
+    return true;
+}
+
+void CEmuleNextRuntime::CompleteAutomaticPeerShareRequest(const unsigned char* peerHash)
+{
+    EmuleNextHash16 hash(peerHash);
+    if (!hash.valid)
+        return;
+
+    std::lock_guard<std::mutex> lock(m_autoShareMutex);
+    m_autoShareRequests.erase(hash.bytes);
 }
