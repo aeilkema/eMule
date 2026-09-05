@@ -17,13 +17,12 @@ for script_name in (
     "activate-runtime-features.py",
     "finalize-peer-share-processing.py",
     "activate-theme.py",
+    "activate-next-settings.py",
     "finalize-search-results.py",
 ):
     try:
         runpy.run_path(str(HERE / script_name), run_name="__main__")
     except SystemExit as exc:
-        # The dedicated patchers use `raise SystemExit(main())`. A successful
-        # patcher must not prevent the next activation layer from running.
         if exc.code not in (None, 0):
             raise
 
