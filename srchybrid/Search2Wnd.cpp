@@ -19,6 +19,10 @@ namespace
         IDC_EN_SEARCH2_START,
         IDC_EN_SEARCH2_HIDE_DOWNLOADED,
         IDC_EN_SEARCH2_FAVORITES,
+        IDC_EN_SEARCH2_MISSING,
+        IDC_EN_SEARCH2_SAVED,
+        IDC_EN_SEARCH2_SAVE,
+        IDC_EN_SEARCH2_DELETE,
         IDC_EN_SEARCH2_RESULTS,
         IDC_EN_SEARCH2_FAVORITE,
         IDC_EN_SEARCH2_LATER,
@@ -31,6 +35,7 @@ namespace
     {
         HWND target;
         EmuleNextSearchRequest request;
+        CString savedSearchName;
     };
 
     struct SearchResult
@@ -46,6 +51,14 @@ namespace
         std::unique_ptr<SearchResult> result(new SearchResult);
         CSearch2Service service(theEmuleNext.Database());
         result->ok = service.SearchHistory(context->request, result->rows);
+        if (result->ok && !context->savedSearchName.IsEmpty()) {
+            uint64 newestSeen = 0;
+            for (size_t i = 0; i < result->rows.size(); ++i) {
+                if (result->rows[i].lastSeen > newestSeen)
+                    newestSeen = result->rows[i].lastSeen;
+            }
+            service.MarkSearchRun(context->savedSearchName, newestSeen);
+        }
         if (::IsWindow(context->target)
             && ::PostMessage(context->target, WM_EN_SEARCH2_LOADED, 0, reinterpret_cast<LPARAM>(result.get()))) {
             result.release();
@@ -60,6 +73,9 @@ BEGIN_MESSAGE_MAP(CSearch2Wnd, CWnd)
     ON_WM_ERASEBKGND()
     ON_WM_CTLCOLOR()
     ON_BN_CLICKED(IDC_EN_SEARCH2_START, OnSearchClicked)
+    ON_CBN_SELCHANGE(IDC_EN_SEARCH2_SAVED, OnSavedSearchChanged)
+    ON_BN_CLICKED(IDC_EN_SEARCH2_SAVE, OnSaveSearchClicked)
+    ON_BN_CLICKED(IDC_EN_SEARCH2_DELETE, OnDeleteSearchClicked)
     ON_BN_CLICKED(IDC_EN_SEARCH2_FAVORITE, OnFavoriteClicked)
     ON_BN_CLICKED(IDC_EN_SEARCH2_LATER, OnDownloadLaterClicked)
     ON_BN_CLICKED(IDC_EN_SEARCH2_BLOCK, OnBlockClicked)
@@ -94,16 +110,27 @@ int CSearch2Wnd::OnCreate(LPCREATESTRUCT createStruct)
 
     m_darkBrush.CreateSolidBrush(CEmuleNextTheme::BackgroundColor());
     CRect empty(0, 0, 0, 0);
-    if (!m_query.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL,
+    if (!m_title.Create(_T("Search"), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
+        || !m_subtitle.Create(_T("Search current and historical file knowledge collected by eMule Next."),
+            WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
+        || !m_query.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL,
             empty, this, IDC_EN_SEARCH2_QUERY)
-        || !m_search.Create(_T("Search history"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
+        || !m_search.Create(_T("Search"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
             empty, this, IDC_EN_SEARCH2_START)
         || !m_hideDownloaded.Create(_T("Hide downloaded"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
             empty, this, IDC_EN_SEARCH2_HIDE_DOWNLOADED)
         || !m_favoritesOnly.Create(_T("Favorites only"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
             empty, this, IDC_EN_SEARCH2_FAVORITES)
-        || !m_status.Create(_T("Search the persistent file knowledge collected by eMule Next."),
-            WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
+        || !m_missingOnly.Create(_T("Missing only"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
+            empty, this, IDC_EN_SEARCH2_MISSING)
+        || !m_savedSearchLabel.Create(_T("Saved search"), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
+        || !m_savedSearch.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | CBS_DROPDOWN | CBS_AUTOHSCROLL,
+            empty, this, IDC_EN_SEARCH2_SAVED)
+        || !m_saveSearch.Create(_T("Save"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
+            empty, this, IDC_EN_SEARCH2_SAVE)
+        || !m_deleteSearch.Create(_T("Delete"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
+            empty, this, IDC_EN_SEARCH2_DELETE)
+        || !m_status.Create(_T("Ready."), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
         || !m_results.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS,
             empty, this, IDC_EN_SEARCH2_RESULTS)
         || !m_favorite.Create(_T("Add favorite"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
@@ -116,8 +143,10 @@ int CSearch2Wnd::OnCreate(LPCREATESTRUCT createStruct)
     }
 
     CFont* font = CFont::FromHandle(static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT)));
-    m_query.SetFont(font); m_search.SetFont(font); m_hideDownloaded.SetFont(font);
-    m_favoritesOnly.SetFont(font); m_status.SetFont(font); m_results.SetFont(font);
+    m_title.SetFont(font); m_subtitle.SetFont(font); m_query.SetFont(font); m_search.SetFont(font);
+    m_hideDownloaded.SetFont(font); m_favoritesOnly.SetFont(font); m_missingOnly.SetFont(font);
+    m_savedSearchLabel.SetFont(font); m_savedSearch.SetFont(font); m_saveSearch.SetFont(font);
+    m_deleteSearch.SetFont(font); m_status.SetFont(font); m_results.SetFont(font);
     m_favorite.SetFont(font); m_downloadLater.SetFont(font); m_block.SetFont(font);
 
     m_results.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_GRIDLINES);
@@ -130,6 +159,7 @@ int CSearch2Wnd::OnCreate(LPCREATESTRUCT createStruct)
     m_results.InsertColumn(6, _T("ED2K hash"), LVCFMT_LEFT, 245);
 
     m_query.SetWindowText(_T(""));
+    ReloadSavedSearches();
     UpdateActionButtons();
     CEmuleNextTheme::ApplyToWindow(m_hWnd);
     return 0;
@@ -137,8 +167,10 @@ int CSearch2Wnd::OnCreate(LPCREATESTRUCT createStruct)
 
 void CSearch2Wnd::Refresh(bool force)
 {
-    if (force || IsWindowVisible())
+    if (force || IsWindowVisible()) {
+        ReloadSavedSearches();
         StartSearch();
+    }
 }
 
 void CSearch2Wnd::OnSize(UINT type, int cx, int cy)
@@ -150,26 +182,39 @@ void CSearch2Wnd::OnSize(UINT type, int cx, int cy)
 
 void CSearch2Wnd::LayoutControls(int cx, int cy)
 {
-    const int margin = 8;
-    const int top = 8;
-    const int queryHeight = 24;
-    const int buttonWidth = 112;
-    const int actionHeight = 28;
-    const int actionTop = max(top + 66, cy - margin - actionHeight);
-    const int listTop = top + 58;
-    const int listHeight = max(60, actionTop - listTop - 7);
+    const int margin = 12;
+    const int titleTop = 10;
+    const int queryTop = 58;
+    const int queryHeight = 26;
+    const int filterTop = 92;
+    const int statusTop = 121;
+    const int listTop = 145;
+    const int searchWidth = 104;
+    const int actionHeight = 30;
+    const int actionTop = max(listTop + 70, cy - margin - actionHeight);
+    const int listHeight = max(60, actionTop - listTop - 8);
 
-    int right = cx - margin;
-    m_search.MoveWindow(right - buttonWidth, top, buttonWidth, queryHeight);
-    right -= buttonWidth + 8;
-    m_query.MoveWindow(margin, top, max(120, right - margin), queryHeight);
-    m_hideDownloaded.MoveWindow(margin, top + 31, 125, 20);
-    m_favoritesOnly.MoveWindow(margin + 135, top + 31, 110, 20);
-    m_status.MoveWindow(margin + 260, top + 33, max(80, cx - margin - (margin + 260)), 18);
+    m_title.MoveWindow(margin, titleTop, max(160, cx - margin * 2), 22);
+    m_subtitle.MoveWindow(margin, titleTop + 24, max(160, cx - margin * 2), 18);
+
+    m_search.MoveWindow(max(margin, cx - margin - searchWidth), queryTop, searchWidth, queryHeight);
+    m_query.MoveWindow(margin, queryTop, max(120, cx - margin * 3 - searchWidth), queryHeight);
+
+    m_hideDownloaded.MoveWindow(margin, filterTop + 2, 124, 20);
+    m_favoritesOnly.MoveWindow(margin + 132, filterTop + 2, 108, 20);
+    m_missingOnly.MoveWindow(margin + 248, filterTop + 2, 100, 20);
+
+    const int savedLeft = max(margin + 355, cx - margin - 380);
+    m_savedSearchLabel.MoveWindow(savedLeft, filterTop + 4, 82, 18);
+    m_savedSearch.MoveWindow(savedLeft + 84, filterTop, 170, 220);
+    m_saveSearch.MoveWindow(savedLeft + 260, filterTop, 54, 24);
+    m_deleteSearch.MoveWindow(savedLeft + 320, filterTop, 58, 24);
+
+    m_status.MoveWindow(margin, statusTop, max(100, cx - margin * 2), 18);
     m_results.MoveWindow(margin, listTop, max(0, cx - margin * 2), listHeight);
-    m_favorite.MoveWindow(margin, actionTop, 105, actionHeight);
-    m_downloadLater.MoveWindow(margin + 113, actionTop, 110, actionHeight);
-    m_block.MoveWindow(margin + 231, actionTop, 95, actionHeight);
+    m_favorite.MoveWindow(margin, actionTop, 108, actionHeight);
+    m_downloadLater.MoveWindow(margin + 116, actionTop, 112, actionHeight);
+    m_block.MoveWindow(margin + 236, actionTop, 96, actionHeight);
 }
 
 BOOL CSearch2Wnd::OnEraseBkgnd(CDC* dc)
@@ -197,6 +242,123 @@ void CSearch2Wnd::OnSearchClicked()
     StartSearch();
 }
 
+void CSearch2Wnd::OnSavedSearchChanged()
+{
+    const int selected = m_savedSearch.GetCurSel();
+    if (selected < 0 || static_cast<size_t>(selected) >= m_savedSearches.size())
+        return;
+    ApplySavedSearch(m_savedSearches[static_cast<size_t>(selected)]);
+    StartSearch();
+}
+
+void CSearch2Wnd::OnSaveSearchClicked()
+{
+    if (!theEmuleNext.IsRunning())
+        return;
+
+    CString name;
+    CString query;
+    m_savedSearch.GetWindowText(name);
+    m_query.GetWindowText(query);
+    name.Trim();
+    query.Trim();
+
+    if (query.IsEmpty()) {
+        m_status.SetWindowText(_T("Enter a search query before saving."));
+        return;
+    }
+    if (name.IsEmpty())
+        name = query;
+
+    EmuleNextSavedSearch saved;
+    saved.name = name;
+    saved.query = query;
+    saved.filter = CurrentFilter();
+
+    CSearch2Service service(theEmuleNext.Database());
+    if (!service.SaveSearch(saved)) {
+        m_status.SetWindowText(_T("Saved search could not be stored."));
+        return;
+    }
+
+    ReloadSavedSearches();
+    const int selected = m_savedSearch.FindStringExact(-1, name);
+    if (selected >= 0)
+        m_savedSearch.SetCurSel(selected);
+    else
+        m_savedSearch.SetWindowText(name);
+
+    CString status;
+    status.Format(_T("Saved search '%s'."), static_cast<LPCTSTR>(name));
+    m_status.SetWindowText(status);
+}
+
+void CSearch2Wnd::OnDeleteSearchClicked()
+{
+    if (!theEmuleNext.IsRunning())
+        return;
+
+    CString name;
+    m_savedSearch.GetWindowText(name);
+    name.Trim();
+    if (name.IsEmpty()) {
+        m_status.SetWindowText(_T("Select a saved search to delete."));
+        return;
+    }
+
+    CSearch2Service service(theEmuleNext.Database());
+    if (!service.DeleteSavedSearch(name)) {
+        m_status.SetWindowText(_T("Saved search could not be deleted."));
+        return;
+    }
+
+    ReloadSavedSearches();
+    m_savedSearch.SetWindowText(_T(""));
+    m_status.SetWindowText(_T("Saved search deleted."));
+}
+
+EmuleNextSearchFilter CSearch2Wnd::CurrentFilter() const
+{
+    EmuleNextSearchFilter filter;
+    filter.excludePreviouslyDownloaded = m_hideDownloaded.GetCheck() == BST_CHECKED;
+    filter.favoritesOnly = m_favoritesOnly.GetCheck() == BST_CHECKED;
+    filter.missingOnly = m_missingOnly.GetCheck() == BST_CHECKED;
+    return filter;
+}
+
+void CSearch2Wnd::ReloadSavedSearches()
+{
+    if (!::IsWindow(m_savedSearch.m_hWnd) || !theEmuleNext.IsRunning())
+        return;
+
+    CString previous;
+    m_savedSearch.GetWindowText(previous);
+
+    CSearch2Service service(theEmuleNext.Database());
+    std::vector<EmuleNextSavedSearch> searches;
+    if (!service.LoadSavedSearches(searches))
+        return;
+
+    m_savedSearches.swap(searches);
+    m_savedSearch.ResetContent();
+    for (size_t i = 0; i < m_savedSearches.size(); ++i)
+        m_savedSearch.AddString(m_savedSearches[i].name);
+
+    const int selected = previous.IsEmpty() ? -1 : m_savedSearch.FindStringExact(-1, previous);
+    if (selected >= 0)
+        m_savedSearch.SetCurSel(selected);
+    else
+        m_savedSearch.SetWindowText(previous);
+}
+
+void CSearch2Wnd::ApplySavedSearch(const EmuleNextSavedSearch& search)
+{
+    m_query.SetWindowText(search.query);
+    m_hideDownloaded.SetCheck(search.filter.excludePreviouslyDownloaded ? BST_CHECKED : BST_UNCHECKED);
+    m_favoritesOnly.SetCheck(search.filter.favoritesOnly ? BST_CHECKED : BST_UNCHECKED);
+    m_missingOnly.SetCheck(search.filter.missingOnly ? BST_CHECKED : BST_UNCHECKED);
+}
+
 void CSearch2Wnd::StartSearch()
 {
     if (m_loading || !theEmuleNext.IsRunning())
@@ -205,14 +367,17 @@ void CSearch2Wnd::StartSearch()
     std::unique_ptr<SearchContext> context(new SearchContext);
     context->target = m_hWnd;
     m_query.GetWindowText(context->request.query);
-    context->request.filter.excludePreviouslyDownloaded = m_hideDownloaded.GetCheck() == BST_CHECKED;
-    context->request.filter.favoritesOnly = m_favoritesOnly.GetCheck() == BST_CHECKED;
+    context->request.filter = CurrentFilter();
     context->request.maximumResults = 2000;
     context->request.pageSize = 500;
 
+    const int savedIndex = m_savedSearch.GetCurSel();
+    if (savedIndex >= 0 && static_cast<size_t>(savedIndex) < m_savedSearches.size())
+        context->savedSearchName = m_savedSearches[static_cast<size_t>(savedIndex)].name;
+
     m_loading = true;
     m_search.EnableWindow(FALSE);
-    m_status.SetWindowText(_T("Searching history in the background..."));
+    m_status.SetWindowText(_T("Searching file knowledge in the background..."));
     if (AfxBeginThread(SearchWorker, context.get(), THREAD_PRIORITY_BELOW_NORMAL) == NULL) {
         m_loading = false;
         m_search.EnableWindow(TRUE);
@@ -228,13 +393,13 @@ LRESULT CSearch2Wnd::OnSearchLoaded(WPARAM, LPARAM value)
     m_loading = false;
     m_search.EnableWindow(TRUE);
     if (result.get() == NULL || !result->ok) {
-        m_status.SetWindowText(_T("History search failed."));
+        m_status.SetWindowText(_T("Search failed."));
         return 0;
     }
     m_rows.swap(result->rows);
     PopulateResults();
     CString text;
-    text.Format(_T("%u historical files found."), static_cast<unsigned>(m_rows.size()));
+    text.Format(_T("%u files found."), static_cast<unsigned>(m_rows.size()));
     m_status.SetWindowText(text);
     return 0;
 }
