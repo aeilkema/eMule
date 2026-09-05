@@ -52,6 +52,38 @@ jobs:
           "MSBUILD_EXE=$msbuild" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "MSBuild: $msbuild"
 
+      - name: Locate installed WinSQLite Windows SDK
+        shell: pwsh
+        run: |
+          $kitsRoot = "${env:ProgramFiles(x86)}\Windows Kits\10"
+          $includeRoot = Join-Path $kitsRoot 'Include'
+          if (-not (Test-Path -LiteralPath $includeRoot)) {
+            throw "Windows SDK include root not found: $includeRoot"
+          }
+
+          $sdk = Get-ChildItem -LiteralPath $includeRoot -Directory |
+            Sort-Object { try { [Version]$_.Name } catch { [Version]'0.0' } } -Descending |
+            Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'um\winsqlite3.h') } |
+            Select-Object -First 1
+
+          if ($null -eq $sdk) {
+            Write-Host 'Installed Windows SDK directories:'
+            Get-ChildItem -LiteralPath $includeRoot -Directory | ForEach-Object { Write-Host "  $($_.Name)" }
+            throw 'winsqlite3.h was not found in any installed Windows SDK'
+          }
+
+          $winSqliteHeader = Join-Path $sdk.FullName 'um\winsqlite3.h'
+          $winSqliteInclude = Split-Path -Parent $winSqliteHeader
+          $clOptions = "/I`"$winSqliteInclude`""
+          if (-not [string]::IsNullOrWhiteSpace($env:CL)) {
+            $clOptions = "$clOptions $env:CL"
+          }
+
+          "EMULE_WINDOWS_SDK_VERSION=$($sdk.Name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CL=$clOptions" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "WinSQLite header: $winSqliteHeader"
+          Write-Host "Windows SDK selected: $($sdk.Name)"
+
       - name: Build and stage dependencies
         shell: pwsh
         run: |
@@ -78,7 +110,7 @@ jobs:
           Write-Host "MSBuild target: $target"
           Write-Host "Full MSBuild output: $buildLog"
 
-          & $env:MSBUILD_EXE $target /m /t:Build /p:BuildProjectReferences=false /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=10.0 /verbosity:minimal *> $buildLog
+          & $env:MSBUILD_EXE $target /m /t:Build /p:BuildProjectReferences=false /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WindowsTargetPlatformVersion=$env:EMULE_WINDOWS_SDK_VERSION /verbosity:minimal *> $buildLog
           $buildExit = $LASTEXITCODE
 
           "EMULE_BUILD_EXIT_CODE=$buildExit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
