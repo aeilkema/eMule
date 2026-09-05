@@ -15,6 +15,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 for script_name in (
     "prepare-search-results.py",
     "activate-runtime-features.py",
+    "finalize-peer-share-processing.py",
     "activate-theme.py",
     "finalize-search-results.py",
 ):
