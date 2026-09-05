@@ -20,7 +20,8 @@ namespace
         IDC_EN_LIBRARY_RESULTS,
         IDC_EN_LIBRARY_FAVORITE,
         IDC_EN_LIBRARY_LATER,
-        IDC_EN_LIBRARY_LOCATION
+        IDC_EN_LIBRARY_LOCATION,
+        IDC_EN_LIBRARY_TEXT_FILTER
     };
 
     const UINT WM_EN_LIBRARY_LOADED = WM_APP + 0x571;
@@ -60,6 +61,7 @@ BEGIN_MESSAGE_MAP(CFileLibraryWnd, CWnd)
     ON_WM_CTLCOLOR()
     ON_BN_CLICKED(IDC_EN_LIBRARY_REFRESH, OnRefreshClicked)
     ON_CBN_SELCHANGE(IDC_EN_LIBRARY_FILTER, OnFilterChanged)
+    ON_EN_CHANGE(IDC_EN_LIBRARY_TEXT_FILTER, OnTextFilterChanged)
     ON_BN_CLICKED(IDC_EN_LIBRARY_FAVORITE, OnFavoriteClicked)
     ON_BN_CLICKED(IDC_EN_LIBRARY_LATER, OnDownloadLaterClicked)
     ON_BN_CLICKED(IDC_EN_LIBRARY_LOCATION, OnOpenLocationClicked)
@@ -94,12 +96,18 @@ int CFileLibraryWnd::OnCreate(LPCREATESTRUCT createStruct)
 
     m_darkBrush.CreateSolidBrush(CEmuleNextTheme::BackgroundColor());
     CRect empty(0, 0, 0, 0);
-    if (!m_filter.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
+    if (!m_title.Create(_T("Library"), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
+        || !m_subtitle.Create(_T("Persistent file history, favorites, missing items and Download Later."),
+            WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
+        || !m_viewLabel.Create(_T("View"), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
+        || !m_filter.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
             empty, this, IDC_EN_LIBRARY_FILTER)
+        || !m_findLabel.Create(_T("Find"), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
+        || !m_textFilter.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL,
+            empty, this, IDC_EN_LIBRARY_TEXT_FILTER)
         || !m_refresh.Create(_T("Refresh"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
             empty, this, IDC_EN_LIBRARY_REFRESH)
-        || !m_status.Create(_T("Persistent file history collected by eMule Next."),
-            WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
+        || !m_status.Create(_T("Ready."), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
         || !m_results.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS,
             empty, this, IDC_EN_LIBRARY_RESULTS)
         || !m_favorite.Create(_T("Add favorite"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
@@ -112,8 +120,9 @@ int CFileLibraryWnd::OnCreate(LPCREATESTRUCT createStruct)
     }
 
     CFont* font = CFont::FromHandle(static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT)));
-    m_filter.SetFont(font); m_refresh.SetFont(font); m_status.SetFont(font); m_results.SetFont(font);
-    m_favorite.SetFont(font); m_downloadLater.SetFont(font); m_openLocation.SetFont(font);
+    m_title.SetFont(font); m_subtitle.SetFont(font); m_viewLabel.SetFont(font); m_filter.SetFont(font);
+    m_findLabel.SetFont(font); m_textFilter.SetFont(font); m_refresh.SetFont(font); m_status.SetFont(font);
+    m_results.SetFont(font); m_favorite.SetFont(font); m_downloadLater.SetFont(font); m_openLocation.SetFont(font);
 
     m_filter.AddString(_T("History"));
     m_filter.AddString(_T("Favorites"));
@@ -150,18 +159,29 @@ void CFileLibraryWnd::OnSize(UINT type, int cx, int cy)
 
 void CFileLibraryWnd::LayoutControls(int cx, int cy)
 {
-    const int margin = 8;
-    const int top = 8;
-    const int actionHeight = 28;
-    const int actionTop = max(70, cy - margin - actionHeight);
-    const int listTop = 42;
-    m_filter.MoveWindow(margin, top, 160, 240);
-    m_refresh.MoveWindow(margin + 168, top, 84, 25);
-    m_status.MoveWindow(margin + 264, top + 4, max(80, cx - margin - (margin + 264)), 20);
-    m_results.MoveWindow(margin, listTop, max(0, cx - margin * 2), max(60, actionTop - listTop - 7));
-    m_favorite.MoveWindow(margin, actionTop, 105, actionHeight);
-    m_downloadLater.MoveWindow(margin + 113, actionTop, 110, actionHeight);
-    m_openLocation.MoveWindow(margin + 231, actionTop, 105, actionHeight);
+    const int margin = 12;
+    const int titleTop = 10;
+    const int controlsTop = 58;
+    const int statusTop = 91;
+    const int listTop = 115;
+    const int actionHeight = 30;
+    const int actionTop = max(listTop + 70, cy - margin - actionHeight);
+
+    m_title.MoveWindow(margin, titleTop, max(160, cx - margin * 2), 22);
+    m_subtitle.MoveWindow(margin, titleTop + 24, max(160, cx - margin * 2), 18);
+
+    m_viewLabel.MoveWindow(margin, controlsTop + 5, 34, 18);
+    m_filter.MoveWindow(margin + 38, controlsTop, 160, 240);
+    m_findLabel.MoveWindow(margin + 212, controlsTop + 5, 30, 18);
+    m_textFilter.MoveWindow(margin + 246, controlsTop, max(120, cx - (margin + 246) - 108), 25);
+    m_refresh.MoveWindow(max(margin, cx - margin - 92), controlsTop, 92, 25);
+
+    m_status.MoveWindow(margin, statusTop, max(100, cx - margin * 2), 18);
+    m_results.MoveWindow(margin, listTop, max(0, cx - margin * 2),
+        max(60, actionTop - listTop - 8));
+    m_favorite.MoveWindow(margin, actionTop, 108, actionHeight);
+    m_downloadLater.MoveWindow(margin + 116, actionTop, 112, actionHeight);
+    m_openLocation.MoveWindow(margin + 236, actionTop, 108, actionHeight);
 }
 
 BOOL CFileLibraryWnd::OnEraseBkgnd(CDC* dc)
@@ -192,6 +212,12 @@ void CFileLibraryWnd::OnRefreshClicked()
 void CFileLibraryWnd::OnFilterChanged()
 {
     StartLoad();
+}
+
+void CFileLibraryWnd::OnTextFilterChanged()
+{
+    if (!m_loading)
+        PopulateRows();
 }
 
 void CFileLibraryWnd::StartLoad()
@@ -229,21 +255,38 @@ LRESULT CFileLibraryWnd::OnLibraryLoaded(WPARAM, LPARAM value)
     }
     m_rows.swap(result->rows);
     PopulateRows();
-    CString status;
-    status.Format(_T("%u files in this Library view."), static_cast<unsigned>(m_rows.size()));
-    m_status.SetWindowText(status);
     return 0;
 }
 
 void CFileLibraryWnd::PopulateRows()
 {
+    CString needle;
+    if (::IsWindow(m_textFilter.m_hWnd))
+        m_textFilter.GetWindowText(needle);
+    needle.Trim();
+    needle.MakeLower();
+
     m_results.SetRedraw(FALSE);
     m_results.DeleteAllItems();
+    unsigned displayed = 0;
     for (size_t i = 0; i < m_rows.size(); ++i) {
         const EmuleNextLibraryBrowseRow& file = m_rows[i];
         CString name(file.fileName);
-        if (name.IsEmpty()) name = _T("<unnamed>");
-        const int row = m_results.InsertItem(static_cast<int>(i), name);
+        if (name.IsEmpty())
+            name = _T("<unnamed>");
+
+        if (!needle.IsEmpty()) {
+            CString haystack(name);
+            if (!file.localPath.IsEmpty()) {
+                haystack += _T(" ");
+                haystack += CString(file.localPath);
+            }
+            haystack.MakeLower();
+            if (haystack.Find(needle) < 0)
+                continue;
+        }
+
+        const int row = m_results.InsertItem(static_cast<int>(displayed), name);
         m_results.SetItemData(row, static_cast<DWORD_PTR>(i));
         m_results.SetItemText(row, 1, CastItoXBytes(file.fileSize, false, false, 1));
         CString state;
@@ -256,10 +299,18 @@ void CFileLibraryWnd::PopulateRows()
         m_results.SetItemText(row, 3, DateText(file.lastSeen));
         m_results.SetItemText(row, 4, CString(file.localPath));
         m_results.SetItemText(row, 5, HashText(file.fileHash));
+        ++displayed;
     }
     m_results.SetRedraw(TRUE);
     m_results.Invalidate(FALSE);
     UpdateActions();
+
+    CString status;
+    if (needle.IsEmpty())
+        status.Format(_T("%u files in this Library view."), static_cast<unsigned>(m_rows.size()));
+    else
+        status.Format(_T("%u of %u files match the filter."), displayed, static_cast<unsigned>(m_rows.size()));
+    m_status.SetWindowText(status);
 }
 
 int CFileLibraryWnd::SelectedIndex() const
@@ -324,6 +375,7 @@ void CFileLibraryWnd::OnDownloadLaterClicked()
     file.aichHash = row.aichHash;
     theEmuleNext.Database().SaveDownloadLater(file);
     row.downloadLater = true;
+    PopulateRows();
     m_status.SetWindowText(_T("Added to Download Later."));
 }
 
