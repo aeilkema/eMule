@@ -16,6 +16,7 @@ for script_name in (
     "prepare-search-results.py",
     "activate-runtime-features.py",
     "activate-theme.py",
+    "finalize-search-results.py",
 ):
     try:
         runpy.run_path(str(HERE / script_name), run_name="__main__")
