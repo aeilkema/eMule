@@ -53,6 +53,7 @@ for script_name in (
     "activate-transfer-history-direction.py",
     "activate-smart-scheduler-runtime.py",
     "verify-smart-scheduling.py",
+    "verify-smart-scheduler-runtime.py",
     "verify-next-integration.py",
     "activate-branding.py",
     "fix-preview1-build.py",
