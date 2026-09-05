@@ -679,9 +679,10 @@ void CUpDownClient::SetDownloadState(EDownloadState nNewState, LPCTSTR pszReason
 				observation.fileSize = m_reqfile->GetFileSize();
 				observation.bytesTransferred = GetSessionDown();
 				const uint64 durationMs = GetDownloadTicks(false);
-				observation.averageBytesPerSecond = durationMs > 0
-					? static_cast<uint32>(min<uint64>((observation.bytesTransferred * 1000ui64) / durationMs, _UI32_MAX))
-					: 0;
+				const uint64 averageBytesPerSecond = durationMs > 0
+					? (observation.bytesTransferred * 1000ui64) / durationMs : 0;
+				observation.averageBytesPerSecond = static_cast<uint32>(
+					averageBytesPerSecond > _UI32_MAX ? _UI32_MAX : averageBytesPerSecond);
 				observation.successful = m_bDownloadedAnyBytes && nNewState != DS_ERROR;
 				observation.direction = L"download";
 				observation.result = pszReason != NULL ? CStringW(pszReason)
