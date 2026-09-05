@@ -22,14 +22,6 @@ def save(path: pathlib.Path, text: str, newline: str) -> None:
     path.write_bytes(text.encode("latin-1"))
 
 
-def insert_after(text: str, anchor: str, addition: str, path: pathlib.Path) -> str:
-    if addition.strip() in text:
-        return text
-    if anchor not in text:
-        raise RuntimeError(f"Settings anchor not found in {path}: {anchor!r}")
-    return text.replace(anchor, anchor + addition, 1)
-
-
 def patch_project() -> None:
     path = SRC / "emule.vcxproj"
     text, newline = load(path)
@@ -46,33 +38,53 @@ def patch_client_list() -> None:
     path = SRC / "ClientList.cpp"
     text, newline = load(path)
 
-    constructor_anchor = '\tm_peerShareScanner.SetTransport(this);\n'
-    constructor_addition = (
-        '\tm_peerShareScanner.SetEnabled(theApp.GetProfileInt(_T("eMule Next"), _T("PeerShareDiscovery"), 1) != 0);\n'
-        '\tint nextMaxConcurrent = theApp.GetProfileInt(_T("eMule Next"), _T("PeerShareMaxConcurrent"), 2);\n'
-        '\tnextMaxConcurrent = max(1, min(8, nextMaxConcurrent));\n'
-        '\tm_peerShareScanner.SetMaxConcurrent(static_cast<uint32>(nextMaxConcurrent));\n'
-    )
-    text = insert_after(text, constructor_anchor, constructor_addition, path)
+    # Check a stable semantic marker instead of the complete generated block.
+    # This keeps the activator idempotent when compatibility cleanups change
+    # the clamp implementation later.
+    if 'm_peerShareScanner.SetEnabled(theApp.GetProfileInt(_T("eMule Next"), _T("PeerShareDiscovery")' not in text:
+        constructor_anchor = '\tm_peerShareScanner.SetTransport(this);\n'
+        constructor_addition = (
+            '\tm_peerShareScanner.SetEnabled(theApp.GetProfileInt(_T("eMule Next"), _T("PeerShareDiscovery"), 1) != 0);\n'
+            '\tint nextMaxConcurrent = theApp.GetProfileInt(_T("eMule Next"), _T("PeerShareMaxConcurrent"), 2);\n'
+            '\tif (nextMaxConcurrent < 1)\n'
+            '\t\tnextMaxConcurrent = 1;\n'
+            '\telse if (nextMaxConcurrent > 8)\n'
+            '\t\tnextMaxConcurrent = 8;\n'
+            '\tm_peerShareScanner.SetMaxConcurrent(static_cast<uint32>(nextMaxConcurrent));\n'
+        )
+        if constructor_anchor not in text:
+            raise RuntimeError("Unable to add peer discovery constructor settings")
+        text = text.replace(constructor_anchor, constructor_anchor + constructor_addition, 1)
 
-    methods_anchor = 'CClientList::~CClientList()\n'
-    methods = (
-        'void CClientList::SetPeerShareDiscoveryEnabled(bool enabled)\n'
-        '{\n'
-        '\tm_peerShareScanner.SetEnabled(enabled);\n'
-        '\ttheApp.WriteProfileInt(_T("eMule Next"), _T("PeerShareDiscovery"), enabled ? 1 : 0);\n'
-        '}\n\n'
-        'void CClientList::SetPeerShareMaxConcurrent(uint32 maxConcurrent)\n'
-        '{\n'
-        '\tmaxConcurrent = max<uint32>(1, min<uint32>(8, maxConcurrent));\n'
-        '\tm_peerShareScanner.SetMaxConcurrent(maxConcurrent);\n'
-        '\ttheApp.WriteProfileInt(_T("eMule Next"), _T("PeerShareMaxConcurrent"), static_cast<int>(maxConcurrent));\n'
-        '}\n\n'
-    )
-    if methods.strip() not in text:
+    if 'void CClientList::SetPeerShareDiscoveryEnabled(bool enabled)' not in text:
+        methods_anchor = 'CClientList::~CClientList()\n'
+        method = (
+            'void CClientList::SetPeerShareDiscoveryEnabled(bool enabled)\n'
+            '{\n'
+            '\tm_peerShareScanner.SetEnabled(enabled);\n'
+            '\ttheApp.WriteProfileInt(_T("eMule Next"), _T("PeerShareDiscovery"), enabled ? 1 : 0);\n'
+            '}\n\n'
+        )
         if methods_anchor not in text:
-            raise RuntimeError("Unable to add peer discovery settings methods")
-        text = text.replace(methods_anchor, methods + methods_anchor, 1)
+            raise RuntimeError("Unable to add peer discovery enabled method")
+        text = text.replace(methods_anchor, method + methods_anchor, 1)
+
+    if 'void CClientList::SetPeerShareMaxConcurrent(uint32 maxConcurrent)' not in text:
+        methods_anchor = 'CClientList::~CClientList()\n'
+        method = (
+            'void CClientList::SetPeerShareMaxConcurrent(uint32 maxConcurrent)\n'
+            '{\n'
+            '\tif (maxConcurrent < 1)\n'
+            '\t\tmaxConcurrent = 1;\n'
+            '\telse if (maxConcurrent > 8)\n'
+            '\t\tmaxConcurrent = 8;\n'
+            '\tm_peerShareScanner.SetMaxConcurrent(maxConcurrent);\n'
+            '\ttheApp.WriteProfileInt(_T("eMule Next"), _T("PeerShareMaxConcurrent"), static_cast<int>(maxConcurrent));\n'
+            '}\n\n'
+        )
+        if methods_anchor not in text:
+            raise RuntimeError("Unable to add peer discovery concurrency method")
+        text = text.replace(methods_anchor, method + methods_anchor, 1)
 
     save(path, text, newline)
 
