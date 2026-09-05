@@ -58,6 +58,7 @@ CClientList::CClientList()
 	m_bannedList.InitHashTable(331);
 	m_trackedClientsMap.InitHashTable(2011);
 	m_globDeadSourceList.Init(true);
+	m_peerShareScanner.SetTransport(this);
 }
 
 CClientList::~CClientList()
@@ -455,6 +456,42 @@ void CClientList::RemoveAllTrackedClients()
 	}
 }
 
+bool CClientList::IsPeerOnline(const EmuleNextHash16& peerHash) const
+{
+	if (!peerHash.valid)
+		return false;
+	CUpDownClient *client = FindClientByUserHash(peerHash.bytes.data());
+	return client != NULL
+		&& client->HasValidHash()
+		&& client->GetViewSharedFilesSupport()
+		&& client->socket != NULL
+		&& client->socket->IsConnected()
+		&& client->CheckHandshakeFinished();
+}
+
+bool CClientList::RequestSharedFileList(const EmuleNextHash16& peerHash)
+{
+	if (!IsPeerOnline(peerHash))
+		return false;
+	CUpDownClient *client = FindClientByUserHash(peerHash.bytes.data());
+	if (client == NULL)
+		return false;
+	client->RequestSharedFileList();
+	AddDebugLogLine(false, _T("eMule Next: requested shared files from %s"),
+		client->GetUserName() != NULL ? client->GetUserName() : _T("<unknown>"));
+	return true;
+}
+
+void CClientList::OnPeerSharedFileList(const uchar *peerHash, uint32 fileCount, uint64 totalBytes)
+{
+	EmuleNextHash16 hash(peerHash);
+	if (!hash.valid)
+		return;
+	m_peerShareScanner.OnSharedFileList(hash, fileCount, totalBytes);
+	AddDebugLogLine(false, _T("eMule Next: peer shared-file scan completed: %u files, %I64u bytes"),
+		fileCount, totalBytes);
+}
+
 void CClientList::Process()
 {
 	///////////////////////////////////////////////////////////////////////////
@@ -647,6 +684,23 @@ void CClientList::Process()
 	} else if (m_pBuddy) {
 		//We are not connected any more. Just set this buddy to KS_NONE and things will be cleared out on next cycle.
 		m_pBuddy->SetKadState(KS_NONE);
+	}
+
+	///////////////////////////////////////////////////////////////////////////
+	// eMule Next automatic peer-share discovery. Only already-connected peers
+	// which advertise share browsing are queued. The scanner provides TTL,
+	// timeout and concurrency limits, so Process() can call this every tick.
+	if (theEmuleNext.IsRunning()) {
+		for (POSITION nextPos = list.GetHeadPosition(); nextPos != NULL;) {
+			CUpDownClient *nextClient = list.GetNext(nextPos);
+			if (nextClient != NULL && nextClient->HasValidHash()
+				&& nextClient->GetViewSharedFilesSupport()
+				&& nextClient->socket != NULL && nextClient->socket->IsConnected()
+				&& nextClient->CheckHandshakeFinished()) {
+				m_peerShareScanner.QueuePeer(EmuleNextHash16(nextClient->GetUserHash()));
+			}
+		}
+		m_peerShareScanner.Tick();
 	}
 
 	///////////////////////////////////////////////////////////////////////////

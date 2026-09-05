@@ -17,6 +17,7 @@
 #pragma once
 #include "DeadSourceList.h"
 #include "ClientIndex.h"
+#include "PeerShareScanner.h"
 
 class CClientReqSocket;
 class CUpDownClient;
@@ -71,7 +72,7 @@ enum buddyState : uint8
 // ----------------------CClientList Class---------------
 typedef CMap<uint32, uint32, uint32, uint32> CClientVersionMap;
 
-class CClientList
+class CClientList : public IEmuleNextPeerShareTransport
 {
 	friend class CClientListCtrl;
 
@@ -140,6 +141,10 @@ public:
 	void	RemoveConnectingClient(const CUpDownClient *pToRemove);
 
 	void	Process();
+	// eMule Next: automatically inspect shares exposed by connected peers.
+	void	OnPeerSharedFileList(const uchar *peerHash, uint32 fileCount, uint64 totalBytes);
+	virtual bool RequestSharedFileList(const EmuleNextHash16& peerHash);
+	virtual bool IsPeerOnline(const EmuleNextHash16& peerHash) const;
 	bool	IsValidClient(CUpDownClient *tocheck) const;
 	void	Debug_SocketDeleted(CClientReqSocket *deleted) const;
 
@@ -157,6 +162,9 @@ protected:
 private:
 	// Fast identity/endpoint lookup kept in lock-step with the canonical MFC list.
 	CClientIndex m_index;
+	// Privacy-respecting scanner: uses the normal eMule View Shared Files request,
+	// honours peer denial and throttles concurrent/background requests.
+	CPeerShareScanner m_peerShareScanner;
 	CUpDownClientPtrList list;
 	CUpDownClientPtrList m_KadList;
 	CMap<uint32, uint32, DWORD, DWORD> m_bannedList;

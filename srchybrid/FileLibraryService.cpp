@@ -14,11 +14,6 @@ namespace
         return static_cast<uint64>(time(NULL));
     }
 
-    void BindHashValue(sqlite3_stmt* stmt, int index, const EmuleNextHash16& hash)
-    {
-        sqlite3_bind_blob(stmt, index, hash.bytes.data(), 16, SQLITE_TRANSIENT);
-    }
-
     CStringW SqlText(sqlite3_stmt* stmt, int column)
     {
         const wchar_t* value = static_cast<const wchar_t*>(sqlite3_column_text16(stmt, column));

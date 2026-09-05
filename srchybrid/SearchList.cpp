@@ -34,6 +34,8 @@
 #include "SearchDlg.h"
 #include "SearchListCtrl.h"
 #include "Log.h"
+#include "EmuleNextRuntime.h"
+#include "ClientList.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -180,6 +182,8 @@ void CSearchList::NewSearch(CSearchListCtrl *pWnd, const CString &strResultFileT
 UINT CSearchList::ProcessSearchAnswer(const uchar *in_packet, uint32 size
 	, CUpDownClient &sender, bool *pbMoreResultsAvailable, LPCTSTR pszDirectory)
 {
+	uint32 nextSharedFileCount = 0;
+	uint64 nextSharedTotalBytes = 0;
 	uint32 uSearchID = sender.GetSearchID();
 	if (!uSearchID) {
 		uSearchID = theApp.emuledlg->searchwnd->m_pwndResults->GetNextSearchID();
@@ -214,6 +218,12 @@ UINT CSearchList::ProcessSearchAnswer(const uchar *in_packet, uint32 size
 			toadd->AddServer(server);
 		}
 		toadd->SetPreviewPossible(sender.GetPreviewSupport() && ED2KFT_VIDEO == GetED2KFileTypeID(toadd->GetFileName()));
+		// Persist peer/file history before the legacy result object is merged into the UI list.
+		theEmuleNext.RecordFileSeen(toadd->GetFileHash(), toadd->GetFileSize(), toadd->GetFileName());
+		theEmuleNext.RecordPeerFileSeen(sender.GetUserHash(), toadd->GetFileHash(), toadd->GetFileSize(),
+			toadd->GetFileName(), CString(), _T("peer-shared-list"));
+		++nextSharedFileCount;
+		nextSharedTotalBytes += toadd->GetFileSize();
 		AddToList(toadd, true);
 	}
 	if (m_outputwnd)
@@ -240,6 +250,9 @@ UINT CSearchList::ProcessSearchAnswer(const uchar *in_packet, uint32 size
 	}
 
 	packet.Close();
+	// Completing this callback also stops scanner timeout/retry state.
+	if (theApp.clientlist != NULL)
+		theApp.clientlist->OnPeerSharedFileList(sender.GetUserHash(), nextSharedFileCount, nextSharedTotalBytes);
 	return GetResultCount(uSearchID);
 }
 
