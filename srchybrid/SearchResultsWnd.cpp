@@ -171,6 +171,23 @@ void CSearchResultsWnd::OnInitialUpdate()
 
 	ShowSearchSelector(false); //hide tabs, anchor list control
 
+	// eMule Next has one permanent history view. It is deliberately not a
+	// CSearchList entry, so background discovery never becomes a legacy search.
+	if (m_knownUsersWnd.Create(this)) {
+		m_knownUsersWnd.ShowWindow(SW_HIDE);
+		SSearchParams *knownUsers = new SSearchParams;
+		knownUsers->dwSearchID = EMULENEXT_KNOWN_USERS_VIEW_ID;
+		knownUsers->strExpression = _T("Known users");
+		knownUsers->strSpecialTitle = _T("Known users");
+		if (!CreateOrFindTab(knownUsers, false))
+			delete knownUsers;
+		CRect knownRect;
+		searchlistctrl.GetWindowRect(&knownRect);
+		ScreenToClient(&knownRect);
+		m_knownUsersWnd.MoveWindow(&knownRect);
+		AddAnchor(m_knownUsersWnd, TOP_LEFT, BOTTOM_RIGHT);
+	}
+
 	if (theApp.m_fontSymbol.m_hObject) {
 		GetDlgItem(IDC_STATIC_DLTOof)->SetFont(&theApp.m_fontSymbol);
 		SetDlgItemText(IDC_STATIC_DLTOof, (GetExStyle() & WS_EX_LAYOUTRTL) ? _T("3") : _T("4")); //left or right arrow
@@ -1374,7 +1391,10 @@ bool CSearchResultsWnd::CreateOrFindTab(SSearchParams *pParams, bool bActiveIcon
 	LRESULT lResult;
 	OnSelChangingTab(NULL, &lResult);
 	searchselect.SetCurSel(itemnr);
-	searchlistctrl.ShowResults(pParams->dwSearchID);
+	if (pParams->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID)
+		ShowResults(pParams);
+	else
+		searchlistctrl.ShowResults(pParams->dwSearchID);
 	return true; //created new tab
 }
 
@@ -1393,6 +1413,9 @@ void CSearchResultsWnd::DeleteSelectedSearch()
 #pragma warning(disable:4701) //local variable 'ti'
 void CSearchResultsWnd::DeleteSearch(uint32 uSearchID)
 {
+	if (uSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID)
+		return;
+
 	Kademlia::CSearchManager::StopSearch(uSearchID, false);
 
 	TCITEM ti;
@@ -1448,13 +1471,29 @@ void CSearchResultsWnd::DeleteAllSearches()
 
 	TCITEM ti;
 	ti.mask = TCIF_PARAM;
-	for (int i = searchselect.GetItemCount(); --i >= 0;)
-		if (searchselect.GetItem(i, &ti) && ti.lParam != NULL) {
-			const SSearchParams *params = reinterpret_cast<SSearchParams*>(ti.lParam);
-			Kademlia::CSearchManager::StopSearch(params->dwSearchID, false);
-			delete params;
-		}
+	for (int i = searchselect.GetItemCount(); --i >= 0;) {
+		if (!searchselect.GetItem(i, &ti) || ti.lParam == NULL)
+			continue;
+		SSearchParams *params = reinterpret_cast<SSearchParams*>(ti.lParam);
+		if (params->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID)
+			continue;
+		Kademlia::CSearchManager::StopSearch(params->dwSearchID, false);
+		theApp.searchlist->RemoveResults(params->dwSearchID);
+		searchlistctrl.ClearResultViewState(params->dwSearchID);
+		searchselect.DeleteItem(i);
+		delete params;
+	}
 
+	searchlistctrl.DeleteAllItems();
+	for (int i = 0; i < searchselect.GetItemCount(); ++i) {
+		if (searchselect.GetItem(i, &ti) && ti.lParam != NULL
+			&& reinterpret_cast<SSearchParams*>(ti.lParam)->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID) {
+			searchselect.SetCurSel(i);
+			ShowSearchSelector(true);
+			ShowResults(reinterpret_cast<SSearchParams*>(ti.lParam));
+			return;
+		}
+	}
 	NoTabItems();
 }
 
@@ -1483,6 +1522,24 @@ void CSearchResultsWnd::NoTabItems()
 
 void CSearchResultsWnd::ShowResults(const SSearchParams *pParams)
 {
+	if (pParams->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID) {
+		searchlistctrl.ShowWindow(SW_HIDE);
+		m_knownUsersWnd.ShowWindow(SW_SHOW);
+		m_ctlFilter.ShowWindow(SW_HIDE);
+		GetDlgItem(IDC_SDOWNLOAD)->ShowWindow(SW_HIDE);
+		m_cattabs.ShowWindow(SW_HIDE);
+		GetDlgItem(IDC_STATIC_DLTOof)->ShowWindow(SW_HIDE);
+		m_knownUsersWnd.Refresh(true);
+		return;
+	}
+
+	m_knownUsersWnd.ShowWindow(SW_HIDE);
+	searchlistctrl.ShowWindow(SW_SHOW);
+	if (m_bTabs)
+		m_ctlFilter.ShowWindow(SW_SHOW);
+	GetDlgItem(IDC_SDOWNLOAD)->ShowWindow(SW_SHOW);
+	UpdateCatTabs();
+
 	// restoring the params works and is nice during development/testing but pretty annoying in practice.
 	// TODO: maybe it should be done explicitly via a context menu function or such.
 	if (GetKeyState(VK_CONTROL) < 0)
@@ -1490,10 +1547,10 @@ void CSearchResultsWnd::ShowResults(const SSearchParams *pParams)
 
 	bool bEnable = (pParams->eType == SearchTypeEd2kServer
 					&& pParams->dwSearchID == m_nEd2kSearchID && IsLocalEd2kSearchRunning())
-				|| (pParams->eType == SearchTypeEd2kGlobal
-					&& pParams->dwSearchID == m_nEd2kSearchID && (IsLocalEd2kSearchRunning() || IsGlobalEd2kSearchRunning()))
-				|| (pParams->eType == SearchTypeKademlia
-					&& Kademlia::CSearchManager::IsSearching(pParams->dwSearchID));
+					|| (pParams->eType == SearchTypeEd2kGlobal
+						&& pParams->dwSearchID == m_nEd2kSearchID && (IsLocalEd2kSearchRunning() || IsGlobalEd2kSearchRunning()))
+					|| (pParams->eType == SearchTypeKademlia
+						&& Kademlia::CSearchManager::IsSearching(pParams->dwSearchID));
 	if (bEnable)
 		m_pwndParams->m_ctlCancel.EnableWindow(bEnable);
 	searchlistctrl.ShowResults(pParams->dwSearchID);
@@ -1547,6 +1604,8 @@ LRESULT CSearchResultsWnd::OnCloseTab(WPARAM wParam, LPARAM)
 	ti.mask = TCIF_PARAM;
 	if (searchselect.GetItem((int)wParam, &ti) && ti.lParam != NULL) {
 		uint32 uSearchID = reinterpret_cast<SSearchParams*>(ti.lParam)->dwSearchID;
+		if (uSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID)
+			return TRUE;
 		if (uSearchID == m_nEd2kSearchID && !m_cancelled)
 			CancelEd2kSearch();
 		else if (reinterpret_cast<SSearchParams*>(ti.lParam)->bClientSharedFiles) {

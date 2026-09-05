@@ -17,6 +17,7 @@
 #pragma once
 #include "ResizableLib\ResizableFormView.h"
 #include "SearchListCtrl.h"
+#include "KnownUsersWnd.h"
 #include "ButtonsTabCtrl.h"
 #include "ClosableTabCtrl.h"
 #include "DropDownButton.h"
@@ -64,6 +65,7 @@ public:
 
 	CSearchListCtrl searchlistctrl;
 	CSearchResultsSelector searchselect;
+	CKnownUsersWnd m_knownUsersWnd;
 	CStringArray m_astrFilter;
 	CSearchParamsWnd *m_pwndParams;
 

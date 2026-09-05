@@ -184,21 +184,24 @@ UINT CSearchList::ProcessSearchAnswer(const uchar *in_packet, uint32 size
 {
 	uint32 nextSharedFileCount = 0;
 	uint64 nextSharedTotalBytes = 0;
+	const bool bEmuleNextAutomaticShare = theEmuleNext.IsAutomaticPeerShareRequest(sender.GetUserHash());
 	uint32 uSearchID = sender.GetSearchID();
-	if (!uSearchID) {
-		uSearchID = theApp.emuledlg->searchwnd->m_pwndResults->GetNextSearchID();
-		sender.SetSearchID(uSearchID);
+	if (!bEmuleNextAutomaticShare) {
+		if (!uSearchID) {
+			uSearchID = theApp.emuledlg->searchwnd->m_pwndResults->GetNextSearchID();
+			sender.SetSearchID(uSearchID);
+		}
+		ASSERT(uSearchID);
+		SSearchParams *pParams = new SSearchParams;
+		pParams->strExpression = sender.GetUserName();
+		pParams->dwSearchID = uSearchID;
+		pParams->bClientSharedFiles = true;
+		if (theApp.emuledlg->searchwnd->CreateOrFindTab(pParams, true)) {
+			m_foundFilesCount[uSearchID] = 0;
+			m_foundSourcesCount[uSearchID] = 0;
+		} else
+			delete pParams; //found tab with this ID
 	}
-	ASSERT(uSearchID);
-	SSearchParams *pParams = new SSearchParams;
-	pParams->strExpression = sender.GetUserName();
-	pParams->dwSearchID = uSearchID;
-	pParams->bClientSharedFiles = true;
-	if (theApp.emuledlg->searchwnd->CreateOrFindTab(pParams, true)) {
-		m_foundFilesCount[uSearchID] = 0;
-		m_foundSourcesCount[uSearchID] = 0;
-	} else
-		delete pParams; //found tab with this ID
 
 	CSafeMemFile packet(in_packet, size);
 	for (uint32 results = packet.ReadUInt32(); results > 0; --results) {
@@ -224,9 +227,12 @@ UINT CSearchList::ProcessSearchAnswer(const uchar *in_packet, uint32 size
 			toadd->GetFileName(), CString(), _T("peer-shared-list"));
 		++nextSharedFileCount;
 		nextSharedTotalBytes += toadd->GetFileSize();
-		AddToList(toadd, true);
+		if (bEmuleNextAutomaticShare)
+			delete toadd;
+		else
+			AddToList(toadd, true);
 	}
-	if (m_outputwnd)
+	if (!bEmuleNextAutomaticShare && m_outputwnd)
 		m_outputwnd->UpdateTabHeader(uSearchID);
 
 	if (pbMoreResultsAvailable)
@@ -253,6 +259,10 @@ UINT CSearchList::ProcessSearchAnswer(const uchar *in_packet, uint32 size
 	// Completing this callback also stops scanner timeout/retry state.
 	if (theApp.clientlist != NULL)
 		theApp.clientlist->OnPeerSharedFileList(sender.GetUserHash(), nextSharedFileCount, nextSharedTotalBytes);
+	if (bEmuleNextAutomaticShare) {
+		theEmuleNext.CompleteAutomaticPeerShareRequest(sender.GetUserHash());
+		return nextSharedFileCount;
+	}
 	return GetResultCount(uSearchID);
 }
 

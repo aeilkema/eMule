@@ -214,6 +214,10 @@
     <ClCompile Include="EMSocket.cpp" />
     <ClCompile Include="Emule.cpp" />
     <ClCompile Include="EmuleNextDatabase.cpp" />
+    <ClCompile Include="EmuleNextSearchBridge.cpp" />
+    <ClCompile Include="KnownUsersService.cpp" />
+    <ClCompile Include="KnownUsersWnd.cpp" />
+    <ClCompile Include="EmuleNextTheme.cpp" />
     <ClCompile Include="EmuleNextRuntime.cpp" />
     <ClCompile Include="DownloadIntelligence.cpp" />
     <ClCompile Include="PeerShareScanner.cpp" />

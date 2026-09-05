@@ -29,6 +29,7 @@
 #include "UpDownClient.h"
 #include "UploadQueue.h"
 #include "DownloadQueue.h"
+#include "SearchList.h"
 #include "ClientCredits.h"
 #include "ListenSocket.h"
 #include "Opcodes.h"
@@ -161,6 +162,19 @@ void CClientList::AddClient(CUpDownClient *toadd, bool bSkipDupTest)
 			toadd->GetUserPort(), toadd->GetUDPPort(), toadd->GetKadPort());
 		theEmuleNext.RecordPeerSeen(toadd->GetUserHash(), toadd->GetUserName(), CString(), CString(),
 			toadd->GetConnectIP(), toadd->GetUserPort(), toadd->GetUDPPort(), toadd->GetKadPort());
+		// Reuse a restored legacy shared-file tab instead of immediately requesting
+		// the same peer again after restart. The restored files are imported into
+		// eMule Next history once the peer hash is known.
+		if (toadd->HasValidHash() && theApp.searchlist != NULL) {
+			uint32 restoredFileCount = 0;
+			uint64 restoredTotalBytes = 0;
+			if (theApp.searchlist->ImportClientSharedFilesForPeer(toadd->GetUserName(), toadd->GetUserHash(),
+				toadd->GetIP(), toadd->GetUserPort(), restoredFileCount, restoredTotalBytes)) {
+				EmuleNextHash16 restoredHash(toadd->GetUserHash());
+				m_peerShareScanner.QueuePeer(restoredHash);
+				m_peerShareScanner.OnSharedFileList(restoredHash, restoredFileCount, restoredTotalBytes);
+			}
+		}
 	}
 }
 
@@ -476,6 +490,10 @@ bool CClientList::RequestSharedFileList(const EmuleNextHash16& peerHash)
 	CUpDownClient *client = FindClientByUserHash(peerHash.bytes.data());
 	if (client == NULL)
 		return false;
+	// Tag this request as automatic before using the normal eMule protocol.
+	// SearchList will persist the response without creating/updating a legacy
+	// user tab, keeping the GUI responsive even for very large shares.
+	theEmuleNext.MarkAutomaticPeerShareRequest(client->GetUserHash());
 	client->RequestSharedFileList();
 	AddDebugLogLine(false, _T("eMule Next: requested shared files from %s"),
 		client->GetUserName() != NULL ? client->GetUserName() : _T("<unknown>"));
@@ -697,7 +715,19 @@ void CClientList::Process()
 				&& nextClient->GetViewSharedFilesSupport()
 				&& nextClient->socket != NULL && nextClient->socket->IsConnected()
 				&& nextClient->CheckHandshakeFinished()) {
-				m_peerShareScanner.QueuePeer(EmuleNextHash16(nextClient->GetUserHash()));
+				EmuleNextHash16 nextHash(nextClient->GetUserHash());
+				EmuleNextPeerShareState existingState;
+				if (!m_peerShareScanner.GetState(nextHash, existingState) && theApp.searchlist != NULL) {
+					uint32 restoredFileCount = 0;
+					uint64 restoredTotalBytes = 0;
+					if (theApp.searchlist->ImportClientSharedFilesForPeer(nextClient->GetUserName(), nextClient->GetUserHash(),
+						nextClient->GetIP(), nextClient->GetUserPort(), restoredFileCount, restoredTotalBytes)) {
+						m_peerShareScanner.QueuePeer(nextHash);
+						m_peerShareScanner.OnSharedFileList(nextHash, restoredFileCount, restoredTotalBytes);
+						continue;
+					}
+				}
+				m_peerShareScanner.QueuePeer(nextHash);
 			}
 		}
 		m_peerShareScanner.Tick();
