@@ -11,6 +11,7 @@
 
 namespace
 {
+    EmuleNextThemeMode g_themeMode = ENTM_DARK;
     bool g_darkMode = true;
 
     enum PreferredAppMode
@@ -45,18 +46,47 @@ namespace
             : NULL;
     }
 
-    void ApplyProcessMode()
+    bool SystemWantsDarkMode()
     {
-        SetPreferredAppModeFn setMode = ResolveSetPreferredAppMode();
-        if (setMode != NULL)
-            setMode(g_darkMode ? AppModeForceDark : AppModeForceLight);
+        DWORD appsUseLightTheme = 1;
+        DWORD bytes = sizeof(appsUseLightTheme);
+        const LSTATUS status = ::RegGetValueW(HKEY_CURRENT_USER,
+            L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+            L"AppsUseLightTheme", RRF_RT_REG_DWORD, NULL, &appsUseLightTheme, &bytes);
+        return status == ERROR_SUCCESS && appsUseLightTheme == 0;
     }
 
-    bool IsClass(HWND window, LPCWSTR expected)
+    void ResolveEffectiveMode()
     {
-        wchar_t className[80] = {};
-        return ::GetClassNameW(window, className, _countof(className)) > 0
-            && _wcsicmp(className, expected) == 0;
+        if (g_themeMode == ENTM_SYSTEM)
+            g_darkMode = SystemWantsDarkMode();
+        else
+            g_darkMode = g_themeMode == ENTM_DARK;
+    }
+
+    void ApplyProcessMode()
+    {
+        ResolveEffectiveMode();
+        SetPreferredAppModeFn setMode = ResolveSetPreferredAppMode();
+        if (setMode != NULL) {
+            if (g_themeMode == ENTM_SYSTEM)
+                setMode(AppModeAllowDark);
+            else
+                setMode(g_darkMode ? AppModeForceDark : AppModeForceLight);
+        }
+    }
+
+    CStringW WindowClass(HWND window)
+    {
+        wchar_t className[96] = {};
+        if (::GetClassNameW(window, className, _countof(className)) <= 0)
+            return CStringW();
+        return CStringW(className);
+    }
+
+    bool SameClass(const CStringW& actual, LPCWSTR expected)
+    {
+        return actual.CompareNoCase(expected) == 0;
     }
 
     void ApplyOne(HWND window)
@@ -69,25 +99,31 @@ namespace
             allowDark(window, g_darkMode ? TRUE : FALSE);
 
         const BOOL enabled = g_darkMode ? TRUE : FALSE;
-        // Attribute 20 is DWMWA_USE_IMMERSIVE_DARK_MODE on current Win10/11.
-        // Attribute 19 is retained as fallback for earlier Win10 builds.
         if (FAILED(::DwmSetWindowAttribute(window, 20, &enabled, sizeof(enabled))))
             ::DwmSetWindowAttribute(window, 19, &enabled, sizeof(enabled));
 
-        ::SetWindowTheme(window, g_darkMode ? L"DarkMode_Explorer" : L"Explorer", NULL);
+        const CStringW className = WindowClass(window);
+        LPCWSTR theme = g_darkMode ? L"DarkMode_Explorer" : L"Explorer";
+        if (SameClass(className, L"Edit") || SameClass(className, L"RichEdit20W")
+            || SameClass(className, L"RICHEDIT50W") || SameClass(className, L"ComboBox")) {
+            theme = g_darkMode ? L"DarkMode_CFD" : L"Explorer";
+        }
+        ::SetWindowTheme(window, theme, NULL);
 
-        if (IsClass(window, WC_LISTVIEWW)) {
-            const COLORREF background = g_darkMode ? CEmuleNextTheme::SurfaceColor() : ::GetSysColor(COLOR_WINDOW);
-            const COLORREF text = g_darkMode ? CEmuleNextTheme::TextColor() : ::GetSysColor(COLOR_WINDOWTEXT);
+        const COLORREF background = g_darkMode ? CEmuleNextTheme::SurfaceColor() : ::GetSysColor(COLOR_WINDOW);
+        const COLORREF text = g_darkMode ? CEmuleNextTheme::TextColor() : ::GetSysColor(COLOR_WINDOWTEXT);
+
+        if (SameClass(className, WC_LISTVIEWW)) {
             ListView_SetBkColor(window, background);
             ListView_SetTextBkColor(window, background);
             ListView_SetTextColor(window, text);
         }
-        else if (IsClass(window, WC_TREEVIEWW)) {
-            const COLORREF background = g_darkMode ? CEmuleNextTheme::SurfaceColor() : ::GetSysColor(COLOR_WINDOW);
-            const COLORREF text = g_darkMode ? CEmuleNextTheme::TextColor() : ::GetSysColor(COLOR_WINDOWTEXT);
+        else if (SameClass(className, WC_TREEVIEWW)) {
             TreeView_SetBkColor(window, background);
             TreeView_SetTextColor(window, text);
+        }
+        else if (SameClass(className, L"RichEdit20W") || SameClass(className, L"RICHEDIT50W")) {
+            ::SendMessage(window, EM_SETBKGNDCOLOR, 0, background);
         }
 
         ::SendMessage(window, WM_THEMECHANGED, 0, 0);
@@ -103,7 +139,29 @@ namespace
 
 void CEmuleNextTheme::Initialize()
 {
-    g_darkMode = theApp.GetProfileInt(_T("eMule Next"), _T("DarkMode"), 1) != 0;
+    int storedMode = theApp.GetProfileInt(_T("eMule Next"), _T("ThemeMode"), -1);
+    if (storedMode < ENTM_SYSTEM || storedMode > ENTM_DARK) {
+        // Migration from the first eMule Next builds.
+        const bool oldDark = theApp.GetProfileInt(_T("eMule Next"), _T("DarkMode"), 1) != 0;
+        storedMode = oldDark ? ENTM_DARK : ENTM_LIGHT;
+        theApp.WriteProfileInt(_T("eMule Next"), _T("ThemeMode"), storedMode);
+    }
+    g_themeMode = static_cast<EmuleNextThemeMode>(storedMode);
+    ApplyProcessMode();
+}
+
+EmuleNextThemeMode CEmuleNextTheme::GetMode()
+{
+    return g_themeMode;
+}
+
+void CEmuleNextTheme::SetMode(EmuleNextThemeMode mode)
+{
+    if (mode < ENTM_SYSTEM || mode > ENTM_DARK)
+        mode = ENTM_SYSTEM;
+    g_themeMode = mode;
+    theApp.WriteProfileInt(_T("eMule Next"), _T("ThemeMode"), static_cast<int>(mode));
+    theApp.WriteProfileInt(_T("eMule Next"), _T("DarkMode"), mode == ENTM_DARK ? 1 : 0);
     ApplyProcessMode();
 }
 
@@ -114,17 +172,20 @@ bool CEmuleNextTheme::IsDarkMode()
 
 void CEmuleNextTheme::SetDarkMode(bool enabled)
 {
-    if (g_darkMode == enabled)
-        return;
-    g_darkMode = enabled;
-    theApp.WriteProfileInt(_T("eMule Next"), _T("DarkMode"), enabled ? 1 : 0);
-    ApplyProcessMode();
+    SetMode(enabled ? ENTM_DARK : ENTM_LIGHT);
+}
+
+void CEmuleNextTheme::RefreshSystemMode()
+{
+    if (g_themeMode == ENTM_SYSTEM)
+        ApplyProcessMode();
 }
 
 void CEmuleNextTheme::ApplyToWindow(HWND root)
 {
     if (!::IsWindow(root))
         return;
+    ResolveEffectiveMode();
     ApplyOne(root);
     ::EnumChildWindows(root, ApplyChild, 0);
     ::RedrawWindow(root, NULL, NULL,
@@ -133,15 +194,35 @@ void CEmuleNextTheme::ApplyToWindow(HWND root)
 
 COLORREF CEmuleNextTheme::BackgroundColor()
 {
-    return RGB(28, 28, 30);
+    return RGB(24, 25, 28);
 }
 
 COLORREF CEmuleNextTheme::SurfaceColor()
 {
-    return RGB(38, 38, 42);
+    return RGB(32, 34, 38);
+}
+
+COLORREF CEmuleNextTheme::SurfaceAltColor()
+{
+    return RGB(42, 45, 50);
+}
+
+COLORREF CEmuleNextTheme::BorderColor()
+{
+    return RGB(70, 74, 82);
 }
 
 COLORREF CEmuleNextTheme::TextColor()
 {
-    return RGB(232, 232, 235);
+    return RGB(235, 237, 240);
+}
+
+COLORREF CEmuleNextTheme::MutedTextColor()
+{
+    return RGB(165, 170, 178);
+}
+
+COLORREF CEmuleNextTheme::AccentColor()
+{
+    return RGB(72, 144, 230);
 }
