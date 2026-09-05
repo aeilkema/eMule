@@ -38,13 +38,20 @@ def patch_project() -> None:
     text = load(path)
     dep_pattern = re.compile(r"<AdditionalDependencies>(.*?)</AdditionalDependencies>")
 
-    def add_dwm(match: re.Match[str]) -> str:
+    def add_theme_libraries(match: re.Match[str]) -> str:
         value = match.group(1)
-        if "dwmapi.lib" in value.lower():
+        lower = value.lower()
+        prefix = ""
+        # EmuleNextTheme calls both APIs directly; unlike the optional ordinal
+        # probes those calls need normal SDK import libraries at link time.
+        for library in ("dwmapi.lib", "uxtheme.lib"):
+            if library not in lower:
+                prefix += library + ";"
+        if not prefix:
             return match.group(0)
-        return f"<AdditionalDependencies>dwmapi.lib;{value}</AdditionalDependencies>"
+        return f"<AdditionalDependencies>{prefix}{value}</AdditionalDependencies>"
 
-    text, count = dep_pattern.subn(add_dwm, text)
+    text, count = dep_pattern.subn(add_theme_libraries, text)
     if count == 0:
         raise RuntimeError("No linker dependency entries found for dark mode")
 
