@@ -57,6 +57,8 @@ jobs:
                   srchybrid/Emule.cpp \
                   srchybrid/ClientList.h \
                   srchybrid/ClientList.cpp \
+                  srchybrid/EmuleNextTheme.cpp \
+                  srchybrid/EmuleNextSettingsWnd.cpp \
                   srchybrid/DownloadQueue.h \
                   srchybrid/DownloadQueue.cpp \
                   srchybrid/SearchList.cpp \
