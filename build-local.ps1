@@ -20,6 +20,12 @@ if ($LASTEXITCODE -ne 0) {
     throw "Integration failed."
 }
 
+Write-Host "Activating eMule Next runtime features..."
+python .\tools\emule-next\activate-features.py
+if ($LASTEXITCODE -ne 0) {
+    throw "Feature activation failed."
+}
+
 $SourceDir = Join-Path $RepoRoot "build\upstream-v0.72a\eMule0.72a-Sources\srchybrid"
 
 if ($RebuildDependencies -or -not (Test-Path "$SourceDir\emule.vcxproj")) {
