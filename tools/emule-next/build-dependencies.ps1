@@ -55,8 +55,6 @@ function Invoke-MSBuildProject {
 }
 
 function Resolve-CMakeGenerator {
-    # VS 2026 installs under an 18.x path; VS 2022 commonly uses either a 17.x
-    # path or a year-based path. Keep the decision local to the selected MSBuild.
     if ($MSBuildExe -match '[\\/]18[\\/]') { return 'Visual Studio 18 2026' }
     if ($MSBuildExe -match '[\\/]2026[\\/]') { return 'Visual Studio 18 2026' }
     return 'Visual Studio 17 2022'
@@ -81,7 +79,6 @@ function Resolve-Python {
         $command = Get-Command $name -ErrorAction SilentlyContinue
         if ($null -eq $command) { continue }
         if ($name -eq 'py.exe') {
-            # py.exe is a launcher, not the interpreter path CMake expects.
             $path = & $command.Source -3 -c 'import sys; print(sys.executable)'
             if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($path)) {
                 return $path.Trim()
@@ -96,14 +93,9 @@ function Resolve-Python {
 function Ensure-MbedTlsPythonPackages {
     param([Parameter(Mandatory = $true)][string]$PythonExe)
 
-    # The pinned TF-PSA generator imports exactly jsonschema and jinja2. Install
-    # modern, deterministic versions instead of the historical full requirements
-    # file, which pins an obsolete MarkupSafe release incompatible with new Python.
     $probe = @'
 import jsonschema
 import jinja2
-assert jsonschema.__version__
-assert jinja2.__version__
 '@
     & $PythonExe -c $probe 2>$null
     if ($LASTEXITCODE -eq 0) {
@@ -126,10 +118,6 @@ assert jinja2.__version__
 }
 
 function Ensure-Id3ZlibCompatibility {
-    # The maintained id3lib project still names its sibling include folder
-    # "emulebb-zlib", while eMule's own project expects the sibling as "zlib".
-    # A directory junction keeps one pinned zlib tree and satisfies both build
-    # layouts without copying or modifying third-party source files.
     $zlib = Join-Path $Root 'zlib'
     $alias = Join-Path $Root 'emulebb-zlib'
     if (-not (Test-Path -LiteralPath $zlib -PathType Container)) {
@@ -217,8 +205,6 @@ function Build-MbedTls {
     Stage-Library -SearchRoot $build -Name 'mbedx509.lib' -Destination (Join-Path $stage 'mbedx509.lib')
     Stage-Library -SearchRoot $build -Name 'tfpsacrypto.lib' -Destination (Join-Path $stage 'tfpsacrypto.lib')
 
-    # Some future Mbed TLS layouts may split an additional mbedcrypto library.
-    # Stage it when present; the current pinned 4.1 eMule fork does not require it.
     $crypto = @(Get-ChildItem -LiteralPath $build -Recurse -File -Filter 'mbedcrypto.lib' -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1)
     if ($crypto.Count -gt 0) {
@@ -273,20 +259,14 @@ function Build-Zlib {
     Write-Host "Staged zlib -> $stage"
 }
 
-# Build the projects which already have modern eMule-compatible VS wrappers.
 Ensure-Id3ZlibCompatibility
 Invoke-MSBuildProject -Project (Join-Path $Root 'cryptopp\cryptlib.vcxproj')
 Invoke-MSBuildProject -Project (Join-Path $Root 'id3lib\libprj\id3lib.vcxproj')
 Invoke-MSBuildProject -Project (Join-Path $Root 'miniupnpc\msvc\miniupnpc.vcxproj')
 Invoke-MSBuildProject -Project (Join-Path $Root 'ResizableLib\ResizableLib.vcxproj')
-
-# Mbed TLS and zlib wrappers in the dependency forks intentionally delegate to
-# CMake. Building them directly here lets us select the installed VS generator
-# (including VS 2026) instead of depending on an old hard-coded generator name.
 Build-MbedTls
 Build-Zlib
 
-# Normalize output locations to the paths hard-coded by the legacy eMule project.
 Stage-Library -SearchRoot (Join-Path $Root 'cryptopp') -Name 'cryptlib.lib' -Destination (Join-Path $Root "cryptopp\$Platform\$Configuration\cryptlib.lib")
 Stage-Library -SearchRoot (Join-Path $Root 'id3lib') -Name 'id3lib.lib' -Destination (Join-Path $Root "id3lib\libprj\$Platform\$Configuration\id3lib.lib")
 Stage-Library -SearchRoot (Join-Path $Root 'miniupnpc') -Name 'miniupnpc.lib' -Destination (Join-Path $Root "miniupnpc\msvc\$Platform\$Configuration\miniupnpc.lib")
