@@ -35,13 +35,24 @@ def add_after(text: str, anchor: str, addition: str, path: pathlib.Path) -> str:
 def patch_share_peer_name() -> None:
     path = SRC / "SearchList.cpp"
     text = load(path)
-    anchor = "\t\tconst unsigned char* peerHash = sender.GetUserHash();\n"
+    marker = "Preserve the real network username for peers discovered through"
+    if marker in text:
+        return
+
+    # Insert immediately after ProcessSearchAnswer has established whether this
+    # response belongs to the automatic eMule Next share scanner. This anchor is
+    # already part of the finalized share-discovery overlay and is substantially
+    # more stable than matching a temporary local peerHash variable.
+    anchor = (
+        "\tconst bool bEmuleNextAutomaticShare = "
+        "theEmuleNext.IsAutomaticPeerShareRequest(sender.GetUserHash());\n"
+    )
     addition = (
-        "\t\t// Preserve the real network username for peers discovered through\n"
-        "\t\t// shared-file responses. Alias remains separate local metadata.\n"
-        "\t\ttheEmuleNext.RecordPeerSeen(peerHash, sender.GetUserName(),\n"
-        "\t\t\tsender.GetClientSoftVer(), CString(), sender.GetIP(),\n"
-        "\t\t\tsender.GetUserPort(), sender.GetKadPort(), sender.GetKadPort());\n"
+        "\t// Preserve the real network username for peers discovered through\n"
+        "\t// shared-file responses. Alias remains separate local metadata.\n"
+        "\ttheEmuleNext.RecordPeerSeen(sender.GetUserHash(), sender.GetUserName(),\n"
+        "\t\tCString(), CString(), sender.GetConnectIP(), sender.GetUserPort(),\n"
+        "\t\tsender.GetUDPPort(), sender.GetKadPort());\n"
     )
     text = add_after(text, anchor, addition, path)
     save(path, text)
