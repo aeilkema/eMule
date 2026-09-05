@@ -77,10 +77,14 @@ jobs:
           if ($null -eq $header) { throw 'Pinned Microsoft Windows SDK package did not contain winsqlite3.h' }
           if ($null -eq $library) { throw 'Pinned Microsoft Windows SDK x64 package did not contain winsqlite3.lib' }
 
-          # The legacy project already includes its own source directory, so stage
-          # the header there. Add only the matching x64 import-library directory
-          # to LIB; the runtime remains the Windows-provided winsqlite3.dll.
-          Copy-Item -LiteralPath $header.FullName -Destination (Join-Path $env:EMULE_SOURCE_DIR 'winsqlite3.h') -Force
+          # Keep the SDK WinSQLite directory intact. The header lives below
+          # Include/<version>/um/winsqlite, and flattening only winsqlite3.h into
+          # srchybrid can break assumptions made by SDK-generated headers.
+          $includePath = $header.Directory.FullName
+          $clOptions = "/I`"$includePath`""
+          if (-not [string]::IsNullOrWhiteSpace($env:CL)) { $clOptions = "$clOptions $env:CL" }
+          "CL=$clOptions" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
           $libPath = $library.Directory.FullName
           if (-not [string]::IsNullOrWhiteSpace($env:LIB)) { $libPath = "$libPath;$env:LIB" }
           "LIB=$libPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
@@ -91,7 +95,7 @@ jobs:
           if ($null -eq $installedSdk) { throw 'No installed Windows SDK was found for the base build' }
           "EMULE_WINDOWS_SDK_VERSION=$($installedSdk.Name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-          Write-Host "Staged WinSQLite header from: $($header.FullName)"
+          Write-Host "Using WinSQLite include directory: $includePath"
           Write-Host "Using WinSQLite import library: $($library.FullName)"
           Write-Host "Base Windows SDK selected: $($installedSdk.Name)"
 
