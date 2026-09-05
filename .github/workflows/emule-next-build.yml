@@ -53,6 +53,15 @@ jobs:
           $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
           if ([string]::IsNullOrWhiteSpace($msbuild)) { throw 'MSBuild not found' }
           "MSBUILD_EXE=$msbuild" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $dumpbin = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find 'VC\Tools\MSVC\**\bin\Hostx64\x64\dumpbin.exe' | Select-Object -First 1
+          if (-not [string]::IsNullOrWhiteSpace($dumpbin)) {
+            "DUMPBIN_EXE=$dumpbin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            Write-Host "dumpbin: $dumpbin"
+          }
+          else {
+            Write-Warning 'dumpbin was not found; PE-info generation will be skipped.'
+          }
           Write-Host "MSBuild: $msbuild"
 
       - name: Provision pinned WinSQLite import library
@@ -202,9 +211,19 @@ jobs:
           Copy-Item -LiteralPath $exe.FullName -Destination 'artifacts\release\eMule-Next-x64.exe'
           Get-FileHash -LiteralPath 'artifacts\release\eMule-Next-x64.exe' -Algorithm SHA256 |
             Format-List | Out-File 'artifacts\release\SHA256.txt'
-          & dumpbin /headers 'artifacts\release\eMule-Next-x64.exe' |
-            Select-String -Pattern 'machine|subsystem|image version' |
-            Out-File 'artifacts\release\PE-info.txt'
+
+          if (-not [string]::IsNullOrWhiteSpace($env:DUMPBIN_EXE) -and (Test-Path -LiteralPath $env:DUMPBIN_EXE)) {
+            & $env:DUMPBIN_EXE /headers 'artifacts\release\eMule-Next-x64.exe' |
+              Select-String -Pattern 'machine|subsystem|image version' |
+              Out-File 'artifacts\release\PE-info.txt'
+          }
+          else {
+            @(
+              'dumpbin was unavailable on the runner.',
+              'MSBuild completed the Release|x64 target successfully.',
+              "Executable source: $($exe.FullName)"
+            ) | Out-File 'artifacts\release\PE-info.txt'
+          }
 
           $bootstrapManifest = Get-ChildItem -LiteralPath (Split-Path -Parent $env:EMULE_SOURCE_DIR) -Recurse -Filter 'emule-next-bootstrap.json' -File |
             Select-Object -First 1
