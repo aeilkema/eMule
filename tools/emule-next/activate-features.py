@@ -44,6 +44,7 @@ for script_name in (
     "fix-dashboard-compile.py",
     "activate-dashboard-navigation.py",
     "activate-dashboard-actions.py",
+    "activate-dashboard-source-profile.py",
     "activate-file-intelligence-columns.py",
     "activate-transfer-lifecycle.py",
     "activate-upload-transfer-lifecycle.py",
