@@ -13,6 +13,19 @@ namespace
 {
     EmuleNextThemeMode g_themeMode = ENTM_DARK;
     bool g_darkMode = true;
+    const UINT_PTR EMULENEXT_THEME_SUBCLASS = 0x454E5401u;
+
+    HBRUSH DarkBackgroundBrush()
+    {
+        static HBRUSH brush = ::CreateSolidBrush(CEmuleNextTheme::BackgroundColor());
+        return brush;
+    }
+
+    HBRUSH DarkSurfaceBrush()
+    {
+        static HBRUSH brush = ::CreateSolidBrush(CEmuleNextTheme::SurfaceColor());
+        return brush;
+    }
 
     enum PreferredAppMode
     {
@@ -89,10 +102,65 @@ namespace
         return actual.CompareNoCase(expected) == 0;
     }
 
+    bool IsContainerClass(const CStringW& className)
+    {
+        return className.CompareNoCase(L"#32770") == 0
+            || className.Left(4).CompareNoCase(L"Afx:") == 0;
+    }
+
+    LRESULT CALLBACK ThemeSubclassProc(HWND window, UINT message, WPARAM wParam,
+        LPARAM lParam, UINT_PTR subclassId, DWORD_PTR)
+    {
+        if (message == WM_NCDESTROY) {
+            ::RemoveWindowSubclass(window, ThemeSubclassProc, subclassId);
+            return ::DefSubclassProc(window, message, wParam, lParam);
+        }
+
+        if (!g_darkMode)
+            return ::DefSubclassProc(window, message, wParam, lParam);
+
+        switch (message) {
+        case WM_ERASEBKGND:
+        {
+            const CStringW className = WindowClass(window);
+            if (IsContainerClass(className)) {
+                RECT rect = {};
+                ::GetClientRect(window, &rect);
+                ::FillRect(reinterpret_cast<HDC>(wParam), &rect, DarkBackgroundBrush());
+                return 1;
+            }
+            break;
+        }
+        case WM_CTLCOLORDLG:
+        case WM_CTLCOLORSTATIC:
+        case WM_CTLCOLORBTN:
+        {
+            HDC dc = reinterpret_cast<HDC>(wParam);
+            ::SetTextColor(dc, CEmuleNextTheme::TextColor());
+            ::SetBkColor(dc, CEmuleNextTheme::BackgroundColor());
+            ::SetBkMode(dc, TRANSPARENT);
+            return reinterpret_cast<LRESULT>(DarkBackgroundBrush());
+        }
+        case WM_CTLCOLOREDIT:
+        case WM_CTLCOLORLISTBOX:
+        {
+            HDC dc = reinterpret_cast<HDC>(wParam);
+            ::SetTextColor(dc, CEmuleNextTheme::TextColor());
+            ::SetBkColor(dc, CEmuleNextTheme::SurfaceColor());
+            return reinterpret_cast<LRESULT>(DarkSurfaceBrush());
+        }
+        }
+        return ::DefSubclassProc(window, message, wParam, lParam);
+    }
+
     void ApplyOne(HWND window)
     {
         if (!::IsWindow(window))
             return;
+
+        // Subclassing the MFC/dialog containers fixes the white legacy form
+        // backgrounds which Windows' dark common-control theme does not paint.
+        ::SetWindowSubclass(window, ThemeSubclassProc, EMULENEXT_THEME_SUBCLASS, 0);
 
         AllowDarkModeForWindowFn allowDark = ResolveAllowDarkModeForWindow();
         if (allowDark != NULL)
@@ -141,7 +209,6 @@ void CEmuleNextTheme::Initialize()
 {
     int storedMode = theApp.GetProfileInt(_T("eMule Next"), _T("ThemeMode"), -1);
     if (storedMode < ENTM_SYSTEM || storedMode > ENTM_DARK) {
-        // Migration from the first eMule Next builds.
         const bool oldDark = theApp.GetProfileInt(_T("eMule Next"), _T("DarkMode"), 1) != 0;
         storedMode = oldDark ? ENTM_DARK : ENTM_LIGHT;
         theApp.WriteProfileInt(_T("eMule Next"), _T("ThemeMode"), storedMode);
@@ -192,37 +259,10 @@ void CEmuleNextTheme::ApplyToWindow(HWND root)
         RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_FRAME | RDW_UPDATENOW);
 }
 
-COLORREF CEmuleNextTheme::BackgroundColor()
-{
-    return RGB(24, 25, 28);
-}
-
-COLORREF CEmuleNextTheme::SurfaceColor()
-{
-    return RGB(32, 34, 38);
-}
-
-COLORREF CEmuleNextTheme::SurfaceAltColor()
-{
-    return RGB(42, 45, 50);
-}
-
-COLORREF CEmuleNextTheme::BorderColor()
-{
-    return RGB(70, 74, 82);
-}
-
-COLORREF CEmuleNextTheme::TextColor()
-{
-    return RGB(235, 237, 240);
-}
-
-COLORREF CEmuleNextTheme::MutedTextColor()
-{
-    return RGB(165, 170, 178);
-}
-
-COLORREF CEmuleNextTheme::AccentColor()
-{
-    return RGB(72, 144, 230);
-}
+COLORREF CEmuleNextTheme::BackgroundColor() { return RGB(24, 25, 28); }
+COLORREF CEmuleNextTheme::SurfaceColor() { return RGB(32, 34, 38); }
+COLORREF CEmuleNextTheme::SurfaceAltColor() { return RGB(42, 45, 50); }
+COLORREF CEmuleNextTheme::BorderColor() { return RGB(70, 74, 82); }
+COLORREF CEmuleNextTheme::TextColor() { return RGB(235, 237, 240); }
+COLORREF CEmuleNextTheme::MutedTextColor() { return RGB(165, 170, 178); }
+COLORREF CEmuleNextTheme::AccentColor() { return RGB(72, 144, 230); }
