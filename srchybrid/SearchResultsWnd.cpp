@@ -1381,7 +1381,7 @@ bool CSearchResultsWnd::CreateOrFindTab(SSearchParams *pParams, bool bActiveIcon
 	DupAmpersand(strTcLabel);
 	ti.pszText = const_cast<LPTSTR>((LPCTSTR)strTcLabel);
 	ti.cchTextMax = 0;
-	if (pParams->bClientSharedFiles)
+	if (pParams->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID || pParams->bClientSharedFiles)
 		ti.iImage = sriClient;
 	else if (pParams->eType == SearchTypeKademlia)
 		ti.iImage = bActiveIcon ? sriKadActice : sriKad;
