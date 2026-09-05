@@ -26,11 +26,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Integrate eMule Next overlay
+      - name: Integrate and activate eMule Next overlay
         shell: pwsh
         run: |
           python tools/emule-next/integrate.py
           if ($LASTEXITCODE -ne 0) { throw 'eMule Next integration failed' }
+          python tools/emule-next/activate-features.py
+          if ($LASTEXITCODE -ne 0) { throw 'eMule Next feature activation failed' }
 
       - name: Bootstrap official v0.72a source and pinned dependencies
         shell: pwsh
