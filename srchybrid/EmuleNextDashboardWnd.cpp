@@ -16,6 +16,13 @@
 #include <algorithm>
 #include <vector>
 
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+
 namespace
 {
     enum
@@ -80,9 +87,6 @@ namespace
         signals.highPriority = file->GetDownPriority() == PR_HIGH
             || file->GetDownPriority() == PR_VERYHIGH;
 
-        // Per-cycle Kad result telemetry is not attached to CPartFile yet. Keep
-        // this non-zero so zero-source files report "No sources" rather than
-        // claiming a Kad subsystem failure without evidence.
         signals.kadResultsLastCycle = 1;
 
         const UINT partCount = file->GetPartCount();
@@ -139,7 +143,7 @@ namespace
         if (file == NULL || file->GetStatus() == PS_COMPLETE)
             return 0;
 
-        uint32 score = 1000 - min<uint32>(1000, health);
+        uint32 score = 1000 - std::min<uint32>(1000, health);
         switch (stall) {
         case ENSR_NO_SOURCES: score += 900; break;
         case ENSR_NO_NEEDED_PARTS: score += 750; break;
@@ -152,12 +156,12 @@ namespace
         case ENSR_DISK_LIMITED: score += 850; break;
         default: break;
         }
-        score += min<uint32>(500, signals.rareNeededParts * 60);
+        score += std::min<uint32>(500, signals.rareNeededParts * 60);
         if (file->GetPercentCompleted() >= 90.0f && signals.neededParts > 0)
             score += 180;
         if (file->GetDatarate() > 0)
             score = score > 150 ? score - 150 : 0;
-        return min<uint32>(2500, score);
+        return std::min<uint32>(2500, score);
     }
 
     CString RecommendationText(const DashboardRow& row)
@@ -316,11 +320,11 @@ void CEmuleNextDashboardWnd::OnSize(UINT type, int cx, int cy)
     const int margin = 8;
     const int summaryHeight = 22;
     const int filterHeight = 25;
-    const int detailsHeight = min(126, max(88, cy / 4));
+    const int detailsHeight = std::min(126, std::max(88, cy / 4));
     const int buttonGap = 5;
-    const int buttonWidth = max(74, min(105, (cx - margin * 2 - buttonGap * 5) / 6));
+    const int buttonWidth = std::max(74, std::min(105, (cx - margin * 2 - buttonGap * 5) / 6));
 
-    m_summary.MoveWindow(margin, margin, max(0, cx - margin * 2), summaryHeight);
+    m_summary.MoveWindow(margin, margin, std::max(0, cx - margin * 2), summaryHeight);
     int x = margin;
     const int filterTop = margin + summaryHeight + 3;
     CButton* buttons[] = {
@@ -333,10 +337,10 @@ void CEmuleNextDashboardWnd::OnSize(UINT type, int cx, int cy)
     }
 
     const int listTop = filterTop + filterHeight + 5;
-    const int listHeight = max(80, cy - listTop - detailsHeight - margin - 6);
-    m_downloads.MoveWindow(margin, listTop, max(0, cx - margin * 2), listHeight);
+    const int listHeight = std::max(80, cy - listTop - detailsHeight - margin - 6);
+    m_downloads.MoveWindow(margin, listTop, std::max(0, cx - margin * 2), listHeight);
     m_details.MoveWindow(margin, listTop + listHeight + 6,
-        max(0, cx - margin * 2), max(0, cy - (listTop + listHeight + 6) - margin));
+        std::max(0, cx - margin * 2), std::max(0, cy - (listTop + listHeight + 6) - margin));
 }
 
 void CEmuleNextDashboardWnd::OnTimer(UINT_PTR timerId)
@@ -523,6 +527,12 @@ void CEmuleNextDashboardWnd::UpdateDetails()
     const uint64 fileSize = file->GetFileSize();
     row.eta = CDownloadIntelligence::EstimateEta(row.signals, fileSize > completed ? fileSize - completed : 0);
 
+    CString confidence;
+    if (row.eta.known)
+        confidence.Format(_T("%u%%"), row.eta.confidencePercent);
+    else
+        confidence = _T("--");
+
     CString details;
     details.Format(
         _T("%s\r\nStatus: %s   Progress: %.1f%%   Health: %u%%   Attention: %u\r\n")
@@ -541,7 +551,7 @@ void CEmuleNextDashboardWnd::UpdateDetails()
         row.signals.neededParts,
         row.signals.rareNeededParts,
         (LPCTSTR)EtaText(row.eta),
-        row.eta.known ? (LPCTSTR)CString().Format(_T("%u%%"), row.eta.confidencePercent) : _T("--"),
+        (LPCTSTR)confidence,
         row.discoveryBudget,
         NORMAL_DISCOVERY_BUDGET,
         (row.a4afScore + 5) / 10,
