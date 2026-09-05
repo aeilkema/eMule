@@ -28,12 +28,15 @@ jobs:
           fetch-depth: 0
 
       - name: Apply integration
-        run: python tools/emule-next/integrate.py
+        run: |
+          python tools/emule-next/integrate.py
+          python tools/emule-next/activate-features.py
 
       - name: Verify idempotence
         run: |
           cp -R srchybrid /tmp/emule-next-after-first
           python tools/emule-next/integrate.py
+          python tools/emule-next/activate-features.py
           diff -qr /tmp/emule-next-after-first srchybrid
 
       - name: Commit generated legacy-core changes
@@ -50,6 +53,8 @@ jobs:
                   srchybrid/ClientList.h \
                   srchybrid/ClientList.cpp \
                   srchybrid/DownloadQueue.h \
-                  srchybrid/DownloadQueue.cpp
-          git commit -m 'eMule Next: integrate services into legacy core [generated]'
+                  srchybrid/DownloadQueue.cpp \
+                  srchybrid/SearchList.cpp \
+                  srchybrid/FileLibraryService.cpp
+          git commit -m 'eMule Next: activate runtime services [generated]'
           git push origin HEAD:develop
