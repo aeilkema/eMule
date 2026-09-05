@@ -3,8 +3,8 @@
 
 The develop overlay already materializes several eMule Next runtime/UI hooks.
 Legacy structural patchers are skipped once their multi-view result is present,
-so repeated local builds stay idempotent and do not duplicate SearchResultsWnd
-helpers, view blocks or local variables.
+so repeated local builds stay idempotent and do not duplicate or downgrade
+SearchResultsWnd helpers, permanent view blocks or tab routing.
 """
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ def has_next_multi_view() -> bool:
         and "m_search2Wnd.Create(this)" in text
         and "m_fileLibraryWnd.Create(this)" in text
         and "m_nextSettingsWnd.Create(this)" in text
+        and "void CSearchResultsWnd::ShowResults(const SSearchParams *pParams)" in text
     )
 
 
@@ -43,7 +44,11 @@ for script_name in (
     "activate-branding.py",
     "fix-preview1-build.py",
 ):
-    if script_name in ("activate-runtime-features.py", "activate-next-views.py") and has_next_multi_view():
+    if script_name in (
+        "prepare-search-results.py",
+        "activate-runtime-features.py",
+        "activate-next-views.py",
+    ) and has_next_multi_view():
         print(f"eMule Next {script_name} already materialized; skipping")
         continue
     try:
