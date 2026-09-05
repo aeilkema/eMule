@@ -4,7 +4,7 @@
 // Windows SDK header is intentionally not required here because some hosted
 // SDK packages expose it in a form that is incompatible with this legacy MFC
 // translation unit. Keep this file limited to the stable SQLite C ABI that
-// EmuleNextDatabase.cpp actually consumes.
+// eMule Next actually consumes.
 #pragma once
 
 #ifdef __cplusplus
@@ -21,6 +21,7 @@ typedef int (*sqlite3_callback)(void*, int, char**, char**);
 int sqlite3_open16(const void* filename, sqlite3** ppDb);
 int sqlite3_close(sqlite3* db);
 int sqlite3_busy_timeout(sqlite3* db, int ms);
+int sqlite3_changes(sqlite3* db);
 
 int sqlite3_exec(sqlite3* db, const char* sql, sqlite3_callback callback, void* arg, char** errmsg);
 void sqlite3_free(void* ptr);
