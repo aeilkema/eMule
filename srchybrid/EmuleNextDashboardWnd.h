@@ -33,6 +33,12 @@ protected:
     CButton m_filterNoSources;
     CButton m_filterActive;
     CListCtrl m_downloads;
+    CButton m_openTransfers;
+    CButton m_openSources;
+    CButton m_pauseResume;
+    CButton m_priorityHigh;
+    CButton m_priorityNormal;
+    CButton m_refreshNow;
     CStatic m_details;
     CBrush m_darkBrush;
     UINT_PTR m_refreshTimer;
@@ -40,7 +46,9 @@ protected:
 
     void UpdateFilterButtons();
     void UpdateDetails();
+    void UpdateActionButtons();
     CPartFile* GetSelectedFile() const;
+    void JumpToTransfers(bool expandSources);
 
     virtual BOOL PreTranslateMessage(MSG* message);
 
@@ -56,6 +64,12 @@ protected:
     afx_msg void OnFilterRare();
     afx_msg void OnFilterNoSources();
     afx_msg void OnFilterActive();
+    afx_msg void OnOpenTransfers();
+    afx_msg void OnOpenSources();
+    afx_msg void OnPauseResume();
+    afx_msg void OnPriorityHigh();
+    afx_msg void OnPriorityNormal();
+    afx_msg void OnRefreshNow();
     afx_msg void OnDownloadSelectionChanged(NMHDR* header, LRESULT* result);
     afx_msg void OnDownloadDoubleClick(NMHDR* header, LRESULT* result);
 
