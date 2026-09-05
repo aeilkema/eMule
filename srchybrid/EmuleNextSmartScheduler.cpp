@@ -4,11 +4,19 @@
 #include "stdafx.h"
 #include "EmuleNextSmartScheduler.h"
 #include "EmuleNextTransferInsights.h"
+#include "UpDownClient.h"
 #include "DownloadQueue.h"
 #include "PartFile.h"
 #include "emule.h"
 
 #include <algorithm>
+
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 
 CEmuleNextSmartScheduler theEmuleNextScheduler;
 
