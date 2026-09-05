@@ -1,16 +1,6 @@
 name: eMule Next Windows build
 
 on:
-  push:
-    branches: [develop]
-    paths:
-      - 'srchybrid/**'
-      - 'mbedtls/**'
-      - 'tools/emule-next/**'
-      - 'build-local.ps1'
-      - '.github/workflows/emule-next-build.yml'
-  pull_request:
-    branches: [develop, main]
   workflow_dispatch:
 
 permissions:
