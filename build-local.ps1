@@ -9,6 +9,8 @@ $RepoRoot = $PSScriptRoot
 Set-Location $RepoRoot
 
 $MSBuild = "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
+$PreviewExeName = "eMule-Next-0.1.0-Preview1-x64.exe"
+$LatestExeName = "eMule-Next-x64.exe"
 
 if (-not (Test-Path $MSBuild)) {
     throw "Visual Studio 2026 Build Tools MSBuild niet gevonden: $MSBuild"
@@ -55,7 +57,7 @@ Get-ChildItem .\srchybrid -Force | ForEach-Object {
     Copy-Item $_.FullName -Destination $SourceDir -Recurse -Force
 }
 
-Write-Host "Building eMule Next x64..."
+Write-Host "Building eMule Next Preview 1 x64..."
 
 & $MSBuild `
     "$SourceDir\emule.vcxproj" `
@@ -81,10 +83,14 @@ if (-not (Test-Path $Exe)) {
 $Artifacts = Join-Path $RepoRoot "artifacts"
 New-Item -ItemType Directory -Force $Artifacts | Out-Null
 
-Copy-Item $Exe (Join-Path $Artifacts "eMule-Next-x64.exe") -Force
+$PreviewExe = Join-Path $Artifacts $PreviewExeName
+$LatestExe = Join-Path $Artifacts $LatestExeName
+Copy-Item $Exe $PreviewExe -Force
+Copy-Item $Exe $LatestExe -Force
 
-Get-FileHash (Join-Path $Artifacts "eMule-Next-x64.exe") -Algorithm SHA256
+Get-FileHash $PreviewExe -Algorithm SHA256
 
 Write-Host ""
 Write-Host "SUCCESS"
-Write-Host "Executable: $Artifacts\eMule-Next-x64.exe"
+Write-Host "Preview: $PreviewExe"
+Write-Host "Latest alias: $LatestExe"
