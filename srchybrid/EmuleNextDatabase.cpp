@@ -9,6 +9,7 @@
 #include "EmuleNextDatabase.h"
 
 #include <winsqlite3.h>
+#include <algorithm>
 #include <atomic>
 #include <condition_variable>
 #include <deque>
@@ -649,7 +650,7 @@ private:
             {
                 std::unique_lock<std::mutex> lock(m_mutex);
                 m_condition.wait_for(lock, std::chrono::milliseconds(250), [this]() { return m_stop || !m_queue.empty(); });
-                const size_t batchSize = min<size_t>(m_queue.size(), 512);
+                const size_t batchSize = std::min<size_t>(m_queue.size(), 512);
                 for (size_t i = 0; i < batchSize; ++i) {
                     batch.push_back(std::move(m_queue.front()));
                     m_queue.pop_front();
