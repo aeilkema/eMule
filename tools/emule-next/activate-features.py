@@ -11,5 +11,9 @@ import pathlib
 import runpy
 
 HERE = pathlib.Path(__file__).resolve().parent
-for script_name in ("activate-runtime-features.py", "activate-theme.py"):
+for script_name in (
+    "prepare-search-results.py",
+    "activate-runtime-features.py",
+    "activate-theme.py",
+):
     runpy.run_path(str(HERE / script_name), run_name="__main__")
