@@ -26,8 +26,11 @@ protected:
     afx_msg void OnSize(UINT type, int cx, int cy);
     afx_msg void OnDestroy();
     afx_msg void OnTimer(UINT_PTR timerId);
+    afx_msg BOOL OnEraseBkgnd(CDC* dc);
+    afx_msg HBRUSH OnCtlColor(CDC* dc, CWnd* wnd, UINT ctlColor);
     afx_msg void OnUserSelectionChanged(NMHDR* header, LRESULT* result);
     afx_msg void OnRefreshClicked();
+    afx_msg void OnDarkModeClicked();
     afx_msg LRESULT OnUsersLoaded(WPARAM, LPARAM value);
     afx_msg LRESULT OnFilesLoaded(WPARAM, LPARAM value);
 
@@ -43,9 +46,11 @@ private:
     static CString DateText(uint64 timestamp);
 
     CButton m_refreshButton;
+    CButton m_darkModeButton;
     CStatic m_status;
     CListCtrl m_users;
     CListCtrl m_files;
+    CBrush m_darkBrush;
     std::vector<EmuleNextKnownUserRecord> m_userRows;
     std::vector<EmuleNextKnownFileRecord> m_fileRows;
     EmuleNextHash16 m_fileRowsPeer;
