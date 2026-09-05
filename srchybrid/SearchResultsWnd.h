@@ -18,6 +18,9 @@
 #include "ResizableLib\ResizableFormView.h"
 #include "SearchListCtrl.h"
 #include "KnownUsersWnd.h"
+#include "Search2Wnd.h"
+#include "FileLibraryWnd.h"
+#include "EmuleNextSettingsWnd.h"
 #include "ButtonsTabCtrl.h"
 #include "ClosableTabCtrl.h"
 #include "DropDownButton.h"
@@ -66,6 +69,9 @@ public:
 	CSearchListCtrl searchlistctrl;
 	CSearchResultsSelector searchselect;
 	CKnownUsersWnd m_knownUsersWnd;
+	CSearch2Wnd m_search2Wnd;
+	CFileLibraryWnd m_fileLibraryWnd;
+	CEmuleNextSettingsWnd m_nextSettingsWnd;
 	CStringArray m_astrFilter;
 	CSearchParamsWnd *m_pwndParams;
 

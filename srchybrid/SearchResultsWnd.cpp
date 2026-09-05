@@ -74,6 +74,14 @@ enum ESearchResultImage
 	sriKad
 };
 
+static bool IsEmuleNextPersistentView(uint32 searchID)
+{
+	return searchID == EMULENEXT_KNOWN_USERS_VIEW_ID
+		|| searchID == EMULENEXT_SEARCH2_VIEW_ID
+		|| searchID == EMULENEXT_LIBRARY_VIEW_ID
+		|| searchID == EMULENEXT_SETTINGS_VIEW_ID;
+}
+
 #define	SEARCH_LIST_MENU_BUTTON_XOFF	7
 #define	SEARCH_LIST_MENU_BUTTON_YOFF	2
 #define	SEARCH_LIST_MENU_BUTTON_WIDTH	170
@@ -191,6 +199,55 @@ void CSearchResultsWnd::OnInitialUpdate()
 		ScreenToClient(&knownRect);
 		m_knownUsersWnd.MoveWindow(&knownRect);
 		AddAnchor(m_knownUsersWnd, TOP_LEFT, BOTTOM_RIGHT);
+	}
+
+	CRect nextViewRect;
+	searchlistctrl.GetWindowRect(&nextViewRect);
+	ScreenToClient(&nextViewRect);
+
+	if (m_search2Wnd.Create(this)) {
+		m_search2Wnd.ShowWindow(SW_HIDE);
+		m_search2Wnd.MoveWindow(&nextViewRect);
+		AddAnchor(m_search2Wnd, TOP_LEFT, BOTTOM_RIGHT);
+		SSearchParams *search2 = new SSearchParams;
+		search2->dwSearchID = EMULENEXT_SEARCH2_VIEW_ID;
+		search2->strExpression = _T("Search 2");
+		search2->strSpecialTitle = _T("Search 2");
+		if (!CreateOrFindTab(search2, false)) delete search2;
+	}
+
+	if (m_fileLibraryWnd.Create(this)) {
+		m_fileLibraryWnd.ShowWindow(SW_HIDE);
+		m_fileLibraryWnd.MoveWindow(&nextViewRect);
+		AddAnchor(m_fileLibraryWnd, TOP_LEFT, BOTTOM_RIGHT);
+		SSearchParams *library = new SSearchParams;
+		library->dwSearchID = EMULENEXT_LIBRARY_VIEW_ID;
+		library->strExpression = _T("Library");
+		library->strSpecialTitle = _T("Library");
+		if (!CreateOrFindTab(library, false)) delete library;
+	}
+
+	if (m_nextSettingsWnd.Create(this)) {
+		m_nextSettingsWnd.ShowWindow(SW_HIDE);
+		m_nextSettingsWnd.MoveWindow(&nextViewRect);
+		AddAnchor(m_nextSettingsWnd, TOP_LEFT, BOTTOM_RIGHT);
+		SSearchParams *settings = new SSearchParams;
+		settings->dwSearchID = EMULENEXT_SETTINGS_VIEW_ID;
+		settings->strExpression = _T("Settings");
+		settings->strSpecialTitle = _T("Settings");
+		if (!CreateOrFindTab(settings, false)) delete settings;
+	}
+
+	// Start on Known users rather than the last permanent tab created above.
+	TCITEM nextTabItem;
+	nextTabItem.mask = TCIF_PARAM;
+	for (int nextTab = 0; nextTab < searchselect.GetItemCount(); ++nextTab) {
+		if (searchselect.GetItem(nextTab, &nextTabItem) && nextTabItem.lParam != NULL
+			&& reinterpret_cast<SSearchParams*>(nextTabItem.lParam)->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID) {
+			searchselect.SetCurSel(nextTab);
+			ShowResults(reinterpret_cast<SSearchParams*>(nextTabItem.lParam));
+			break;
+		}
 	}
 
 	if (theApp.m_fontSymbol.m_hObject) {
@@ -1381,7 +1438,7 @@ bool CSearchResultsWnd::CreateOrFindTab(SSearchParams *pParams, bool bActiveIcon
 	DupAmpersand(strTcLabel);
 	ti.pszText = const_cast<LPTSTR>((LPCTSTR)strTcLabel);
 	ti.cchTextMax = 0;
-	if (pParams->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID || pParams->bClientSharedFiles)
+	if (IsEmuleNextPersistentView(pParams->dwSearchID) || pParams->bClientSharedFiles)
 		ti.iImage = sriClient;
 	else if (pParams->eType == SearchTypeKademlia)
 		ti.iImage = bActiveIcon ? sriKadActice : sriKad;
@@ -1396,7 +1453,7 @@ bool CSearchResultsWnd::CreateOrFindTab(SSearchParams *pParams, bool bActiveIcon
 	LRESULT lResult;
 	OnSelChangingTab(NULL, &lResult);
 	searchselect.SetCurSel(itemnr);
-	if (pParams->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID)
+	if (IsEmuleNextPersistentView(pParams->dwSearchID))
 		ShowResults(pParams);
 	else
 		searchlistctrl.ShowResults(pParams->dwSearchID);
@@ -1418,7 +1475,7 @@ void CSearchResultsWnd::DeleteSelectedSearch()
 #pragma warning(disable:4701) //local variable 'ti'
 void CSearchResultsWnd::DeleteSearch(uint32 uSearchID)
 {
-	if (uSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID)
+	if (IsEmuleNextPersistentView(uSearchID))
 		return;
 
 	Kademlia::CSearchManager::StopSearch(uSearchID, false);
@@ -1480,7 +1537,7 @@ void CSearchResultsWnd::DeleteAllSearches()
 		if (!searchselect.GetItem(i, &ti) || ti.lParam == NULL)
 			continue;
 		SSearchParams *params = reinterpret_cast<SSearchParams*>(ti.lParam);
-		if (params->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID)
+		if (IsEmuleNextPersistentView(params->dwSearchID))
 			continue;
 		Kademlia::CSearchManager::StopSearch(params->dwSearchID, false);
 		theApp.searchlist->RemoveResults(params->dwSearchID);
@@ -1527,26 +1584,43 @@ void CSearchResultsWnd::NoTabItems()
 
 void CSearchResultsWnd::ShowResults(const SSearchParams *pParams)
 {
-	if (pParams->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID) {
+	m_knownUsersWnd.ShowWindow(SW_HIDE);
+	m_search2Wnd.ShowWindow(SW_HIDE);
+	m_fileLibraryWnd.ShowWindow(SW_HIDE);
+	m_nextSettingsWnd.ShowWindow(SW_HIDE);
+
+	if (IsEmuleNextPersistentView(pParams->dwSearchID)) {
 		searchlistctrl.ShowWindow(SW_HIDE);
-		m_knownUsersWnd.ShowWindow(SW_SHOW);
 		m_ctlFilter.ShowWindow(SW_HIDE);
 		GetDlgItem(IDC_SDOWNLOAD)->ShowWindow(SW_HIDE);
 		m_cattabs.ShowWindow(SW_HIDE);
 		GetDlgItem(IDC_STATIC_DLTOof)->ShowWindow(SW_HIDE);
-		m_knownUsersWnd.Refresh(true);
+
+		if (pParams->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID) {
+			m_knownUsersWnd.ShowWindow(SW_SHOW);
+			m_knownUsersWnd.Refresh(true);
+		}
+		else if (pParams->dwSearchID == EMULENEXT_SEARCH2_VIEW_ID) {
+			m_search2Wnd.ShowWindow(SW_SHOW);
+			m_search2Wnd.Refresh(false);
+		}
+		else if (pParams->dwSearchID == EMULENEXT_LIBRARY_VIEW_ID) {
+			m_fileLibraryWnd.ShowWindow(SW_SHOW);
+			m_fileLibraryWnd.Refresh(false);
+		}
+		else if (pParams->dwSearchID == EMULENEXT_SETTINGS_VIEW_ID) {
+			m_nextSettingsWnd.ShowWindow(SW_SHOW);
+			m_nextSettingsWnd.Refresh();
+		}
 		return;
 	}
 
-	m_knownUsersWnd.ShowWindow(SW_HIDE);
 	searchlistctrl.ShowWindow(SW_SHOW);
 	if (m_bTabs)
 		m_ctlFilter.ShowWindow(SW_SHOW);
 	GetDlgItem(IDC_SDOWNLOAD)->ShowWindow(SW_SHOW);
 	UpdateCatTabs();
 
-	// restoring the params works and is nice during development/testing but pretty annoying in practice.
-	// TODO: maybe it should be done explicitly via a context menu function or such.
 	if (GetKeyState(VK_CONTROL) < 0)
 		m_pwndParams->SetParameters(pParams);
 
@@ -1609,7 +1683,7 @@ LRESULT CSearchResultsWnd::OnCloseTab(WPARAM wParam, LPARAM)
 	ti.mask = TCIF_PARAM;
 	if (searchselect.GetItem((int)wParam, &ti) && ti.lParam != NULL) {
 		uint32 uSearchID = reinterpret_cast<SSearchParams*>(ti.lParam)->dwSearchID;
-		if (uSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID)
+		if (IsEmuleNextPersistentView(uSearchID))
 			return TRUE;
 		if (uSearchID == m_nEd2kSearchID && !m_cancelled)
 			CancelEd2kSearch();

@@ -214,6 +214,9 @@
     <ClCompile Include="EMSocket.cpp" />
     <ClCompile Include="Emule.cpp" />
     <ClCompile Include="EmuleNextDatabase.cpp" />
+    <ClCompile Include="FileLibraryWnd.cpp" />
+    <ClCompile Include="LibraryBrowserService.cpp" />
+    <ClCompile Include="Search2Wnd.cpp" />
     <ClCompile Include="EmuleNextSettingsWnd.cpp" />
     <ClCompile Include="EmuleNextSearchBridge.cpp" />
     <ClCompile Include="KnownUsersService.cpp" />
