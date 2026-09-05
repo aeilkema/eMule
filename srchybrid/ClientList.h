@@ -31,10 +31,6 @@ typedef CTypedPtrList<CPtrList, CUpDownClient*> CUpDownClientPtrList;
 #define	NUM_CLIENTLIST_STATS	19
 #define BAN_CLEANUP_TIME		MIN2MS(20)
 
-//------------CDeletedClient Class----------------------
-// this class / list is a bit overkill, but currently needed to avoid any exploit possibility
-// it will keep track of certain clients attributes for 2 hours, while the CUpDownClient object might be deleted already
-// currently: IP, Port, UserHash
 struct PORTANDHASH
 {
 	uint16 nPort;
@@ -52,7 +48,6 @@ struct CONNECTINGCLIENT
 	DWORD dwInserted;
 };
 
-
 class CDeletedClient
 {
 public:
@@ -69,7 +64,6 @@ enum buddyState : uint8
 	Connected
 };
 
-// ----------------------CClientList Class---------------
 typedef CMap<uint32, uint32, uint32, uint32> CClientVersionMap;
 
 class CClientList : public IEmuleNextPeerShareTransport
@@ -80,7 +74,6 @@ public:
 	CClientList();
 	~CClientList();
 
-	// Clients
 	void	AddClient(CUpDownClient *toadd, bool bSkipDupTest = false);
 	void	RemoveClient(CUpDownClient *toremove, LPCTSTR pszReason = NULL);
 	void	GetStatistics(uint32 &ruTotalClients
@@ -102,14 +95,12 @@ public:
 	CUpDownClient* FindClientByUserHash(const uchar *clienthash, uint32 dwIP = 0, uint16 nTCPPort = 0) const;
 	CUpDownClient* FindClientByUserID_KadPort(uint32 clientID, uint16 kadPort) const;
 
-	// Banned clients
 	void	AddBannedClient(uint32 dwIP);
 	bool	IsBannedClient(uint32 dwIP) const;
 	void	RemoveBannedClient(uint32 dwIP);
 	INT_PTR	GetBannedCount() const						{ return m_bannedList.GetCount(); }
 	void	RemoveAllBannedClients();
 
-	// Tracked clients
 	void	AddTrackClient(const CUpDownClient *toadd);
 	bool	ComparePriorUserhash(uint32 dwIP, uint16 nPort, const void *pNewHash);
 	INT_PTR	GetClientsFromIP(uint32 dwIP) const;
@@ -118,25 +109,21 @@ public:
 	INT_PTR	GetTrackedCount() const						{ return m_trackedClientsMap.GetCount(); }
 	void	RemoveAllTrackedClients();
 
-	// Kad client list, buddy handling
 	bool	RequestTCP(const Kademlia::CContact *contact, uint8 byConnectOptions);
 	void	RequestBuddy(const Kademlia::CContact *contact, uint8 byConnectOptions);
-	bool	IncomingBuddy(const Kademlia::CContact *contact, const Kademlia::CUInt128 &buddyID);
+	bool	IncomingBuddy(const Kademlia::CContact &contact, const Kademlia::CUInt128 &buddyID);
 	void	RemoveFromKadList(CUpDownClient *torem);
 	void	AddToKadList(CUpDownClient *toadd);
 	bool	DoRequestFirewallCheckUDP(const Kademlia::CContact &contact);
-	//bool	DebugDoRequestFirewallCheckUDP(uint32 ip, uint16 port);
 	uint8	GetBuddyStatus() const						{ return m_nBuddyStatus; }
 	CUpDownClient* GetBuddy() const						{ return m_pBuddy; }
 
 	void	AddKadFirewallRequest(uint32 dwIP);
 	bool	IsKadFirewallCheckIP(uint32 dwIP) const;
 
-	// Direct Callback List
 	void	AddTrackCallbackRequests(uint32 dwIP);
 	bool	AllowCalbackRequest(uint32 dwIP) const;
 
-	// Connecting Clients
 	void	AddConnectingClient(CUpDownClient *pToAdd);
 	void	RemoveConnectingClient(const CUpDownClient *pToRemove);
 
@@ -145,14 +132,15 @@ public:
 	void	OnPeerSharedFileList(const uchar *peerHash, uint32 fileCount, uint64 totalBytes);
 	virtual bool RequestSharedFileList(const EmuleNextHash16& peerHash);
 	virtual bool IsPeerOnline(const EmuleNextHash16& peerHash) const;
+	void	SetPeerShareDiscoveryEnabled(bool enabled);
+	void	SetPeerShareMaxConcurrent(uint32 maxConcurrent);
+	bool	IsPeerShareDiscoveryEnabled() const { return m_peerShareScanner.IsEnabled(); }
 	bool	IsValidClient(CUpDownClient *tocheck) const;
 	void	Debug_SocketDeleted(CClientReqSocket *deleted) const;
 
-	// ZZ:UploadSpeedSense -->
 	bool GiveClientsForTraceRoute();
-	// ZZ:UploadSpeedSense <--
 
-	void	ProcessA4AFClients() const; // ZZ:DownloadManager
+	void	ProcessA4AFClients() const;
 	CDeadSourceList	m_globDeadSourceList;
 
 protected:
@@ -160,10 +148,7 @@ protected:
 	void	ProcessConnectingClientsList();
 
 private:
-	// Fast identity/endpoint lookup kept in lock-step with the canonical MFC list.
 	CClientIndex m_index;
-	// Privacy-respecting scanner: uses the normal eMule View Shared Files request,
-	// honours peer denial and throttles concurrent/background requests.
 	CPeerShareScanner m_peerShareScanner;
 	CUpDownClientPtrList list;
 	CUpDownClientPtrList m_KadList;
