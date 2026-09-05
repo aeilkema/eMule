@@ -221,8 +221,11 @@ UINT CSearchList::ProcessSearchAnswer(const uchar *in_packet, uint32 size
 			toadd->AddServer(server);
 		}
 		toadd->SetPreviewPossible(sender.GetPreviewSupport() && ED2KFT_VIDEO == GetED2KFileTypeID(toadd->GetFileName()));
-		// Persist peer/file history before the legacy result object is merged into the UI list.
-		theEmuleNext.RecordFileSeen(toadd->GetFileHash(), toadd->GetFileSize(), toadd->GetFileName());
+		// PeerFileSeen already upserts the file. Automatic scans therefore queue
+		// only one database event per result; this prevents large shares from
+		// flooding the 50k-event writer queue and keeps the UI/network callback short.
+		if (!bEmuleNextAutomaticShare)
+			theEmuleNext.RecordFileSeen(toadd->GetFileHash(), toadd->GetFileSize(), toadd->GetFileName());
 		theEmuleNext.RecordPeerFileSeen(sender.GetUserHash(), toadd->GetFileHash(), toadd->GetFileSize(),
 			toadd->GetFileName(), CString(), _T("peer-shared-list"));
 		++nextSharedFileCount;
