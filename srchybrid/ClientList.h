@@ -111,7 +111,7 @@ public:
 
 	bool	RequestTCP(const Kademlia::CContact *contact, uint8 byConnectOptions);
 	void	RequestBuddy(const Kademlia::CContact *contact, uint8 byConnectOptions);
-	bool	IncomingBuddy(const Kademlia::CContact &contact, const Kademlia::CUInt128 &buddyID);
+	bool	IncomingBuddy(const Kademlia::CContact *contact, const Kademlia::CUInt128 &buddyID);
 	void	RemoveFromKadList(CUpDownClient *torem);
 	void	AddToKadList(CUpDownClient *toadd);
 	bool	DoRequestFirewallCheckUDP(const Kademlia::CContact &contact);
@@ -148,10 +148,9 @@ protected:
 	void	ProcessConnectingClientsList();
 
 private:
-	CClientIndex m_index;
-	CPeerShareScanner m_peerShareScanner;
 	// Fast identity/endpoint lookup kept in lock-step with the canonical MFC list.
 	CClientIndex m_index;
+	CPeerShareScanner m_peerShareScanner;
 	CUpDownClientPtrList list;
 	CUpDownClientPtrList m_KadList;
 	CMap<uint32, uint32, DWORD, DWORD> m_bannedList;

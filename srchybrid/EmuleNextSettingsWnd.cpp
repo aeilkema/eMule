@@ -106,7 +106,10 @@ void CEmuleNextSettingsWnd::Refresh()
     m_themeMode.SetCurSel(static_cast<int>(CEmuleNextTheme::GetMode()));
     const bool discovery = theApp.GetProfileInt(_T("eMule Next"), _T("PeerShareDiscovery"), 1) != 0;
     int concurrent = theApp.GetProfileInt(_T("eMule Next"), _T("PeerShareMaxConcurrent"), 2);
-    concurrent = max(1, min(8, concurrent));
+    if (concurrent < 1)
+        concurrent = 1;
+    else if (concurrent > 8)
+        concurrent = 8;
     m_discoveryEnabled.SetCheck(discovery ? BST_CHECKED : BST_UNCHECKED);
     m_maxConcurrent.SetCurSel(concurrent - 1);
 }
@@ -171,7 +174,10 @@ void CEmuleNextSettingsWnd::OnApplyClicked()
 
     const bool discovery = m_discoveryEnabled.GetCheck() == BST_CHECKED;
     int concurrent = m_maxConcurrent.GetCurSel() + 1;
-    concurrent = max(1, min(8, concurrent));
+    if (concurrent < 1)
+        concurrent = 1;
+    else if (concurrent > 8)
+        concurrent = 8;
     theApp.WriteProfileInt(_T("eMule Next"), _T("PeerShareDiscovery"), discovery ? 1 : 0);
     theApp.WriteProfileInt(_T("eMule Next"), _T("PeerShareMaxConcurrent"), concurrent);
     if (theApp.clientlist != NULL) {

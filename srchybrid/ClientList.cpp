@@ -62,7 +62,10 @@ CClientList::CClientList()
 	m_peerShareScanner.SetTransport(this);
 	m_peerShareScanner.SetEnabled(theApp.GetProfileInt(_T("eMule Next"), _T("PeerShareDiscovery"), 1) != 0);
 	int nextMaxConcurrent = theApp.GetProfileInt(_T("eMule Next"), _T("PeerShareMaxConcurrent"), 2);
-	nextMaxConcurrent = max(1, min(8, nextMaxConcurrent));
+	if (nextMaxConcurrent < 1)
+		nextMaxConcurrent = 1;
+	else if (nextMaxConcurrent > 8)
+		nextMaxConcurrent = 8;
 	m_peerShareScanner.SetMaxConcurrent(static_cast<uint32>(nextMaxConcurrent));
 }
 
@@ -74,7 +77,10 @@ void CClientList::SetPeerShareDiscoveryEnabled(bool enabled)
 
 void CClientList::SetPeerShareMaxConcurrent(uint32 maxConcurrent)
 {
-	maxConcurrent = max<uint32>(1, min<uint32>(8, maxConcurrent));
+	if (maxConcurrent < 1)
+		maxConcurrent = 1;
+	else if (maxConcurrent > 8)
+		maxConcurrent = 8;
 	m_peerShareScanner.SetMaxConcurrent(maxConcurrent);
 	theApp.WriteProfileInt(_T("eMule Next"), _T("PeerShareMaxConcurrent"), static_cast<int>(maxConcurrent));
 }

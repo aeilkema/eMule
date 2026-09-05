@@ -61,12 +61,20 @@ namespace
 
     bool SystemWantsDarkMode()
     {
+        HKEY key = NULL;
         DWORD appsUseLightTheme = 1;
+        DWORD type = 0;
         DWORD bytes = sizeof(appsUseLightTheme);
-        const LSTATUS status = ::RegGetValueW(HKEY_CURRENT_USER,
+        if (::RegOpenKeyExW(HKEY_CURRENT_USER,
             L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-            L"AppsUseLightTheme", RRF_RT_REG_DWORD, NULL, &appsUseLightTheme, &bytes);
-        return status == ERROR_SUCCESS && appsUseLightTheme == 0;
+            0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS) {
+            return false;
+        }
+
+        const LSTATUS status = ::RegQueryValueExW(key, L"AppsUseLightTheme",
+            NULL, &type, reinterpret_cast<LPBYTE>(&appsUseLightTheme), &bytes);
+        ::RegCloseKey(key);
+        return status == ERROR_SUCCESS && type == REG_DWORD && appsUseLightTheme == 0;
     }
 
     void ResolveEffectiveMode()
