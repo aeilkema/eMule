@@ -55,7 +55,7 @@ bool CSearchList::ImportClientSharedFilesForPeer(LPCTSTR userName,
             candidates.Add(list);
     }
 
-    if (candidates.IsEmpty())
+    if (candidates.GetCount() == 0)
         return false;
 
     SearchListsStruct* selected = NULL;
