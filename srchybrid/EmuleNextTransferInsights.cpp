@@ -41,16 +41,21 @@ EmuleNextTransferInsight CEmuleNextTransferInsights::Build(const CPartFile* file
     insight.file.kadResultsLastCycle = 1;
 
     const UINT partCount = file->GetPartCount();
-    insight.parts.reserve(partCount);
+    insight.parts.resize(partCount);
     for (UINT part = 0; part < partCount; ++part) {
-        if (file->IsComplete(part))
+        EmuleNextPartSignals& p = insight.parts[part];
+        if (file->IsComplete(part)) {
+            p.independentSources = 65535;
+            p.reliableSources = 65535;
+            p.bestSourceQuality = 1000.0;
+            p.completionImpact = 0.0;
+            p.requestedNow = true;
             continue;
-        EmuleNextPartSignals p;
+        }
         p.independentSources = file->GetPartSourceFrequency(part);
         p.reliableSources = p.independentSources;
         p.bestSourceQuality = 500.0;
         p.completionImpact = partCount > 0 ? 1.0 / static_cast<double>(partCount) : 0.0;
-        insight.parts.push_back(p);
         ++insight.file.neededParts;
         if (p.independentSources <= 2)
             ++insight.file.rareNeededParts;
