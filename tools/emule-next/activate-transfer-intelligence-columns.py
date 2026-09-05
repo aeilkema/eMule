@@ -47,12 +47,16 @@ def main() -> int:
         text = text.replace(localize_anchor, localize_anchor + localize, 1)
 
     source_anchor = '''\t//case 9: //remaining time & size\n\t//case 10: //last seen complete\n\t//case 11: //last received\n\t//case 12: //category\n\t//case 13: //added on\n\t}\n\treturn sText;\n}\n'''
-    source_cases = '''\tcase 14: // local alias; network username remains column 0\n\t\tif (pClient->HasValidHash())\n\t\t\ttheEmuleNext.GetPeerAlias(pClient->GetUserHash(), sText);\n\t\tbreak;\n\tcase 15: // cheap live-only intelligence: never query SQLite from a paint path\n\t\t{\n\t\t\tEmuleNextSourceSignals signals;\n\t\t\tsignals.currentBytesPerSecond = static_cast<double>(pClient->GetDownloadDatarate());\n\t\t\tsignals.remoteQueueRank = pClient->GetRemoteQueueRank();\n\t\t\tsignals.connected = pClient->socket != NULL && pClient->socket->IsConnected();\n\t\t\tsignals.currentlyTransferring = pClient->GetDownloadState() == DS_DOWNLOADING;\n\t\t\tsignals.secureIdentified = pClient->Credits() != NULL\n\t\t\t\t&& pClient->Credits()->GetCurrentIdentState(pClient->GetIP()) == IS_IDENTIFIED;\n\t\t\tfor (UINT part = 0; part < pClient->GetPartCount(); ++part) {\n\t\t\t\tif (pClient->IsPartAvailable(part))\n\t\t\t\t\t++signals.usefulPartCount;\n\t\t\t}\n\t\t\tconst uint32 quality = CDownloadIntelligence::SourceQuality(signals);\n\t\t\tsText.Format(_T("%u%%"), (quality + 5) / 10);\n\t\t}\n\t\tbreak;\n'''
+    source_cases = '''\tcase 14: // local alias; network username remains column 0\n\t\tif (pClient->HasValidHash())\n\t\t\ttheEmuleNext.GetPeerAlias(pClient->GetUserHash(), sText);\n\t\tbreak;\n\tcase 15: // cheap live-only intelligence: never query SQLite from a paint path\n\t\t{\n\t\t\tEmuleNextSourceSignals signals;\n\t\t\tsignals.currentBytesPerSecond = static_cast<double>(pClient->GetDownloadDatarate());\n\t\t\tsignals.remoteQueueRank = pClient->GetRemoteQueueRank();\n\t\t\tconst EDownloadState state = pClient->GetDownloadState();\n\t\t\tsignals.connected = state == DS_CONNECTED || state == DS_DOWNLOADING || state == DS_REQHASHSET;\n\t\t\tsignals.currentlyTransferring = state == DS_DOWNLOADING;\n\t\t\tsignals.secureIdentified = pClient->Credits() != NULL\n\t\t\t\t&& pClient->Credits()->GetCurrentIdentState(pClient->GetIP()) == IS_IDENTIFIED;\n\t\t\tfor (UINT part = 0; part < pClient->GetPartCount(); ++part) {\n\t\t\t\tif (pClient->IsPartAvailable(part))\n\t\t\t\t\t++signals.usefulPartCount;\n\t\t\t}\n\t\t\tconst uint32 quality = CDownloadIntelligence::SourceQuality(signals);\n\t\t\tsText.Format(_T("%u%%"), (quality + 5) / 10);\n\t\t}\n\t\tbreak;\n'''
     if 'case 15: // cheap live-only intelligence' not in text:
         if source_anchor not in text:
             raise RuntimeError("DownloadListCtrl source display anchor not found")
-        replacement = source_cases + source_anchor
-        text = text.replace(source_anchor, replacement, 1)
+        text = text.replace(source_anchor, source_cases + source_anchor, 1)
+    else:
+        old = 'signals.connected = pClient->socket != NULL && pClient->socket->IsConnected();'
+        new = 'const EDownloadState state = pClient->GetDownloadState();\n\t\t\tsignals.connected = state == DS_CONNECTED || state == DS_DOWNLOADING || state == DS_REQHASHSET;'
+        if old in text:
+            text = text.replace(old, new, 1)
 
     save(text, newline)
     print("eMule Next live Transfers source intelligence active")
