@@ -5,25 +5,27 @@ from __future__ import annotations
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-PATH = ROOT / "srchybrid" / "UploadClient.cpp"
+SRC = ROOT / "srchybrid"
+UPLOAD_PATH = SRC / "UploadClient.cpp"
+DB_PATH = SRC / "EmuleNextDatabase.cpp"
 
 
-def load() -> tuple[str, str]:
-    raw = PATH.read_bytes()
+def load(path: pathlib.Path) -> tuple[str, str]:
+    raw = path.read_bytes()
     crlf = raw.count(b"\r\n")
     lf = raw.count(b"\n") - crlf
     newline = "\r\n" if crlf >= lf and crlf else "\n"
     return raw.decode("latin-1").replace("\r\n", "\n").replace("\r", "\n"), newline
 
 
-def save(text: str, newline: str) -> None:
+def save(path: pathlib.Path, text: str, newline: str) -> None:
     if newline != "\n":
         text = text.replace("\n", newline)
-    PATH.write_bytes(text.encode("latin-1"))
+    path.write_bytes(text.encode("latin-1"))
 
 
-def main() -> int:
-    text, newline = load()
+def patch_upload_client() -> None:
+    text, newline = load(UPLOAD_PATH)
 
     include_anchor = '#include "UploadDiskIOThread.h"\n'
     if '#include "EmuleNextRuntime.h"' not in text:
@@ -39,8 +41,27 @@ def main() -> int:
             raise RuntimeError("SetUploadState lifecycle anchor not found")
         text = text.replace(old, new, 1)
 
-    save(text, newline)
-    print("eMule Next upload transfer lifecycle active")
+    save(UPLOAD_PATH, text, newline)
+
+
+def patch_database_direction() -> None:
+    text, newline = load(DB_PATH)
+    marker = 'event.transfer.direction.CompareNoCase(L"download") == 0'
+    if marker not in text:
+        old = '''            sqlite3_finalize(stmt); stmt = NULL;\n            if (peerId != 0 && fileId != 0) {\n                if (sqlite3_prepare_v2(db, "INSERT OR IGNORE INTO source_history(peer_id,file_id) VALUES(?1,?2)", -1, &stmt, NULL) == SQLITE_OK) {\n'''
+        new = '''            sqlite3_finalize(stmt); stmt = NULL;\n            // source_history drives download-source quality. Upload slots belong\n            // in transfer_sessions but must never improve/degrade download peers.\n            if (peerId != 0 && fileId != 0\n                && event.transfer.direction.CompareNoCase(L"download") == 0) {\n                if (sqlite3_prepare_v2(db, "INSERT OR IGNORE INTO source_history(peer_id,file_id) VALUES(?1,?2)", -1, &stmt, NULL) == SQLITE_OK) {\n'''
+        if old not in text:
+            raise RuntimeError("EmuleNextDatabase source_history transfer anchor not found")
+        text = text.replace(old, new, 1)
+    save(DB_PATH, text, newline)
+
+
+def main() -> int:
+    if not UPLOAD_PATH.exists() or not DB_PATH.exists():
+        raise RuntimeError("Missing upload lifecycle source")
+    patch_upload_client()
+    patch_database_direction()
+    print("eMule Next upload transfer lifecycle active; download source history isolated")
     return 0
 
 
