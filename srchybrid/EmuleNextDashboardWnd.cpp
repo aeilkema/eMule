@@ -46,9 +46,6 @@ namespace
         signals.highPriority = file->GetDownPriority() == PR_HIGH
             || file->GetDownPriority() == PR_VERYHIGH;
 
-        // We have not wired per-cycle Kad discovery telemetry into the file yet.
-        // Use 1 here so a zero-source file is reported as "No sources" instead
-        // of incorrectly claiming that Kad itself failed.
         signals.kadResultsLastCycle = 1;
 
         const UINT partCount = file->GetPartCount();
@@ -162,6 +159,11 @@ int CEmuleNextDashboardWnd::OnCreate(LPCREATESTRUCT createStruct)
     m_refreshTimer = SetTimer(TIMER_EN_DASH_REFRESH, 2000, NULL);
     Refresh();
     return 0;
+}
+
+BOOL CEmuleNextDashboardWnd::PreTranslateMessage(MSG* message)
+{
+    return CWnd::PreTranslateMessage(message);
 }
 
 void CEmuleNextDashboardWnd::OnSize(UINT type, int cx, int cy)
