@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Idempotently integrate eMule Next services into the v0.72a legacy core.
 
 This script intentionally edits the legacy MFC files in one audited place.  It
@@ -110,9 +110,22 @@ def patch_vcxproj() -> None:
 
     def add_sqlite(match: re.Match[str]) -> str:
         value = match.group(1)
-        if "winsqlite3.lib" in value.lower():
+
+        required = [
+            "winsqlite3.lib",
+            "bcrypt.lib",
+            r"..\mbedtls\visualc\vs2017\$(Platform)\$(Configuration)\mbedx509.lib",
+            r"..\mbedtls\visualc\vs2017\$(Platform)\$(Configuration)\tfpsacrypto.lib",
+        ]
+
+        existing = value.lower()
+        missing = [dependency for dependency in required if dependency.lower() not in existing]
+
+        if not missing:
             return match.group(0)
-        return f"<AdditionalDependencies>winsqlite3.lib;{value}</AdditionalDependencies>"
+
+        prefix = ";".join(missing) + ";"
+        return f"<AdditionalDependencies>{prefix}{value}</AdditionalDependencies>"
 
     text, count = dep_pattern.subn(add_sqlite, text)
     if count == 0:
@@ -421,3 +434,5 @@ if __name__ == "__main__":
     except Exception as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         raise
+
+

@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$SourceDir,
     [Parameter(Mandatory = $true)][string]$MSBuildExe,
@@ -289,3 +289,7 @@ foreach ($library in $RequiredLibraries) {
 }
 
 Write-Host "All eMule dependencies are built and staged for $Platform|$Configuration."
+
+
+
+
