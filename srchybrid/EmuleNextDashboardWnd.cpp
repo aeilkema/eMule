@@ -5,9 +5,9 @@
 #include "EmuleNextDashboardWnd.h"
 
 #include "emule.h"
+#include "PartFile.h"
 #include "DownloadQueue.h"
 #include "UploadQueue.h"
-#include "PartFile.h"
 #include "UpDownClient.h"
 #include "DownloadIntelligence.h"
 #include "EmuleNextTheme.h"
@@ -79,26 +79,24 @@ namespace
         }
     }
 
-    CString DurationText(uint64 seconds)
+    CString EtaText(const EmuleNextEta& eta)
     {
-        if (seconds < 60) {
-            CString text;
-            text.Format(_T("%llus"), seconds);
-            return text;
-        }
-        if (seconds < 3600) {
-            CString text;
-            text.Format(_T("%llum"), seconds / 60);
-            return text;
-        }
-        if (seconds < 86400) {
-            CString text;
-            text.Format(_T("%lluh %02llum"), seconds / 3600, (seconds % 3600) / 60);
-            return text;
-        }
-        CString text;
-        text.Format(_T("%llud %lluh"), seconds / 86400, (seconds % 86400) / 3600);
-        return text;
+        if (!eta.known)
+            return _T("--");
+        uint64 seconds = eta.seconds;
+        const uint64 days = seconds / 86400ui64;
+        seconds %= 86400ui64;
+        const uint64 hours = seconds / 3600ui64;
+        seconds %= 3600ui64;
+        const uint64 minutes = seconds / 60ui64;
+        CString result;
+        if (days > 0)
+            result.Format(_T("%llud %02lluh"), days, hours);
+        else if (hours > 0)
+            result.Format(_T("%lluh %02llum"), hours, minutes);
+        else
+            result.Format(_T("%llum"), minutes);
+        return result;
     }
 }
 
@@ -124,7 +122,8 @@ bool CEmuleNextDashboardWnd::Create(CWnd* parent)
     if (parent == NULL)
         return false;
     const CString className = AfxRegisterWndClass(CS_DBLCLKS,
-        ::LoadCursor(NULL, IDC_ARROW), reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1), NULL);
+        ::LoadCursor(NULL, IDC_ARROW),
+        reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1), NULL);
     CRect empty(0, 0, 0, 0);
     return CWnd::CreateEx(0, className, _T("eMule Next Dashboard"),
         WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
@@ -149,13 +148,13 @@ int CEmuleNextDashboardWnd::OnCreate(LPCREATESTRUCT createStruct)
     m_summary.SetFont(font);
     m_downloads.SetFont(font);
     m_downloads.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_GRIDLINES);
-    m_downloads.InsertColumn(0, _T("File"), LVCFMT_LEFT, 280);
-    m_downloads.InsertColumn(1, _T("Progress"), LVCFMT_RIGHT, 75);
-    m_downloads.InsertColumn(2, _T("Speed"), LVCFMT_RIGHT, 95);
-    m_downloads.InsertColumn(3, _T("Sources"), LVCFMT_RIGHT, 70);
+    m_downloads.InsertColumn(0, _T("File"), LVCFMT_LEFT, 300);
+    m_downloads.InsertColumn(1, _T("Progress"), LVCFMT_RIGHT, 80);
+    m_downloads.InsertColumn(2, _T("Speed"), LVCFMT_RIGHT, 90);
+    m_downloads.InsertColumn(3, _T("Sources"), LVCFMT_RIGHT, 90);
     m_downloads.InsertColumn(4, _T("Health"), LVCFMT_RIGHT, 75);
-    m_downloads.InsertColumn(5, _T("Diagnosis"), LVCFMT_LEFT, 135);
-    m_downloads.InsertColumn(6, _T("Smart ETA"), LVCFMT_RIGHT, 105);
+    m_downloads.InsertColumn(5, _T("Diagnosis"), LVCFMT_LEFT, 150);
+    m_downloads.InsertColumn(6, _T("Smart ETA"), LVCFMT_RIGHT, 95);
     m_downloads.InsertColumn(7, _T("Confidence"), LVCFMT_RIGHT, 85);
     m_downloads.InsertColumn(8, _T("Rare needed"), LVCFMT_RIGHT, 85);
 
@@ -168,58 +167,61 @@ int CEmuleNextDashboardWnd::OnCreate(LPCREATESTRUCT createStruct)
 void CEmuleNextDashboardWnd::OnSize(UINT type, int cx, int cy)
 {
     CWnd::OnSize(type, cx, cy);
-    if (::IsWindow(m_downloads.m_hWnd))
-        LayoutControls(cx, cy);
+    if (!::IsWindow(m_downloads.m_hWnd))
+        return;
+    const int margin = 8;
+    m_summary.MoveWindow(margin, margin, max(0, cx - margin * 2), 22);
+    m_downloads.MoveWindow(margin, margin + 26,
+        max(0, cx - margin * 2), max(0, cy - margin * 2 - 26));
 }
 
-void CEmuleNextDashboardWnd::LayoutControls(int cx, int cy)
+void CEmuleNextDashboardWnd::OnTimer(UINT_PTR timerId)
 {
-    const int margin = 8;
-    m_summary.MoveWindow(margin, margin + 3, max(0, cx - margin * 2), 22);
-    m_downloads.MoveWindow(margin, margin + 30,
-        max(0, cx - margin * 2), max(0, cy - margin * 2 - 30));
+    if (timerId == TIMER_EN_DASH_REFRESH) {
+        if (IsWindowVisible())
+            Refresh();
+        return;
+    }
+    CWnd::OnTimer(timerId);
 }
 
 void CEmuleNextDashboardWnd::Refresh()
 {
-    if (!IsWindowVisible())
+    if (!::IsWindow(m_downloads.m_hWnd) || theApp.downloadqueue == NULL)
         return;
-    PopulateDownloads();
-}
 
-void CEmuleNextDashboardWnd::PopulateDownloads()
-{
     m_downloads.SetRedraw(FALSE);
     m_downloads.DeleteAllItems();
 
-    uint32 files = 0;
+    uint32 total = 0;
     uint32 transferring = 0;
     uint32 stalled = 0;
     uint32 rare = 0;
     uint32 noSources = 0;
-    uint64 aggregateSpeed = 0;
+    uint64 totalRate = 0;
 
-    POSITION pos = NULL;
-    for (;;) {
+    for (POSITION pos = NULL; ;) {
         CPartFile* file = theApp.downloadqueue->GetFileNext(pos);
         if (file != NULL) {
-            ++files;
-            EmuleNextFileSignals signals = BuildSignals(file);
-            const uint32 health = CDownloadIntelligence::FileAvailabilityHealth(signals);
-            const EmuleNextStallReason stallReason = CDownloadIntelligence::DiagnoseStall(signals);
-            const uint64 remaining = file->GetFileSize() > file->GetCompletedSize()
-                ? file->GetFileSize() - file->GetCompletedSize() : 0;
-            const EmuleNextEta eta = CDownloadIntelligence::EstimateEta(signals, remaining);
-
+            ++total;
+            totalRate += file->GetDatarate();
             if (file->GetTransferringSrcCount() > 0)
                 ++transferring;
-            if (stallReason != ENSR_NONE && stallReason != ENSR_HASHING)
+
+            EmuleNextFileSignals signals = BuildSignals(file);
+            const EmuleNextStallReason stallReason = CDownloadIntelligence::DiagnoseStall(signals);
+            if (stallReason != ENSR_NONE && file->GetStatus() != PS_COMPLETE)
                 ++stalled;
-            if (signals.rareNeededParts > 0)
+            if (stallReason == ENSR_RARE_PARTS)
                 ++rare;
-            if (signals.totalSources == 0)
+            if (stallReason == ENSR_NO_SOURCES)
                 ++noSources;
-            aggregateSpeed += file->GetDatarate();
+
+            const uint32 health = CDownloadIntelligence::FileAvailabilityHealth(signals);
+            const uint64 completed = file->GetCompletedSize();
+            const uint64 fileSize = file->GetFileSize();
+            const uint64 remaining = fileSize > completed ? fileSize - completed : 0;
+            const EmuleNextEta eta = CDownloadIntelligence::EstimateEta(signals, remaining);
 
             const int row = m_downloads.InsertItem(m_downloads.GetItemCount(), file->GetFileName());
             CString text;
@@ -227,12 +229,12 @@ void CEmuleNextDashboardWnd::PopulateDownloads()
             m_downloads.SetItemText(row, 1, text);
             text.Format(_T("%s/s"), (LPCTSTR)CastItoXBytes(file->GetDatarate(), false, false, 1));
             m_downloads.SetItemText(row, 2, text);
-            text.Format(_T("%u/%u"), signals.usableSources, signals.totalSources);
+            text.Format(_T("%u / %u"), signals.usableSources, signals.totalSources);
             m_downloads.SetItemText(row, 3, text);
             text.Format(_T("%u%%"), (health + 5) / 10);
             m_downloads.SetItemText(row, 4, text);
             m_downloads.SetItemText(row, 5, StallText(stallReason));
-            m_downloads.SetItemText(row, 6, eta.known ? DurationText(eta.seconds) : _T("--"));
+            m_downloads.SetItemText(row, 6, EtaText(eta));
             if (eta.known) {
                 text.Format(_T("%u%%"), eta.confidencePercent);
                 m_downloads.SetItemText(row, 7, text);
@@ -244,29 +246,16 @@ void CEmuleNextDashboardWnd::PopulateDownloads()
             break;
     }
 
+    const uint32 activeUploads = theApp.uploadqueue != NULL
+        ? static_cast<uint32>(theApp.uploadqueue->GetActiveUploadsCount()) : 0;
     CString summary;
-    summary.Format(_T("Files: %u   Transferring: %u   Stalled: %u   Rare-part risk: %u   No sources: %u   Download: %s/s   Active uploads: %u"),
-        files, transferring, stalled, rare, noSources,
-        (LPCTSTR)CastItoXBytes(aggregateSpeed, false, false, 1),
-        static_cast<unsigned>(theApp.uploadqueue->GetActiveUploadsCount()));
+    summary.Format(_T("Downloads: %u   Transferring: %u   Stalled: %u   Rare-part risk: %u   No sources: %u   Down: %s/s   Active uploads: %u"),
+        total, transferring, stalled, rare, noSources,
+        (LPCTSTR)CastItoXBytes(totalRate, false, false, 1), activeUploads);
     m_summary.SetWindowText(summary);
 
     m_downloads.SetRedraw(TRUE);
     m_downloads.Invalidate(FALSE);
-}
-
-void CEmuleNextDashboardWnd::OnTimer(UINT_PTR timerId)
-{
-    if (timerId == TIMER_EN_DASH_REFRESH) {
-        Refresh();
-        return;
-    }
-    CWnd::OnTimer(timerId);
-}
-
-BOOL CEmuleNextDashboardWnd::PreTranslateMessage(MSG* message)
-{
-    return CWnd::PreTranslateMessage(message);
 }
 
 BOOL CEmuleNextDashboardWnd::OnEraseBkgnd(CDC* dc)
