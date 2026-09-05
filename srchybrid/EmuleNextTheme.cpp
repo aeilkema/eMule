@@ -193,6 +193,9 @@ namespace
             ListView_SetBkColor(window, background);
             ListView_SetTextBkColor(window, background);
             ListView_SetTextColor(window, text);
+            // CMuleListCtrl owner-draw colours are cached; refresh that cache
+            // on every System/Light/Dark re-application before repainting.
+            ::SendMessage(window, WM_SYSCOLORCHANGE, 0, 0);
         }
         else if (SameClass(className, WC_TREEVIEWW)) {
             TreeView_SetBkColor(window, background);
