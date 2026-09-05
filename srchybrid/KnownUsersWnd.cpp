@@ -7,6 +7,7 @@
 
 #include "ClientList.h"
 #include "EmuleNextRuntime.h"
+#include "EmuleNextTheme.h"
 #include "OtherFunctions.h"
 #include "emule.h"
 
@@ -17,6 +18,7 @@ namespace
     enum
     {
         IDC_EN_REFRESH = 0x7E10,
+        IDC_EN_DARKMODE,
         IDC_EN_STATUS,
         IDC_EN_USERS,
         IDC_EN_FILES
@@ -92,8 +94,11 @@ BEGIN_MESSAGE_MAP(CKnownUsersWnd, CWnd)
     ON_WM_SIZE()
     ON_WM_DESTROY()
     ON_WM_TIMER()
+    ON_WM_ERASEBKGND()
+    ON_WM_CTLCOLOR()
     ON_NOTIFY(LVN_ITEMCHANGED, IDC_EN_USERS, OnUserSelectionChanged)
     ON_BN_CLICKED(IDC_EN_REFRESH, OnRefreshClicked)
+    ON_BN_CLICKED(IDC_EN_DARKMODE, OnDarkModeClicked)
     ON_MESSAGE(WM_EN_USERS_LOADED, OnUsersLoaded)
     ON_MESSAGE(WM_EN_FILES_LOADED, OnFilesLoaded)
 END_MESSAGE_MAP()
@@ -128,9 +133,13 @@ int CKnownUsersWnd::OnCreate(LPCREATESTRUCT createStruct)
     if (CWnd::OnCreate(createStruct) == -1)
         return -1;
 
+    m_darkBrush.CreateSolidBrush(CEmuleNextTheme::BackgroundColor());
+
     CRect empty(0, 0, 0, 0);
     if (!m_refreshButton.Create(_T("Refresh"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
             empty, this, IDC_EN_REFRESH)
+        || !m_darkModeButton.Create(_T("Dark mode"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
+            empty, this, IDC_EN_DARKMODE)
         || !m_status.Create(_T("Known users are loaded in the background..."), WS_CHILD | WS_VISIBLE | SS_LEFT,
             empty, this, IDC_EN_STATUS)
         || !m_users.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS,
@@ -142,9 +151,11 @@ int CKnownUsersWnd::OnCreate(LPCREATESTRUCT createStruct)
 
     CFont* font = CFont::FromHandle(static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT)));
     m_refreshButton.SetFont(font);
+    m_darkModeButton.SetFont(font);
     m_status.SetFont(font);
     m_users.SetFont(font);
     m_files.SetFont(font);
+    m_darkModeButton.SetCheck(CEmuleNextTheme::IsDarkMode() ? BST_CHECKED : BST_UNCHECKED);
 
     m_users.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_GRIDLINES);
     m_files.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_GRIDLINES);
@@ -162,6 +173,7 @@ int CKnownUsersWnd::OnCreate(LPCREATESTRUCT createStruct)
     m_files.InsertColumn(3, _T("ED2K hash"), LVCFMT_LEFT, 245);
     m_files.InsertColumn(4, _T("AICH"), LVCFMT_LEFT, 260);
 
+    CEmuleNextTheme::ApplyToWindow(m_hWnd);
     m_refreshTimer = SetTimer(TIMER_EN_REFRESH, 10000, NULL);
     Refresh(true);
     return 0;
@@ -186,17 +198,19 @@ void CKnownUsersWnd::OnSize(UINT type, int cx, int cy)
 void CKnownUsersWnd::LayoutControls(int cx, int cy)
 {
     const int margin = 8;
-    const int buttonWidth = 84;
+    const int refreshWidth = 84;
+    const int darkWidth = 105;
     const int headerHeight = 25;
     const int gap = 8;
+    const int statusLeft = margin + refreshWidth + 8 + darkWidth + 10;
     const int usableHeight = max(0, cy - margin * 2 - headerHeight - gap);
     const int userHeight = max(110, usableHeight * 42 / 100);
     const int fileTop = margin + headerHeight + userHeight + gap;
     const int fileHeight = max(0, cy - margin - fileTop);
 
-    m_refreshButton.MoveWindow(margin, margin, buttonWidth, 23);
-    m_status.MoveWindow(margin + buttonWidth + 10, margin + 4,
-        max(0, cx - (margin * 2 + buttonWidth + 10)), 20);
+    m_refreshButton.MoveWindow(margin, margin, refreshWidth, 23);
+    m_darkModeButton.MoveWindow(margin + refreshWidth + 8, margin + 2, darkWidth, 21);
+    m_status.MoveWindow(statusLeft, margin + 4, max(0, cx - margin - statusLeft), 20);
     m_users.MoveWindow(margin, margin + headerHeight,
         max(0, cx - margin * 2), userHeight);
     m_files.MoveWindow(margin, fileTop,
@@ -350,6 +364,28 @@ void CKnownUsersWnd::OnTimer(UINT_PTR timerId)
     CWnd::OnTimer(timerId);
 }
 
+BOOL CKnownUsersWnd::OnEraseBkgnd(CDC* dc)
+{
+    if (!CEmuleNextTheme::IsDarkMode())
+        return CWnd::OnEraseBkgnd(dc);
+    CRect rect;
+    GetClientRect(&rect);
+    dc->FillSolidRect(rect, CEmuleNextTheme::BackgroundColor());
+    return TRUE;
+}
+
+HBRUSH CKnownUsersWnd::OnCtlColor(CDC* dc, CWnd* wnd, UINT ctlColor)
+{
+    if (!CEmuleNextTheme::IsDarkMode())
+        return CWnd::OnCtlColor(dc, wnd, ctlColor);
+
+    dc->SetTextColor(CEmuleNextTheme::TextColor());
+    dc->SetBkColor(CEmuleNextTheme::BackgroundColor());
+    if (ctlColor == CTLCOLOR_STATIC || ctlColor == CTLCOLOR_DLG)
+        return static_cast<HBRUSH>(m_darkBrush.GetSafeHandle());
+    return CWnd::OnCtlColor(dc, wnd, ctlColor);
+}
+
 void CKnownUsersWnd::OnUserSelectionChanged(NMHDR* header, LRESULT* result)
 {
     const NMLISTVIEW* change = reinterpret_cast<const NMLISTVIEW*>(header);
@@ -365,6 +401,17 @@ void CKnownUsersWnd::OnUserSelectionChanged(NMHDR* header, LRESULT* result)
 void CKnownUsersWnd::OnRefreshClicked()
 {
     Refresh(true);
+}
+
+void CKnownUsersWnd::OnDarkModeClicked()
+{
+    const bool enabled = m_darkModeButton.GetCheck() == BST_CHECKED;
+    CEmuleNextTheme::SetDarkMode(enabled);
+    if (theApp.emuledlg != NULL)
+        CEmuleNextTheme::ApplyToWindow(theApp.emuledlg->GetSafeHwnd());
+    else
+        CEmuleNextTheme::ApplyToWindow(m_hWnd);
+    Invalidate(TRUE);
 }
 
 LRESULT CKnownUsersWnd::OnUsersLoaded(WPARAM, LPARAM value)
