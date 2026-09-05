@@ -90,6 +90,12 @@ public:
 	void	StoreSearches();
 	void	LoadSearches();
 
+	// Bridge pre-eMule-Next restored "View Shared Files" tabs into the persistent
+	// peer/file history when that same peer is encountered again. If several
+	// restored tabs have the same display name, an endpoint match is required.
+	bool	ImportClientSharedFilesForPeer(LPCTSTR userName, const uchar *peerHash,
+		uint32 peerIP, uint16 peerPort, uint32& fileCount, uint64& totalBytes);
+
 	void	DoSpamRating(CSearchFile *pSearchFile, bool bIsClientFile = false, bool bMarkAsNoSpam = false
 				, bool bRecalculateAll = false, bool bUpdate = false, uint32 dwFromUDPServerIP = 0);
 	void	MarkFileAsSpam(CSearchFile *pSpamFile, bool bRecalculateAll = false, bool bUpdate = false);
