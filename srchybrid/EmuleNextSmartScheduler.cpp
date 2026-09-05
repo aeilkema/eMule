@@ -206,8 +206,8 @@ bool CEmuleNextSmartScheduler::PreferA4AFCandidate(const CPartFile* currentFile,
     if (!GetSnapshot(candidateFile->GetFileHash(), candidate))
         return legacyPreference;
 
-    const uint32 minimumScore = static_cast<uint32>(std::max(0,
-        theApp.GetProfileInt(_T("eMule Next"), _T("SmartA4AFMinimumScore"), 650)));
+    const UINT configuredMinimumScore = theApp.GetProfileInt(_T("eMule Next"), _T("SmartA4AFMinimumScore"), 650);
+    const uint32 minimumScore = static_cast<uint32>(configuredMinimumScore);
     if (candidate.decision.a4afScore < minimumScore)
         return legacyPreference;
 
