@@ -54,10 +54,12 @@ def patch_transfer_cpp() -> None:
     marker = "message == WM_APP + 0x568"
     if marker not in text:
         anchor = '''LRESULT CTransferWnd::DefWindowProc(UINT message, WPARAM wParam, LPARAM lParam)\n{\n\tif (message == WM_WINDOWPOSCHANGED && m_wndSplitter)\n\t\tm_wndSplitter.Invalidate();\n\n\treturn CResizableFormView::DefWindowProc(message, wParam, lParam);\n}\n'''
-        replacement = '''LRESULT CTransferWnd::DefWindowProc(UINT message, WPARAM wParam, LPARAM lParam)\n{\n\tif (message == WM_APP + 0x568) {\n\t\tCPartFile *file = reinterpret_cast<CPartFile*>(lParam);\n\t\tif (file != NULL) {\n\t\t\tShowList(IDC_DOWNLOADLIST);\n\t\t\tm_dlTab.SetCurSel(0);\n\t\t\tdownloadlistctrl.ChangeCategory(0);\n\t\t\treturn downloadlistctrl.SelectFile(file, false) ? 1 : 0;\n\t\t}\n\t\treturn 0;\n\t}\n\n\tif (message == WM_WINDOWPOSCHANGED && m_wndSplitter)\n\t\tm_wndSplitter.Invalidate();\n\n\treturn CResizableFormView::DefWindowProc(message, wParam, lParam);\n}\n'''
+        replacement = '''LRESULT CTransferWnd::DefWindowProc(UINT message, WPARAM wParam, LPARAM lParam)\n{\n\tif (message == WM_APP + 0x568) {\n\t\tCPartFile *file = reinterpret_cast<CPartFile*>(lParam);\n\t\tif (file != NULL) {\n\t\t\tShowList(IDC_DOWNLOADLIST);\n\t\t\tm_dlTab.SetCurSel(0);\n\t\t\tdownloadlistctrl.ChangeCategory(0);\n\t\t\treturn downloadlistctrl.SelectFile(file, wParam != 0) ? 1 : 0;\n\t\t}\n\t\treturn 0;\n\t}\n\n\tif (message == WM_WINDOWPOSCHANGED && m_wndSplitter)\n\t\tm_wndSplitter.Invalidate();\n\n\treturn CResizableFormView::DefWindowProc(message, wParam, lParam);\n}\n'''
         if anchor not in text:
             raise RuntimeError("TransferWnd Dashboard message anchor not found")
         text = text.replace(anchor, replacement, 1)
+    else:
+        text = text.replace('downloadlistctrl.SelectFile(file, false)', 'downloadlistctrl.SelectFile(file, wParam != 0)', 1)
     save(path, text)
 
 
