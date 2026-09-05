@@ -38,9 +38,13 @@ for script_name in (
     "activate-next-views.py",
     "finalize-search-results.py",
     "activate-transfers-next.py",
+    "activate-peer-alias-editor.py",
+    "activate-transfer-intelligence-columns.py",
     "activate-transfer-lifecycle.py",
+    "activate-upload-transfer-lifecycle.py",
     "activate-transfer-statusbars.py",
     "activate-download-intelligence-view.py",
+    "activate-transfer-history-direction.py",
     "activate-branding.py",
     "fix-preview1-build.py",
 ):
