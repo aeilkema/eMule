@@ -52,37 +52,48 @@ jobs:
           "MSBUILD_EXE=$msbuild" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "MSBuild: $msbuild"
 
-      - name: Locate installed WinSQLite Windows SDK
+      - name: Provision pinned WinSQLite SDK files
         shell: pwsh
         run: |
-          $kitsRoot = "${env:ProgramFiles(x86)}\Windows Kits\10"
-          $includeRoot = Join-Path $kitsRoot 'Include'
-          if (-not (Test-Path -LiteralPath $includeRoot)) {
-            throw "Windows SDK include root not found: $includeRoot"
+          $sdkPackageVersion = '10.0.26100.7705'
+          $packageRoot = Join-Path $env:RUNNER_TEMP 'emule-winsdk-nuget'
+          New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+          foreach ($packageId in @('microsoft.windows.sdk.cpp', 'microsoft.windows.sdk.cpp.x64')) {
+            $url = "https://api.nuget.org/v3-flatcontainer/$packageId/$sdkPackageVersion/$packageId.$sdkPackageVersion.nupkg"
+            $archive = Join-Path $packageRoot "$packageId.nupkg"
+            $extract = Join-Path $packageRoot $packageId
+            Write-Host "Downloading pinned SDK package $packageId $sdkPackageVersion"
+            Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $archive
+            if (Test-Path -LiteralPath $extract) { Remove-Item -LiteralPath $extract -Recurse -Force }
+            [IO.Compression.ZipFile]::ExtractToDirectory($archive, $extract)
           }
 
-          $sdk = Get-ChildItem -LiteralPath $includeRoot -Directory |
-            Sort-Object { try { [Version]$_.Name } catch { [Version]'0.0' } } -Descending |
-            Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'um\winsqlite3.h') } |
+          $header = Get-ChildItem -LiteralPath $packageRoot -Recurse -Filter 'winsqlite3.h' -File | Select-Object -First 1
+          $library = Get-ChildItem -LiteralPath $packageRoot -Recurse -Filter 'winsqlite3.lib' -File |
+            Where-Object { $_.FullName -match '[\\/]x64[\\/]' } |
             Select-Object -First 1
+          if ($null -eq $header) { throw 'Pinned Microsoft Windows SDK package did not contain winsqlite3.h' }
+          if ($null -eq $library) { throw 'Pinned Microsoft Windows SDK x64 package did not contain winsqlite3.lib' }
 
-          if ($null -eq $sdk) {
-            Write-Host 'Installed Windows SDK directories:'
-            Get-ChildItem -LiteralPath $includeRoot -Directory | ForEach-Object { Write-Host "  $($_.Name)" }
-            throw 'winsqlite3.h was not found in any installed Windows SDK'
-          }
+          # The legacy project already includes its own source directory, so stage
+          # the header there. Add only the matching x64 import-library directory
+          # to LIB; the runtime remains the Windows-provided winsqlite3.dll.
+          Copy-Item -LiteralPath $header.FullName -Destination (Join-Path $env:EMULE_SOURCE_DIR 'winsqlite3.h') -Force
+          $libPath = $library.Directory.FullName
+          if (-not [string]::IsNullOrWhiteSpace($env:LIB)) { $libPath = "$libPath;$env:LIB" }
+          "LIB=$libPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-          $winSqliteHeader = Join-Path $sdk.FullName 'um\winsqlite3.h'
-          $winSqliteInclude = Split-Path -Parent $winSqliteHeader
-          $clOptions = "/I`"$winSqliteInclude`""
-          if (-not [string]::IsNullOrWhiteSpace($env:CL)) {
-            $clOptions = "$clOptions $env:CL"
-          }
+          $installedSdk = Get-ChildItem -LiteralPath "${env:ProgramFiles(x86)}\Windows Kits\10\Include" -Directory |
+            Sort-Object { try { [Version]$_.Name } catch { [Version]'0.0' } } -Descending |
+            Select-Object -First 1
+          if ($null -eq $installedSdk) { throw 'No installed Windows SDK was found for the base build' }
+          "EMULE_WINDOWS_SDK_VERSION=$($installedSdk.Name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-          "EMULE_WINDOWS_SDK_VERSION=$($sdk.Name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "CL=$clOptions" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "WinSQLite header: $winSqliteHeader"
-          Write-Host "Windows SDK selected: $($sdk.Name)"
+          Write-Host "Staged WinSQLite header from: $($header.FullName)"
+          Write-Host "Using WinSQLite import library: $($library.FullName)"
+          Write-Host "Base Windows SDK selected: $($installedSdk.Name)"
 
       - name: Build and stage dependencies
         shell: pwsh
