@@ -10,6 +10,7 @@
 #include "EmuleNextTheme.h"
 #include "OtherFunctions.h"
 #include "emule.h"
+#include "emuledlg.h"
 
 #include <memory>
 
