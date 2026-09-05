@@ -17,7 +17,10 @@ namespace
     {
         IDC_EN_DI_REFRESH = 0x7E30,
         IDC_EN_DI_SUMMARY,
-        IDC_EN_DI_LIST
+        IDC_EN_DI_TRANSFER_LABEL,
+        IDC_EN_DI_LIST,
+        IDC_EN_DI_SOURCE_LABEL,
+        IDC_EN_DI_SOURCES
     };
 
     const UINT WM_EN_DI_LOADED = WM_APP + 0x565;
@@ -31,9 +34,11 @@ namespace
 
     struct TransferLoadResult
     {
-        bool ok;
+        bool transfersOk;
+        bool sourcesOk;
         std::vector<EmuleNextTransferHistoryRecord> rows;
-        TransferLoadResult() : ok(false) {}
+        std::vector<EmuleNextSourceHistoryRecord> sourceRows;
+        TransferLoadResult() : transfersOk(false), sourcesOk(false) {}
     };
 
     UINT AFX_CDECL LoadTransfersWorker(LPVOID value)
@@ -41,7 +46,8 @@ namespace
         std::unique_ptr<TransferLoadContext> context(static_cast<TransferLoadContext*>(value));
         std::unique_ptr<TransferLoadResult> result(new TransferLoadResult);
         CDownloadIntelligenceService service(context->databasePath);
-        result->ok = service.ListRecentTransfers(250, result->rows);
+        result->transfersOk = service.ListRecentTransfers(250, result->rows);
+        result->sourcesOk = service.ListSourceHistory(500, result->sourceRows);
         if (::IsWindow(context->target)
             && ::PostMessage(context->target, WM_EN_DI_LOADED, 0, reinterpret_cast<LPARAM>(result.get()))) {
             result.release();
@@ -93,27 +99,47 @@ int CDownloadIntelligenceWnd::OnCreate(LPCREATESTRUCT createStruct)
     CRect empty(0, 0, 0, 0);
     if (!m_refreshButton.Create(_T("Refresh"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
             empty, this, IDC_EN_DI_REFRESH)
-        || !m_summary.Create(_T("Download Intelligence is loading recent sessions..."), WS_CHILD | WS_VISIBLE | SS_LEFT,
+        || !m_summary.Create(_T("Download Intelligence is loading history..."), WS_CHILD | WS_VISIBLE | SS_LEFT,
             empty, this, IDC_EN_DI_SUMMARY)
+        || !m_transferLabel.Create(_T("Recent transfer sessions"), WS_CHILD | WS_VISIBLE | SS_LEFT,
+            empty, this, IDC_EN_DI_TRANSFER_LABEL)
         || !m_transfers.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS,
-            empty, this, IDC_EN_DI_LIST)) {
+            empty, this, IDC_EN_DI_LIST)
+        || !m_sourceLabel.Create(_T("Source history - aggregated per user and file"), WS_CHILD | WS_VISIBLE | SS_LEFT,
+            empty, this, IDC_EN_DI_SOURCE_LABEL)
+        || !m_sources.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS,
+            empty, this, IDC_EN_DI_SOURCES)) {
         return -1;
     }
 
     CFont* font = CFont::FromHandle(static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT)));
     m_refreshButton.SetFont(font);
     m_summary.SetFont(font);
+    m_transferLabel.SetFont(font);
+    m_sourceLabel.SetFont(font);
     m_transfers.SetFont(font);
+    m_sources.SetFont(font);
     m_transfers.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_GRIDLINES);
+    m_sources.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_GRIDLINES);
 
     m_transfers.InsertColumn(0, _T("Finished"), LVCFMT_LEFT, 135);
-    m_transfers.InsertColumn(1, _T("File"), LVCFMT_LEFT, 280);
-    m_transfers.InsertColumn(2, _T("Network name"), LVCFMT_LEFT, 150);
-    m_transfers.InsertColumn(3, _T("Alias"), LVCFMT_LEFT, 130);
-    m_transfers.InsertColumn(4, _T("Transferred"), LVCFMT_RIGHT, 105);
-    m_transfers.InsertColumn(5, _T("Average"), LVCFMT_RIGHT, 105);
-    m_transfers.InsertColumn(6, _T("Status"), LVCFMT_LEFT, 85);
-    m_transfers.InsertColumn(7, _T("Result"), LVCFMT_LEFT, 230);
+    m_transfers.InsertColumn(1, _T("File"), LVCFMT_LEFT, 260);
+    m_transfers.InsertColumn(2, _T("Network name"), LVCFMT_LEFT, 145);
+    m_transfers.InsertColumn(3, _T("Alias"), LVCFMT_LEFT, 125);
+    m_transfers.InsertColumn(4, _T("Transferred"), LVCFMT_RIGHT, 100);
+    m_transfers.InsertColumn(5, _T("Average"), LVCFMT_RIGHT, 100);
+    m_transfers.InsertColumn(6, _T("Status"), LVCFMT_LEFT, 80);
+    m_transfers.InsertColumn(7, _T("Result"), LVCFMT_LEFT, 220);
+
+    m_sources.InsertColumn(0, _T("Network name"), LVCFMT_LEFT, 145);
+    m_sources.InsertColumn(1, _T("Alias"), LVCFMT_LEFT, 125);
+    m_sources.InsertColumn(2, _T("File"), LVCFMT_LEFT, 260);
+    m_sources.InsertColumn(3, _T("Success / fail"), LVCFMT_RIGHT, 95);
+    m_sources.InsertColumn(4, _T("Reliability"), LVCFMT_RIGHT, 85);
+    m_sources.InsertColumn(5, _T("Historical avg"), LVCFMT_RIGHT, 105);
+    m_sources.InsertColumn(6, _T("Received"), LVCFMT_RIGHT, 100);
+    m_sources.InsertColumn(7, _T("History quality"), LVCFMT_RIGHT, 95);
+    m_sources.InsertColumn(8, _T("Last success"), LVCFMT_LEFT, 135);
 
     CEmuleNextTheme::ApplyToWindow(m_hWnd);
     m_refreshTimer = SetTimer(TIMER_EN_DI_REFRESH, 15000, NULL);
@@ -141,12 +167,26 @@ void CDownloadIntelligenceWnd::LayoutControls(int cx, int cy)
 {
     const int margin = 8;
     const int buttonWidth = 84;
-    const int headerHeight = 27;
+    const int topHeight = 27;
+    const int labelHeight = 20;
+    const int gap = 8;
+    const int width = max(0, cx - margin * 2);
+    const int contentTop = margin + topHeight;
+    const int available = max(0, cy - contentTop - margin - labelHeight * 2 - gap);
+    const int transferHeight = max(90, available * 52 / 100);
+    const int transferLabelTop = contentTop;
+    const int transferTop = transferLabelTop + labelHeight;
+    const int sourceLabelTop = transferTop + transferHeight + gap;
+    const int sourceTop = sourceLabelTop + labelHeight;
+    const int sourceHeight = max(0, cy - margin - sourceTop);
+
     m_refreshButton.MoveWindow(margin, margin, buttonWidth, 23);
     m_summary.MoveWindow(margin + buttonWidth + 10, margin + 4,
         max(0, cx - margin * 2 - buttonWidth - 10), 20);
-    m_transfers.MoveWindow(margin, margin + headerHeight,
-        max(0, cx - margin * 2), max(0, cy - margin * 2 - headerHeight));
+    m_transferLabel.MoveWindow(margin, transferLabelTop, width, labelHeight);
+    m_transfers.MoveWindow(margin, transferTop, width, transferHeight);
+    m_sourceLabel.MoveWindow(margin, sourceLabelTop, width, labelHeight);
+    m_sources.MoveWindow(margin, sourceTop, width, sourceHeight);
 }
 
 void CDownloadIntelligenceWnd::Refresh(bool force)
@@ -164,7 +204,7 @@ void CDownloadIntelligenceWnd::Refresh(bool force)
     context->target = m_hWnd;
     context->databasePath = path;
     m_loading = true;
-    m_summary.SetWindowText(_T("Loading recent transfer sessions..."));
+    m_summary.SetWindowText(_T("Loading transfer sessions and source history..."));
     if (AfxBeginThread(LoadTransfersWorker, context.get(), THREAD_PRIORITY_BELOW_NORMAL) == NULL) {
         m_loading = false;
         m_summary.SetWindowText(_T("Unable to start Download Intelligence refresh."));
@@ -173,7 +213,7 @@ void CDownloadIntelligenceWnd::Refresh(bool force)
     context.release();
 }
 
-void CDownloadIntelligenceWnd::Populate()
+void CDownloadIntelligenceWnd::PopulateTransfers()
 {
     m_transfers.SetRedraw(FALSE);
     m_transfers.DeleteAllItems();
@@ -204,7 +244,50 @@ void CDownloadIntelligenceWnd::Populate()
 
     m_transfers.SetRedraw(TRUE);
     m_transfers.Invalidate(FALSE);
-    UpdateSummary();
+}
+
+void CDownloadIntelligenceWnd::PopulateSources()
+{
+    m_sources.SetRedraw(FALSE);
+    m_sources.DeleteAllItems();
+
+    for (size_t i = 0; i < m_sourceRows.size(); ++i) {
+        const EmuleNextSourceHistoryRecord& item = m_sourceRows[i];
+        CString user(item.userName);
+        if (user.IsEmpty())
+            user = _T("<unknown user>");
+        CString file(item.fileName);
+        if (file.IsEmpty())
+            file = _T("<unknown file>");
+        CString alias;
+        if (item.peerHash.valid)
+            theEmuleNext.GetPeerAlias(item.peerHash.bytes.data(), alias);
+
+        const int row = m_sources.InsertItem(static_cast<int>(i), user);
+        m_sources.SetItemText(row, 1, alias);
+        m_sources.SetItemText(row, 2, file);
+
+        CString sessions;
+        sessions.Format(_T("%u / %u"), item.successfulSessions, item.failedSessions);
+        m_sources.SetItemText(row, 3, sessions);
+
+        CString reliability;
+        reliability.Format(_T("%u%%"), item.reliabilityPercent);
+        m_sources.SetItemText(row, 4, reliability);
+
+        CString speed;
+        speed.Format(_T("%s/s"), (LPCTSTR)CastItoXBytes(item.historicalBytesPerSecond, false, false, 1));
+        m_sources.SetItemText(row, 5, speed);
+        m_sources.SetItemText(row, 6, CastItoXBytes(item.bytesReceived, false, false, 1));
+
+        CString quality;
+        quality.Format(_T("%u.%u"), item.historyQuality / 10, item.historyQuality % 10);
+        m_sources.SetItemText(row, 7, quality);
+        m_sources.SetItemText(row, 8, DateText(item.lastSuccess));
+    }
+
+    m_sources.SetRedraw(TRUE);
+    m_sources.Invalidate(FALSE);
 }
 
 void CDownloadIntelligenceWnd::UpdateSummary()
@@ -225,8 +308,9 @@ void CDownloadIntelligenceWnd::UpdateSummary()
     }
     const uint64 average = weightedTransferred > 0 ? weightedSpeedBytes / weightedTransferred : 0;
     CString text;
-    text.Format(_T("Recent sessions: %u   Success: %u   Transferred: %s   Weighted avg: %s/s"),
+    text.Format(_T("Recent sessions: %u   Success: %u   Sources with history: %u   Transferred: %s   Weighted avg: %s/s"),
         static_cast<unsigned>(m_rows.size()), static_cast<unsigned>(successful),
+        static_cast<unsigned>(m_sourceRows.size()),
         (LPCTSTR)CastItoXBytes(bytes, false, false, 1),
         (LPCTSTR)CastItoXBytes(average, false, false, 1));
     m_summary.SetWindowText(text);
@@ -279,11 +363,16 @@ LRESULT CDownloadIntelligenceWnd::OnTransfersLoaded(WPARAM, LPARAM value)
 {
     std::unique_ptr<TransferLoadResult> result(reinterpret_cast<TransferLoadResult*>(value));
     m_loading = false;
-    if (!result || !result->ok) {
+    if (!result || (!result->transfersOk && !result->sourcesOk)) {
         m_summary.SetWindowText(_T("Unable to read Download Intelligence history."));
         return 0;
     }
-    m_rows.swap(result->rows);
-    Populate();
+    if (result->transfersOk)
+        m_rows.swap(result->rows);
+    if (result->sourcesOk)
+        m_sourceRows.swap(result->sourceRows);
+    PopulateTransfers();
+    PopulateSources();
+    UpdateSummary();
     return 0;
 }
