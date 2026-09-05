@@ -42,6 +42,8 @@ namespace
 	const UINT MP_NEXT_SET_ALIAS = 0xEE10;
 	const UINT MP_NEXT_CLEAR_ALIAS = 0xEE11;
 	const UINT MP_NEXT_FAVORITE = 0xEE12;
+	const UINT MP_NEXT_FAVORITES_ONLY = 0xEE13;
+	bool g_nextFavoritesOnly = false;
 
 	CString GetClipboardAlias(HWND owner)
 	{
@@ -73,22 +75,22 @@ namespace
 		return value;
 	}
 
-	CString GetPeerDisplayName(const CUpDownClient* client)
+	CString GetPeerNetworkName(const CUpDownClient* client)
 	{
 		CString name;
-		if (client == NULL)
-			return name;
-
-		if (!theEmuleNext.GetPeerAlias(client->GetUserHash(), name)) {
-			if (client->GetUserName() != NULL)
-				name = client->GetUserName();
-			else
-				name.Format(_T("(%s)"), (LPCTSTR)GetResString(IDS_UNKNOWN));
-		}
-
-		if (theEmuleNext.IsPeerFavorite(client->GetUserHash()))
-			name = _T("[*] ") + name;
+		if (client != NULL && client->GetUserName() != NULL)
+			name = client->GetUserName();
+		else
+			name.Format(_T("(%s)"), (LPCTSTR)GetResString(IDS_UNKNOWN));
 		return name;
+	}
+
+	CString GetPeerAlias(const CUpDownClient* client)
+	{
+		CString alias;
+		if (client != NULL)
+			theEmuleNext.GetPeerAlias(client->GetUserHash(), alias);
+		return alias;
 	}
 }
 
@@ -122,6 +124,8 @@ void CClientListCtrl::Init()
 	InsertColumn(5, _T(""),	LVCFMT_LEFT,	DFLT_CLIENTSOFT_COL_WIDTH);	//IDS_CD_CSOFT
 	InsertColumn(6, _T(""),	LVCFMT_LEFT,	50);						//IDS_CONNECTED
 	InsertColumn(7, _T(""), LVCFMT_LEFT,	DFLT_HASH_COL_WIDTH);		//IDS_CD_UHASH
+	InsertColumn(8, _T("Alias"), LVCFMT_LEFT, 150);
+	InsertColumn(9, _T("Favorite"), LVCFMT_LEFT, 70);
 
 	SetAllIcons();
 	Localize();
@@ -145,6 +149,16 @@ void CClientListCtrl::Localize()
 	hdi.mask = HDI_TEXT;
 	hdi.pszText = const_cast<LPTSTR>((LPCTSTR)strRes);
 	GetHeaderCtrl()->SetItem(7, &hdi);
+
+	CString networkName(_T("Network name"));
+	hdi.pszText = const_cast<LPTSTR>((LPCTSTR)networkName);
+	GetHeaderCtrl()->SetItem(0, &hdi);
+	CString alias(_T("Alias"));
+	hdi.pszText = const_cast<LPTSTR>((LPCTSTR)alias);
+	GetHeaderCtrl()->SetItem(8, &hdi);
+	CString favorite(_T("Favorite"));
+	hdi.pszText = const_cast<LPTSTR>((LPCTSTR)favorite);
+	GetHeaderCtrl()->SetItem(9, &hdi);
 }
 
 void CClientListCtrl::OnSysColorChange()
@@ -218,8 +232,8 @@ CString CClientListCtrl::GetItemDisplayText(const CUpDownClient *client, int iSu
 {
 	CString sText;
 	switch (iSubItem) {
-	case 0: //user name / eMule Next alias
-		sText = GetPeerDisplayName(client);
+	case 0: // network username - never modified by eMule Next metadata
+		sText = GetPeerNetworkName(client);
 		break;
 	case 1: //upload status
 		sText = client->GetUploadStateDisplayString();
@@ -246,6 +260,13 @@ CString CClientListCtrl::GetItemDisplayText(const CUpDownClient *client, int iSu
 		break;
 	case 7: //hash
 		sText = md4str(client->GetUserHash());
+		break;
+	case 8: // persistent local alias, keyed by userhash
+		sText = GetPeerAlias(client);
+		break;
+	case 9: // eMule Next favorite; deliberately independent from Friend
+		sText = theEmuleNext.IsPeerFavorite(client->GetUserHash()) ? _T("Yes") : _T("No");
+		break;
 	}
 	return sText;
 }
@@ -307,12 +328,8 @@ int CALLBACK CClientListCtrl::SortProc(LPARAM lParam1, LPARAM lParam2, LPARAM lP
 
 	int iResult = 0;
 	switch (LOWORD(lParamSort)) {
-	case 0: //user name / eMule Next alias
-		{
-			const CString name1 = GetPeerDisplayName(item1);
-			const CString name2 = GetPeerDisplayName(item2);
-			iResult = CompareLocaleStringNoCase(name1, name2);
-		}
+	case 0: // network username
+		iResult = CompareLocaleStringNoCase(GetPeerNetworkName(item1), GetPeerNetworkName(item2));
 		break;
 	case 1: //upload status
 		iResult = item1->GetUploadState() - item2->GetUploadState();
@@ -354,6 +371,14 @@ int CALLBACK CClientListCtrl::SortProc(LPARAM lParam1, LPARAM lParam2, LPARAM lP
 		break;
 	case 7: //hash
 		iResult = memcmp(item1->GetUserHash(), item2->GetUserHash(), 16);
+		break;
+	case 8: // alias
+		iResult = CompareLocaleStringNoCase(GetPeerAlias(item1), GetPeerAlias(item2));
+		break;
+	case 9: // favorite
+		iResult = static_cast<int>(theEmuleNext.IsPeerFavorite(item1->GetUserHash()))
+			- static_cast<int>(theEmuleNext.IsPeerFavorite(item2->GetUserHash()));
+		break;
 	}
 
 	if (HIWORD(lParamSort))
@@ -406,6 +431,7 @@ void CClientListCtrl::OnContextMenu(CWnd*, CPoint point)
 	ClientMenu.AppendMenu(MF_STRING | (client ? MF_ENABLED : MF_GRAYED), MP_NEXT_SET_ALIAS, _T("Set eMule Next alias from clipboard"));
 	ClientMenu.AppendMenu(MF_STRING | ((client && hasAlias) ? MF_ENABLED : MF_GRAYED), MP_NEXT_CLEAR_ALIAS, _T("Clear eMule Next alias"));
 	ClientMenu.AppendMenu(MF_STRING | (client ? MF_ENABLED : MF_GRAYED) | (isFavorite ? MF_CHECKED : MF_UNCHECKED), MP_NEXT_FAVORITE, _T("eMule Next favorite"));
+	ClientMenu.AppendMenu(MF_STRING | (g_nextFavoritesOnly ? MF_CHECKED : MF_UNCHECKED), MP_NEXT_FAVORITES_ONLY, _T("Show favorites only"));
 
 	ClientMenu.AppendMenu(MF_SEPARATOR);
 	ClientMenu.AppendMenu(MF_STRING | (GetItemCount() > 0 ? MF_ENABLED : MF_GRAYED), MP_FIND, GetResString(IDS_FIND), _T("Search"));
@@ -419,6 +445,12 @@ BOOL CClientListCtrl::OnCommand(WPARAM wParam, LPARAM)
 
 	if (wParam == MP_FIND) {
 		OnFindStart();
+		return TRUE;
+	}
+	if (wParam == MP_NEXT_FAVORITES_ONLY) {
+		g_nextFavoritesOnly = !g_nextFavoritesOnly;
+		ShowKnownClients();
+		SortItems(SortProc, MAKELONG(GetSortItem(), !GetSortAscending()));
 		return TRUE;
 	}
 
@@ -447,8 +479,12 @@ BOOL CClientListCtrl::OnCommand(WPARAM wParam, LPARAM)
 			break;
 		case MP_NEXT_FAVORITE:
 			if (theEmuleNext.SetPeerFavorite(client->GetUserHash(), !theEmuleNext.IsPeerFavorite(client->GetUserHash()))) {
-				Update(iSel);
+				if (g_nextFavoritesOnly && !theEmuleNext.IsPeerFavorite(client->GetUserHash()))
+					DeleteItem(iSel);
+				else
+					Update(iSel);
 				SortItems(SortProc, MAKELONG(GetSortItem(), !GetSortAscending()));
+				theApp.emuledlg->transferwnd->UpdateListCount(CTransferWnd::wnd2Clients);
 			}
 			break;
 		case MP_SHOWLIST:
@@ -486,6 +522,8 @@ BOOL CClientListCtrl::OnCommand(WPARAM wParam, LPARAM)
 void CClientListCtrl::AddClient(const CUpDownClient *client)
 {
 	if (!thePrefs.IsKnownClientListDisabled() && !theApp.IsClosing()) {
+		if (g_nextFavoritesOnly && !theEmuleNext.IsPeerFavorite(client->GetUserHash()))
+			return;
 		int iItemCount = GetItemCount();
 		InsertItem(LVIF_TEXT | LVIF_PARAM, iItemCount, LPSTR_TEXTCALLBACK, 0, 0, 0, (LPARAM)client);
 		theApp.emuledlg->transferwnd->UpdateListCount(CTransferWnd::wnd2Clients, iItemCount + 1);
@@ -547,7 +585,10 @@ void CClientListCtrl::ShowKnownClients()
 	DeleteAllItems();
 	int iItemCount = 0;
 	for (POSITION pos = theApp.clientlist->list.GetHeadPosition(); pos != NULL;) {
-		int iItem = InsertItem(LVIF_TEXT | LVIF_PARAM, iItemCount, LPSTR_TEXTCALLBACK, 0, 0, 0, (LPARAM)theApp.clientlist->list.GetNext(pos));
+		const CUpDownClient* client = theApp.clientlist->list.GetNext(pos);
+		if (g_nextFavoritesOnly && !theEmuleNext.IsPeerFavorite(client->GetUserHash()))
+			continue;
+		int iItem = InsertItem(LVIF_TEXT | LVIF_PARAM, iItemCount, LPSTR_TEXTCALLBACK, 0, 0, 0, (LPARAM)client);
 		Update(iItem);
 		++iItemCount;
 	}

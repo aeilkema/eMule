@@ -20,6 +20,7 @@
 #include "MemDC.h"
 #include "Preferences.h"
 #include "MuleListCtrl.h"
+#include "EmuleNextTheme.h"
 #include "Ini2.h"
 #include "MenuCmds.h"
 #include "OtherFunctions.h"
@@ -396,11 +397,20 @@ static HBITMAP LoadImageAsPARGB(LPCTSTR pszPath)
 
 void CMuleListCtrl::SetColors()
 {
-	m_crWindow = ::GetSysColor(COLOR_WINDOW);
-	m_crWindowText = ::GetSysColor(COLOR_WINDOWTEXT);
+	// Owner-drawn eMule lists cache their colours. Native LISTVIEW dark-mode
+	// theming therefore is not enough: use the eMule Next palette here too.
+	if (CEmuleNextTheme::IsDarkMode()) {
+		m_crWindow = CEmuleNextTheme::SurfaceColor();
+		m_crWindowText = CEmuleNextTheme::TextColor();
+	}
+	else {
+		m_crWindow = ::GetSysColor(COLOR_WINDOW);
+		m_crWindowText = ::GetSysColor(COLOR_WINDOWTEXT);
+	}
 	m_crWindowTextBk = m_crWindow;
 
-	COLORREF crHighlight = ::GetSysColor(COLOR_HIGHLIGHT);
+	COLORREF crHighlight = CEmuleNextTheme::IsDarkMode()
+		? CEmuleNextTheme::AccentColor() : ::GetSysColor(COLOR_HIGHLIGHT);
 
 	CString sBkImage;
 
@@ -448,7 +458,8 @@ void CMuleListCtrl::SetColors()
 		m_crNoHighlight = crHighlight;
 		m_crNoFocusLine = crHighlight;
 		m_crHighlight = crHighlight;
-		m_crHighlightText = ::GetSysColor(COLOR_HIGHLIGHTTEXT);
+		m_crHighlightText = CEmuleNextTheme::IsDarkMode()
+			? CEmuleNextTheme::TextColor() : ::GetSysColor(COLOR_HIGHLIGHTTEXT);
 		m_crGlow = crHighlight;
 	} else {
 		m_crNoHighlight = MLC_RGBBLEND(crHighlight, m_crWindow, 8);

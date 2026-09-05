@@ -32,6 +32,8 @@
 #include "SHAHashSet.h"
 #include "SharedFileList.h"
 #include "Log.h"
+#include "EmuleNextRuntime.h"
+#include <time.h>
 #include "zlib/zlib.h"
 
 #ifdef _DEBUG
@@ -665,6 +667,30 @@ void CUpDownClient::SetDownloadState(EDownloadState nNewState, LPCTSTR pszReason
 					, (LPCTSTR)CastItoXBytes(GetSessionPayloadDown())
 					, (LPCTSTR)CastItoXBytes(GetSessionDown())
 					, m_PendingBlocks_list.GetCount());
+			}
+
+			// eMule Next Download Intelligence: persist the completed session at
+			// the authoritative lifecycle boundary, before legacy counters reset.
+			// RecordTransfer is queue-only and does not perform SQLite I/O here.
+			if (m_reqfile != NULL && HasValidHash() && theEmuleNext.IsRunning()) {
+				EmuleNextTransferObservation observation;
+				observation.peerHash = EmuleNextHash16(GetUserHash());
+				observation.fileHash = EmuleNextHash16(m_reqfile->GetFileHash());
+				observation.fileSize = m_reqfile->GetFileSize();
+				observation.bytesTransferred = GetSessionDown();
+				const uint64 durationMs = GetDownloadTicks(false);
+				observation.averageBytesPerSecond = durationMs > 0
+					? static_cast<uint32>(min<uint64>((observation.bytesTransferred * 1000ui64) / durationMs, _UI32_MAX))
+					: 0;
+				observation.successful = m_bDownloadedAnyBytes && nNewState != DS_ERROR;
+				observation.direction = L"download";
+				observation.result = pszReason != NULL ? CStringW(pszReason)
+					: (observation.successful ? CStringW(L"completed-session") : CStringW(L"empty-session"));
+				observation.finishedAt = static_cast<uint64>(::time(NULL));
+				const uint64 durationSeconds = durationMs / 1000ui64;
+				observation.startedAt = observation.finishedAt > durationSeconds
+					? observation.finishedAt - durationSeconds : observation.finishedAt;
+				theEmuleNext.Database().RecordTransfer(observation);
 			}
 
 			ResetSessionDown();
