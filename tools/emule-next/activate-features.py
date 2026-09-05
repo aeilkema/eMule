@@ -32,6 +32,7 @@ for script_name in (
     "activate-next-views.py",
     "finalize-search-results.py",
     "activate-branding.py",
+    "fix-preview1-build.py",
 ):
     if script_name == "activate-runtime-features.py" and has_next_multi_view():
         print("eMule Next legacy single-view activation already superseded; skipping")
