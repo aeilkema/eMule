@@ -29,6 +29,7 @@ public:
 
     void Tick(CDownloadQueue* queue);
     uint16 AdjustPartRank(const CPartFile* file, UINT part, UINT frequency, uint16 legacyRank) const;
+    bool PreferA4AFCandidate(const CPartFile* currentFile, const CPartFile* candidateFile, bool legacyPreference) const;
     bool GetSnapshot(const unsigned char* fileHash, EmuleNextSchedulerSnapshot& snapshot) const;
 
     CEmuleNextSchedulerTelemetry& Telemetry();
