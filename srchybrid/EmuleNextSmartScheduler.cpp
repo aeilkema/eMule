@@ -90,33 +90,19 @@ void CEmuleNextSmartScheduler::Tick(CDownloadQueue* queue)
         return;
 
     const size_t maxPerRound = 8;
+    const size_t count = std::min(maxPerRound, total);
     const size_t start = m_roundRobinOffset % total;
-    size_t index = 0;
-    size_t processed = 0;
     POSITION pos = NULL;
-    for (;;) {
-        CPartFile* file = queue->GetFileNext(pos);
-        if (file == NULL)
-            break;
-        if (index++ < start)
-            continue;
-        EvaluateFile(queue, file, settings, static_cast<uint64>(time(NULL)));
-        if (++processed >= maxPerRound)
-            break;
-    }
+    for (size_t skip = 0; skip < start; ++skip)
+        queue->GetFileNext(pos);
 
-    if (processed < maxPerRound && start > 0) {
-        pos = NULL;
-        index = 0;
-        while (processed < maxPerRound) {
-            CPartFile* file = queue->GetFileNext(pos);
-            if (file == NULL || index++ >= start)
-                break;
-            EvaluateFile(queue, file, settings, static_cast<uint64>(time(NULL)));
-            ++processed;
-        }
+    const uint64 now = static_cast<uint64>(time(NULL));
+    for (size_t processed = 0; processed < count; ++processed) {
+        CPartFile* file = queue->GetFileNext(pos);
+        if (file != NULL)
+            EvaluateFile(queue, file, settings, now);
     }
-    m_roundRobinOffset = (start + processed) % total;
+    m_roundRobinOffset = (start + count) % total;
 }
 
 void CEmuleNextSmartScheduler::EvaluateFile(CDownloadQueue* queue, CPartFile* file,
@@ -188,7 +174,8 @@ uint16 CEmuleNextSmartScheduler::AdjustPartRank(const CPartFile* file, UINT part
         return legacyRank;
 
     EmuleNextSchedulerSnapshot snapshot;
-    if (!GetSnapshot(file->GetFileHash(), snapshot) || !snapshot.decision.rarePartPreferred)
+    if (!GetSnapshot(file->GetFileHash(), snapshot)
+        || snapshot.decision.rarePartIndex == static_cast<uint32>(-1))
         return legacyRank;
 
     const UINT preferred = snapshot.decision.rarePartIndex;
