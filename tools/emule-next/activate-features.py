@@ -33,6 +33,7 @@ for script_name in (
     "finalize-search-results.py",
     "activate-transfers-next.py",
     "activate-transfer-lifecycle.py",
+    "activate-transfer-statusbars.py",
     "activate-download-intelligence-view.py",
     "activate-branding.py",
     "fix-preview1-build.py",
