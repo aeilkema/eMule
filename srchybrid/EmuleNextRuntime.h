@@ -46,6 +46,13 @@ public:
         const CString& aichHash,
         LPCTSTR sourceKind);
 
+    // eMule Next peer metadata is keyed only by the stable 16-byte user hash.
+    // It deliberately does not use or modify the legacy Friend system.
+    bool GetPeerAlias(const unsigned char* userHash, CString& alias) const;
+    bool SetPeerAlias(const unsigned char* userHash, const CString& alias);
+    bool IsPeerFavorite(const unsigned char* userHash) const;
+    bool SetPeerFavorite(const unsigned char* userHash, bool favorite);
+
     // Automatic peer-share discovery is deliberately separated from the
     // legacy/manual "View Shared Files" flow. SearchList uses this short-lived
     // marker to persist an automatic response without creating a user search
@@ -58,7 +65,14 @@ private:
     CEmuleNextRuntime(const CEmuleNextRuntime&);
     CEmuleNextRuntime& operator=(const CEmuleNextRuntime&);
 
+    bool InitializePeerMetadata();
+    bool SavePeerMetadata(const EmuleNextHash16& hash, const CStringW& alias, bool favorite);
+
     CEmuleNextDatabase m_database;
+
+    mutable std::mutex m_peerMetadataMutex;
+    std::map<std::array<unsigned char, 16>, CStringW> m_peerAliases;
+    std::map<std::array<unsigned char, 16>, bool> m_peerFavorites;
 
     mutable std::mutex m_autoShareMutex;
     mutable std::map<std::array<unsigned char, 16>, uint64> m_autoShareRequests;
