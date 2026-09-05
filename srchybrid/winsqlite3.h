@@ -38,6 +38,7 @@ int sqlite3_bind_int64(sqlite3_stmt* statement, int index, sqlite3_int64 value);
 
 const void* sqlite3_column_blob(sqlite3_stmt* statement, int column);
 const void* sqlite3_column_text16(sqlite3_stmt* statement, int column);
+int sqlite3_column_bytes(sqlite3_stmt* statement, int column);
 int sqlite3_column_int(sqlite3_stmt* statement, int column);
 sqlite3_int64 sqlite3_column_int64(sqlite3_stmt* statement, int column);
 
