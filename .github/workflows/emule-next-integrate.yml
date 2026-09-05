@@ -6,6 +6,7 @@ on:
     paths:
       - 'tools/emule-next/**'
       - 'srchybrid/EmuleNext*'
+      - 'srchybrid/KnownUsers*'
       - 'srchybrid/DownloadIntelligence*'
       - 'srchybrid/PeerShareScanner*'
       - 'srchybrid/FileLibraryService*'
@@ -55,6 +56,9 @@ jobs:
                   srchybrid/DownloadQueue.h \
                   srchybrid/DownloadQueue.cpp \
                   srchybrid/SearchList.cpp \
+                  srchybrid/SearchList.h \
+                  srchybrid/SearchResultsWnd.cpp \
+                  srchybrid/SearchResultsWnd.h \
                   srchybrid/FileLibraryService.cpp
           git commit -m 'eMule Next: activate runtime services [generated]'
           git push origin HEAD:develop
