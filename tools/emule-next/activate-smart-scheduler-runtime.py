@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Materialize the eMule Next Smart Scheduler runtime hooks.
 
-The intelligence implementation lives in normal C++ translation units.  This
+The intelligence implementation lives in normal C++ translation units. This
 compatibility activator only adds those files to the upstream vcxproj and places
-three narrow, idempotent legacy hooks: the queue tick and rare-part rank bias.
+three narrow, idempotent legacy hooks: queue scheduling, A4AF preference and
+rare-part ranking.
 """
 from __future__ import annotations
 
@@ -102,6 +103,34 @@ def patch_download_queue() -> None:
         print("Smart Scheduler: DownloadQueue hook already present")
 
 
+def patch_download_client() -> None:
+    path = SRC / "DownloadClient.cpp"
+    text, encoding = read_text(path)
+    changed = False
+
+    include_marker = '#include "EmuleNextSmartScheduler.h"'
+    if include_marker not in text:
+        anchor = '#include "PartFile.h"'
+        if anchor not in text:
+            raise SystemExit("Smart Scheduler activation: DownloadClient include anchor missing")
+        text = text.replace(anchor, anchor + "\n" + include_marker, 1)
+        changed = True
+
+    legacy = "bool rightFileHasHigherPrio = CPartFile::RightFileHasHigherPrio(SwapTo, cur_file);"
+    hook = "bool rightFileHasHigherPrio = theEmuleNextScheduler.PreferA4AFCandidate(SwapTo, cur_file, CPartFile::RightFileHasHigherPrio(SwapTo, cur_file));"
+    if hook not in text:
+        if legacy not in text:
+            raise SystemExit("Smart Scheduler activation: A4AF priority anchor missing")
+        text = text.replace(legacy, hook, 1)
+        changed = True
+
+    if changed:
+        write_text(path, text, encoding)
+        print("Smart Scheduler: A4AF preference hook materialized")
+    else:
+        print("Smart Scheduler: A4AF hook already present")
+
+
 def patch_part_file() -> None:
     path = SRC / "PartFile.cpp"
     text, encoding = read_text(path)
@@ -136,6 +165,7 @@ def main() -> int:
             raise SystemExit(f"Smart Scheduler activation: required source missing: {name}")
     patch_project()
     patch_download_queue()
+    patch_download_client()
     patch_part_file()
     print("Smart Scheduler runtime activation complete")
     return 0
