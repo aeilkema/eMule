@@ -46,6 +46,7 @@
 #include "StringConversion.h"
 #include "UserMsgs.h"
 #include "Log.h"
+#include "EmuleNextTheme.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -170,6 +171,10 @@ void CSearchResultsWnd::OnInitialUpdate()
 	AddAnchor(searchprogress, BOTTOM_LEFT, BOTTOM_RIGHT);
 
 	ShowSearchSelector(false); //hide tabs, anchor list control
+	// Apply after the main search controls exist; eMule Next controls also
+	// apply the theme from their own OnCreate handlers.
+	if (theApp.emuledlg != NULL)
+		CEmuleNextTheme::ApplyToWindow(theApp.emuledlg->GetSafeHwnd());
 
 	// eMule Next has one permanent history view. It is deliberately not a
 	// CSearchList entry, so background discovery never becomes a legacy search.

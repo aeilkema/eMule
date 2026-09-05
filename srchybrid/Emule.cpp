@@ -56,6 +56,7 @@
 #include "ED2KLink.h"
 #include "Preferences.h"
 #include "EmuleNextRuntime.h"
+#include "EmuleNextTheme.h"
 #include "secrunasuser.h"
 #include "SafeFile.h"
 #include "emuleDlg.h"
@@ -493,6 +494,8 @@ BOOL CemuleApp::InitInstance()
 
 	// create & initialize all the important stuff
 	thePrefs.Init();
+	// eMule Next dark mode is persisted in the normal profile and defaults on.
+	CEmuleNextTheme::Initialize();
 	// eMule Next is additive: failure disables history/intelligence but never core networking.
 	theEmuleNext.Start();
 	theStats.Init();
