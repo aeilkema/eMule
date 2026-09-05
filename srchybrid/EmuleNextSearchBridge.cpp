@@ -80,7 +80,9 @@ bool CSearchList::ImportClientSharedFilesForPeer(LPCTSTR userName,
         if (file == NULL || file->GetListParent() != NULL || file->GetFileSize() == 0)
             continue;
 
-        theEmuleNext.RecordFileSeen(file->GetFileHash(), file->GetFileSize(), file->GetFileName());
+        // PeerFileSeen already ensures/upserts the file row. Queue one event per
+        // restored file instead of two; this keeps large restored sessions well
+        // below the async writer safety limit and reduces startup work.
         theEmuleNext.RecordPeerFileSeen(peerHash, file->GetFileHash(), file->GetFileSize(),
             file->GetFileName(), CString(), _T("legacy-restored-share"));
         ++fileCount;
