@@ -60,6 +60,23 @@ CClientList::CClientList()
 	m_trackedClientsMap.InitHashTable(2011);
 	m_globDeadSourceList.Init(true);
 	m_peerShareScanner.SetTransport(this);
+	m_peerShareScanner.SetEnabled(theApp.GetProfileInt(_T("eMule Next"), _T("PeerShareDiscovery"), 1) != 0);
+	int nextMaxConcurrent = theApp.GetProfileInt(_T("eMule Next"), _T("PeerShareMaxConcurrent"), 2);
+	nextMaxConcurrent = max(1, min(8, nextMaxConcurrent));
+	m_peerShareScanner.SetMaxConcurrent(static_cast<uint32>(nextMaxConcurrent));
+}
+
+void CClientList::SetPeerShareDiscoveryEnabled(bool enabled)
+{
+	m_peerShareScanner.SetEnabled(enabled);
+	theApp.WriteProfileInt(_T("eMule Next"), _T("PeerShareDiscovery"), enabled ? 1 : 0);
+}
+
+void CClientList::SetPeerShareMaxConcurrent(uint32 maxConcurrent)
+{
+	maxConcurrent = max<uint32>(1, min<uint32>(8, maxConcurrent));
+	m_peerShareScanner.SetMaxConcurrent(maxConcurrent);
+	theApp.WriteProfileInt(_T("eMule Next"), _T("PeerShareMaxConcurrent"), static_cast<int>(maxConcurrent));
 }
 
 CClientList::~CClientList()
