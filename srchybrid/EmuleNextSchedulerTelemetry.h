@@ -16,9 +16,25 @@ struct EmuleNextSchedulerEvent
     uint32 health;
     uint32 attention;
     uint32 discoveryBudget;
+    uint32 a4afScore;
+    uint32 rarePartIndex;
+    bool applied;
     CString reason;
 
     EmuleNextSchedulerEvent();
+};
+
+struct EmuleNextSchedulerTelemetrySummary
+{
+    uint64 decisions;
+    uint64 appliedInterventions;
+    uint64 discoveryBoosts;
+    uint64 a4afPreferences;
+    uint64 rarePartPreferences;
+    uint64 holds;
+    size_t retainedEvents;
+
+    EmuleNextSchedulerTelemetrySummary();
 };
 
 class CEmuleNextSchedulerTelemetry
@@ -28,7 +44,10 @@ public:
 
     void SetCapacity(size_t capacity);
     void Record(const EmuleNextSchedulerEvent& event);
+    void MarkAppliedIntervention();
     void Snapshot(std::deque<EmuleNextSchedulerEvent>& events) const;
+    void Summary(EmuleNextSchedulerTelemetrySummary& summary) const;
+    void Clear();
     uint64 InterventionCount() const;
     uint64 DecisionCount() const;
 
@@ -38,4 +57,8 @@ private:
     size_t m_capacity;
     uint64 m_decisions;
     uint64 m_interventions;
+    uint64 m_discoveryBoosts;
+    uint64 m_a4afPreferences;
+    uint64 m_rarePartPreferences;
+    uint64 m_holds;
 };

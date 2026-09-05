@@ -23,6 +23,24 @@ CEmuleNextSmartScheduler theEmuleNextScheduler;
 EmuleNextSchedulerSnapshot::EmuleNextSchedulerSnapshot()
     : evaluatedAt(0)
     , lastInterventionAt(0)
+    , applied(false)
+{
+}
+
+EmuleNextSchedulerRuntimeStatus::EmuleNextSchedulerRuntimeStatus()
+    : mode(ENSM_ANALYSIS_ONLY)
+    , profile(1)
+    , cooldownSeconds(90)
+    , maxFilesPerRound(8)
+    , minimumA4AFScore(650)
+    , sourceDiscovery(true)
+    , a4af(true)
+    , rareParts(true)
+    , historyEnabled(true)
+    , telemetryEnabled(true)
+    , trackedFiles(0)
+    , decisions(0)
+    , appliedInterventions(0)
 {
 }
 
@@ -47,7 +65,7 @@ bool CEmuleNextSmartScheduler::MakeKey(const unsigned char* hash, Key& key)
 EmuleNextSchedulingSettings CEmuleNextSmartScheduler::LoadSettings() const
 {
     EmuleNextSchedulingSettings settings;
-    int mode = theApp.GetProfileInt(_T("eMule Next"), _T("SmartSchedulingMode"), ENSM_ANALYSIS_ONLY);
+    int mode = static_cast<int>(theApp.GetProfileInt(_T("eMule Next"), _T("SmartSchedulingMode"), ENSM_ANALYSIS_ONLY));
     if (mode < ENSM_ANALYSIS_ONLY) mode = ENSM_ANALYSIS_ONLY;
     if (mode > ENSM_AUTOMATIC) mode = ENSM_AUTOMATIC;
     settings.mode = static_cast<EmuleNextSchedulingMode>(mode);
@@ -56,7 +74,7 @@ EmuleNextSchedulingSettings CEmuleNextSmartScheduler::LoadSettings() const
     settings.rareParts = theApp.GetProfileInt(_T("eMule Next"), _T("SmartRareParts"), 1) != 0;
     settings.etaHealthDisplay = theApp.GetProfileInt(_T("eMule Next"), _T("SmartEtaHealthDisplay"), 1) != 0;
 
-    const int profile = theApp.GetProfileInt(_T("eMule Next"), _T("SmartSchedulerProfile"), 1);
+    const int profile = static_cast<int>(theApp.GetProfileInt(_T("eMule Next"), _T("SmartSchedulerProfile"), 1));
     if (profile <= 0) {
         settings.normalDiscoveryBudget = 8;
         settings.maxDiscoveryBudget = 24;
@@ -77,10 +95,26 @@ EmuleNextSchedulingSettings CEmuleNextSmartScheduler::LoadSettings() const
         settings.interventionCooldownSeconds = 90;
     }
 
-    const int configuredCooldown = theApp.GetProfileInt(_T("eMule Next"), _T("SmartSchedulerCooldown"), 0);
+    const UINT configuredCooldown = theApp.GetProfileInt(_T("eMule Next"), _T("SmartSchedulerCooldown"), 0);
     if (configuredCooldown > 0)
-        settings.interventionCooldownSeconds = static_cast<uint32>(std::max(30, std::min(1800, configuredCooldown)));
+        settings.interventionCooldownSeconds = static_cast<uint32>(std::max<UINT>(30u, std::min<UINT>(1800u, configuredCooldown)));
+    const UINT configuredA4AF = theApp.GetProfileInt(_T("eMule Next"), _T("SmartA4AFMinimumScore"), 0);
+    if (configuredA4AF > 0)
+        settings.minimumA4AFScore = static_cast<uint32>(std::max<UINT>(100u, std::min<UINT>(1000u, configuredA4AF)));
     return settings;
+}
+
+uint32 CEmuleNextSmartScheduler::LoadMaxFilesPerRound() const
+{
+    const UINT configured = theApp.GetProfileInt(_T("eMule Next"), _T("SmartSchedulerMaxFilesPerRound"), 8);
+    return static_cast<uint32>(std::max<UINT>(1u, std::min<UINT>(32u, configured)));
+}
+
+CString CEmuleNextSmartScheduler::ProfileText(int profile)
+{
+    if (profile <= 0) return _T("Conservative");
+    if (profile >= 2) return _T("Responsive");
+    return _T("Balanced");
 }
 
 void CEmuleNextSmartScheduler::Tick(CDownloadQueue* queue)
@@ -93,11 +127,16 @@ void CEmuleNextSmartScheduler::Tick(CDownloadQueue* queue)
     m_lastTick = tick;
 
     const EmuleNextSchedulingSettings settings = LoadSettings();
+    const bool historyEnabled = theApp.GetProfileInt(_T("eMule Next"), _T("SmartHistoryCache"), 1) != 0;
+    const bool telemetryEnabled = theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetry"), 1) != 0;
+    const UINT telemetryCapacity = theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetryCapacity"), 256);
+    m_telemetry.SetCapacity(static_cast<size_t>(std::max<UINT>(16u, std::min<UINT>(4096u, telemetryCapacity))));
+
     const size_t total = static_cast<size_t>(queue->GetFileCount());
     if (total == 0)
         return;
 
-    const size_t maxPerRound = 8;
+    const size_t maxPerRound = static_cast<size_t>(LoadMaxFilesPerRound());
     const size_t count = std::min(maxPerRound, total);
     const size_t start = m_roundRobinOffset % total;
     POSITION pos = NULL;
@@ -108,19 +147,22 @@ void CEmuleNextSmartScheduler::Tick(CDownloadQueue* queue)
     for (size_t processed = 0; processed < count; ++processed) {
         CPartFile* file = queue->GetFileNext(pos);
         if (file != NULL)
-            EvaluateFile(queue, file, settings, now);
+            EvaluateFile(queue, file, settings, now, historyEnabled, telemetryEnabled);
     }
     m_roundRobinOffset = (start + count) % total;
 }
 
 void CEmuleNextSmartScheduler::EvaluateFile(CDownloadQueue* queue, CPartFile* file,
-    const EmuleNextSchedulingSettings& settings, uint64 now)
+    const EmuleNextSchedulingSettings& settings, uint64 now, bool historyEnabled, bool telemetryEnabled)
 {
     if (file == NULL || file->GetStatus() == PS_COMPLETE)
         return;
 
-    m_history.Observe(file);
-    const double historical = m_history.HistoricalBytesPerSecond(file->GetFileHash());
+    double historical = 0.0;
+    if (historyEnabled) {
+        m_history.Observe(file);
+        historical = m_history.HistoricalBytesPerSecond(file->GetFileHash());
+    }
     const EmuleNextTransferInsight insight = CEmuleNextTransferInsights::Build(file, historical);
     const EmuleNextSchedulingDecision decision = CDownloadIntelligence::EvaluateScheduling(
         insight.file, insight.parts, insight.bestSourceQuality, settings);
@@ -154,6 +196,7 @@ void CEmuleNextSmartScheduler::EvaluateFile(CDownloadQueue* queue, CPartFile* fi
     snapshot.decision = decision;
     snapshot.evaluatedAt = now;
     snapshot.lastInterventionAt = intervened ? now : previousIntervention;
+    snapshot.applied = intervened;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_snapshots[key] = snapshot;
@@ -161,19 +204,43 @@ void CEmuleNextSmartScheduler::EvaluateFile(CDownloadQueue* queue, CPartFile* fi
             m_snapshots.erase(m_snapshots.begin());
     }
 
-    EmuleNextSchedulerEvent event;
-    event.timestamp = now;
-    event.fileName = file->GetFileName();
-    event.mode = settings.mode;
-    event.action = decision.primaryAction;
-    event.health = decision.health;
-    event.attention = decision.attention;
-    event.discoveryBudget = decision.discoveryBudget;
-    event.reason = decision.reason;
-    m_telemetry.Record(event);
+    if (telemetryEnabled) {
+        EmuleNextSchedulerEvent event;
+        event.timestamp = now;
+        event.fileName = file->GetFileName();
+        event.mode = settings.mode;
+        event.action = decision.primaryAction;
+        event.health = decision.health;
+        event.attention = decision.attention;
+        event.discoveryBudget = decision.discoveryBudget;
+        event.a4afScore = decision.a4afScore;
+        event.rarePartIndex = decision.rarePartIndex;
+        event.applied = intervened;
+        event.reason = decision.reason;
+        m_telemetry.Record(event);
+    }
 }
 
-uint16 CEmuleNextSmartScheduler::AdjustPartRank(const CPartFile* file, UINT part, UINT frequency, uint16 legacyRank) const
+void CEmuleNextSmartScheduler::MarkApplied(const unsigned char* fileHash)
+{
+    Key key;
+    if (!MakeKey(fileHash, key))
+        return;
+    bool changed = false;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        std::map<Key, EmuleNextSchedulerSnapshot>::iterator it = m_snapshots.find(key);
+        if (it != m_snapshots.end() && !it->second.applied) {
+            it->second.applied = true;
+            it->second.lastInterventionAt = static_cast<uint64>(time(NULL));
+            changed = true;
+        }
+    }
+    if (changed && theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetry"), 1) != 0)
+        m_telemetry.MarkAppliedIntervention();
+}
+
+uint16 CEmuleNextSmartScheduler::AdjustPartRank(const CPartFile* file, UINT part, UINT frequency, uint16 legacyRank)
 {
     if (file == NULL)
         return legacyRank;
@@ -191,10 +258,13 @@ uint16 CEmuleNextSmartScheduler::AdjustPartRank(const CPartFile* file, UINT part
         return legacyRank;
 
     const uint32 bonus = frequency <= 1 ? 1600u : (frequency == 2 ? 900u : 350u);
-    return static_cast<uint16>(legacyRank > bonus ? legacyRank - bonus : 0);
+    const uint16 adjusted = static_cast<uint16>(legacyRank > bonus ? legacyRank - bonus : 0);
+    if (adjusted != legacyRank)
+        MarkApplied(file->GetFileHash());
+    return adjusted;
 }
 
-bool CEmuleNextSmartScheduler::PreferA4AFCandidate(const CPartFile* currentFile, const CPartFile* candidateFile, bool legacyPreference) const
+bool CEmuleNextSmartScheduler::PreferA4AFCandidate(const CPartFile* currentFile, const CPartFile* candidateFile, bool legacyPreference)
 {
     if (candidateFile == NULL)
         return legacyPreference;
@@ -206,8 +276,8 @@ bool CEmuleNextSmartScheduler::PreferA4AFCandidate(const CPartFile* currentFile,
     if (!GetSnapshot(candidateFile->GetFileHash(), candidate))
         return legacyPreference;
 
-    const UINT configuredMinimumScore = theApp.GetProfileInt(_T("eMule Next"), _T("SmartA4AFMinimumScore"), 650);
-    const uint32 minimumScore = static_cast<uint32>(configuredMinimumScore);
+    const UINT configuredMinimum = theApp.GetProfileInt(_T("eMule Next"), _T("SmartA4AFMinimumScore"), 650);
+    const uint32 minimumScore = static_cast<uint32>(configuredMinimum > 1000u ? 1000u : configuredMinimum);
     if (candidate.decision.a4afScore < minimumScore)
         return legacyPreference;
 
@@ -216,9 +286,12 @@ bool CEmuleNextSmartScheduler::PreferA4AFCandidate(const CPartFile* currentFile,
     const uint32 currentScore = hasCurrent ? current.decision.a4afScore : 0;
     const uint32 currentAttention = hasCurrent ? current.decision.attention : 0;
 
-    if (candidate.decision.a4afScore >= currentScore + 80
-        && candidate.decision.attention >= currentAttention)
+    if (!legacyPreference
+        && candidate.decision.a4afScore >= currentScore + 80
+        && candidate.decision.attention >= currentAttention) {
+        MarkApplied(candidateFile->GetFileHash());
         return true;
+    }
     return legacyPreference;
 }
 
@@ -233,6 +306,41 @@ bool CEmuleNextSmartScheduler::GetSnapshot(const unsigned char* fileHash, EmuleN
         return false;
     snapshot = it->second;
     return true;
+}
+
+void CEmuleNextSmartScheduler::GetRuntimeStatus(EmuleNextSchedulerRuntimeStatus& status) const
+{
+    const EmuleNextSchedulingSettings settings = LoadSettings();
+    status.mode = settings.mode;
+    status.profile = static_cast<int>(theApp.GetProfileInt(_T("eMule Next"), _T("SmartSchedulerProfile"), 1));
+    status.cooldownSeconds = settings.interventionCooldownSeconds;
+    status.maxFilesPerRound = LoadMaxFilesPerRound();
+    status.minimumA4AFScore = settings.minimumA4AFScore;
+    status.sourceDiscovery = settings.sourceDiscovery;
+    status.a4af = settings.a4af;
+    status.rareParts = settings.rareParts;
+    status.historyEnabled = theApp.GetProfileInt(_T("eMule Next"), _T("SmartHistoryCache"), 1) != 0;
+    status.telemetryEnabled = theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetry"), 1) != 0;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        status.trackedFiles = static_cast<uint32>(m_snapshots.size());
+    }
+    EmuleNextSchedulerTelemetrySummary telemetry;
+    m_telemetry.Summary(telemetry);
+    status.decisions = telemetry.decisions;
+    status.appliedInterventions = telemetry.appliedInterventions;
+}
+
+CString CEmuleNextSmartScheduler::GetRuntimeStatusText() const
+{
+    EmuleNextSchedulerRuntimeStatus status;
+    GetRuntimeStatus(status);
+    CString text;
+    text.Format(_T("%s / %s | scan %u files | cooldown %us | tracked %u | decisions %llu | applied %llu"),
+        (LPCTSTR)CDownloadIntelligence::SchedulingModeText(status.mode),
+        (LPCTSTR)ProfileText(status.profile), status.maxFilesPerRound, status.cooldownSeconds,
+        status.trackedFiles, status.decisions, status.appliedInterventions);
+    return text;
 }
 
 CEmuleNextSchedulerTelemetry& CEmuleNextSmartScheduler::Telemetry() { return m_telemetry; }

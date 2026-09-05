@@ -25,6 +25,9 @@ protected:
 private:
     void LayoutControls(int cx, int cy);
     void UpdateSchedulingControls();
+    void FillNumberCombo(CComboBox& combo, const int* values, int count);
+    int SelectNumber(CComboBox& combo, const int* values, int count, int value);
+    int SelectedNumber(const CComboBox& combo, const int* values, int count, int fallback) const;
 
     CStatic m_heading;
     CStatic m_themeLabel;
@@ -37,10 +40,23 @@ private:
     CStatic m_schedulerHeading;
     CStatic m_schedulerModeLabel;
     CComboBox m_schedulerMode;
+    CStatic m_schedulerProfileLabel;
+    CComboBox m_schedulerProfile;
+    CStatic m_schedulerCooldownLabel;
+    CComboBox m_schedulerCooldown;
+    CStatic m_schedulerBatchLabel;
+    CComboBox m_schedulerBatch;
+    CStatic m_a4afThresholdLabel;
+    CComboBox m_a4afThreshold;
     CButton m_sourceDiscoveryIntelligence;
     CButton m_a4afIntelligence;
     CButton m_rarePartIntelligence;
     CButton m_etaHealthDisplay;
+    CButton m_historyCache;
+    CButton m_telemetry;
+    CStatic m_telemetryCapacityLabel;
+    CComboBox m_telemetryCapacity;
+    CStatic m_schedulerRuntime;
     CStatic m_schedulerSafety;
 
     CButton m_apply;

@@ -18,8 +18,28 @@ struct EmuleNextSchedulerSnapshot
     EmuleNextSchedulingDecision decision;
     uint64 evaluatedAt;
     uint64 lastInterventionAt;
+    bool applied;
 
     EmuleNextSchedulerSnapshot();
+};
+
+struct EmuleNextSchedulerRuntimeStatus
+{
+    EmuleNextSchedulingMode mode;
+    int profile;
+    uint32 cooldownSeconds;
+    uint32 maxFilesPerRound;
+    uint32 minimumA4AFScore;
+    bool sourceDiscovery;
+    bool a4af;
+    bool rareParts;
+    bool historyEnabled;
+    bool telemetryEnabled;
+    uint32 trackedFiles;
+    uint64 decisions;
+    uint64 appliedInterventions;
+
+    EmuleNextSchedulerRuntimeStatus();
 };
 
 class CEmuleNextSmartScheduler
@@ -28,9 +48,12 @@ public:
     CEmuleNextSmartScheduler();
 
     void Tick(CDownloadQueue* queue);
-    uint16 AdjustPartRank(const CPartFile* file, UINT part, UINT frequency, uint16 legacyRank) const;
-    bool PreferA4AFCandidate(const CPartFile* currentFile, const CPartFile* candidateFile, bool legacyPreference) const;
+    uint16 AdjustPartRank(const CPartFile* file, UINT part, UINT frequency, uint16 legacyRank);
+    bool PreferA4AFCandidate(const CPartFile* currentFile, const CPartFile* candidateFile, bool legacyPreference);
     bool GetSnapshot(const unsigned char* fileHash, EmuleNextSchedulerSnapshot& snapshot) const;
+    void GetRuntimeStatus(EmuleNextSchedulerRuntimeStatus& status) const;
+    CString GetRuntimeStatusText() const;
+    static CString ProfileText(int profile);
 
     CEmuleNextSchedulerTelemetry& Telemetry();
     const CEmuleNextSchedulerTelemetry& Telemetry() const;
@@ -42,7 +65,10 @@ private:
 
     static bool MakeKey(const unsigned char* hash, Key& key);
     EmuleNextSchedulingSettings LoadSettings() const;
-    void EvaluateFile(CDownloadQueue* queue, CPartFile* file, const EmuleNextSchedulingSettings& settings, uint64 now);
+    uint32 LoadMaxFilesPerRound() const;
+    void EvaluateFile(CDownloadQueue* queue, CPartFile* file, const EmuleNextSchedulingSettings& settings, uint64 now,
+        bool historyEnabled, bool telemetryEnabled);
+    void MarkApplied(const unsigned char* fileHash);
 
     mutable std::mutex m_mutex;
     std::map<Key, EmuleNextSchedulerSnapshot> m_snapshots;
