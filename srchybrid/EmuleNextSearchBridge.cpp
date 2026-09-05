@@ -4,6 +4,7 @@
 
 #include "stdafx.h"
 #include "emule.h"
+#include "emuledlg.h"
 #include "EmuleNextRuntime.h"
 #include "SearchDlg.h"
 #include "SearchFile.h"
