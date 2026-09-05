@@ -7,6 +7,15 @@
 #include <algorithm>
 #include <cmath>
 
+// Legacy Windows/MFC headers may define min/max as macros. They corrupt
+// qualified std::min/std::max expressions in this translation unit.
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+
 namespace
 {
     double Clamp01(double value)
