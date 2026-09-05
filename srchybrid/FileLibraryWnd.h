@@ -25,6 +25,7 @@ protected:
     afx_msg HBRUSH OnCtlColor(CDC* dc, CWnd* wnd, UINT ctlColor);
     afx_msg void OnRefreshClicked();
     afx_msg void OnFilterChanged();
+    afx_msg void OnTextFilterChanged();
     afx_msg void OnFavoriteClicked();
     afx_msg void OnDownloadLaterClicked();
     afx_msg void OnOpenLocationClicked();
@@ -40,7 +41,12 @@ private:
     static CString HashText(const EmuleNextHash16& hash);
     static CString DateText(uint64 timestamp);
 
+    CStatic m_title;
+    CStatic m_subtitle;
+    CStatic m_viewLabel;
     CComboBox m_filter;
+    CStatic m_findLabel;
+    CEdit m_textFilter;
     CButton m_refresh;
     CStatic m_status;
     CListCtrl m_results;
