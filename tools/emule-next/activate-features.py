@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Compatibility entry point for eMule Next runtime activation.
+"""Compatibility entry point for all eMule Next runtime/UI activation.
 
-The first activation layer has already been materialized into the develop
-overlay. Runtime/UI activation now lives in activate-runtime-features.py so the
-local build, integration workflow and Windows CI all execute one idempotent
-feature patcher and cannot drift into two conflicting scanner implementations.
+The original activation layer has already been materialized into the develop
+overlay. Runtime integration and dark-mode integration now live in dedicated,
+idempotent patchers so local builds and CI execute the same feature set.
 """
 from __future__ import annotations
 
 import pathlib
 import runpy
 
-SCRIPT = pathlib.Path(__file__).with_name("activate-runtime-features.py")
-runpy.run_path(str(SCRIPT), run_name="__main__")
+HERE = pathlib.Path(__file__).resolve().parent
+for script_name in ("activate-runtime-features.py", "activate-theme.py"):
+    runpy.run_path(str(HERE / script_name), run_name="__main__")
