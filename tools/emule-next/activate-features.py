@@ -51,6 +51,7 @@ for script_name in (
     "activate-transfer-statusbars.py",
     "activate-download-intelligence-view.py",
     "activate-transfer-history-direction.py",
+    "activate-smart-scheduler-runtime.py",
     "verify-smart-scheduling.py",
     "verify-next-integration.py",
     "activate-branding.py",
