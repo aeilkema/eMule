@@ -29,6 +29,29 @@ struct EmuleNextTransferHistoryRecord
     }
 };
 
+struct EmuleNextSourceHistoryRecord
+{
+    EmuleNextHash16 peerHash;
+    EmuleNextHash16 fileHash;
+    CStringW userName;
+    CStringW fileName;
+    uint32 successfulSessions;
+    uint32 failedSessions;
+    uint64 bytesReceived;
+    uint32 historicalBytesPerSecond;
+    uint32 reliabilityPercent;
+    uint32 historyQuality;
+    uint64 lastSuccess;
+    uint64 lastFailure;
+
+    EmuleNextSourceHistoryRecord()
+        : successfulSessions(0), failedSessions(0), bytesReceived(0),
+          historicalBytesPerSecond(0), reliabilityPercent(0), historyQuality(0),
+          lastSuccess(0), lastFailure(0)
+    {
+    }
+};
+
 class CDownloadIntelligenceService
 {
 public:
@@ -36,6 +59,8 @@ public:
 
     bool ListRecentTransfers(size_t limit,
         std::vector<EmuleNextTransferHistoryRecord>& transfers) const;
+    bool ListSourceHistory(size_t limit,
+        std::vector<EmuleNextSourceHistoryRecord>& sources) const;
 
 private:
     CStringW m_databasePath;
