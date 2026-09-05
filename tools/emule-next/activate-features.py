@@ -40,6 +40,8 @@ for script_name in (
     "activate-transfers-next.py",
     "activate-peer-alias-editor.py",
     "activate-transfer-intelligence-columns.py",
+    "activate-dashboard.py",
+    "activate-file-intelligence-columns.py",
     "activate-transfer-lifecycle.py",
     "activate-upload-transfer-lifecycle.py",
     "activate-transfer-statusbars.py",
