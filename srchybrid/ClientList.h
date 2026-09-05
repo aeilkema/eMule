@@ -150,6 +150,8 @@ protected:
 private:
 	CClientIndex m_index;
 	CPeerShareScanner m_peerShareScanner;
+	// Fast identity/endpoint lookup kept in lock-step with the canonical MFC list.
+	CClientIndex m_index;
 	CUpDownClientPtrList list;
 	CUpDownClientPtrList m_KadList;
 	CMap<uint32, uint32, DWORD, DWORD> m_bannedList;
