@@ -11,9 +11,18 @@ import pathlib
 import runpy
 
 HERE = pathlib.Path(__file__).resolve().parent
+
 for script_name in (
     "prepare-search-results.py",
     "activate-runtime-features.py",
     "activate-theme.py",
 ):
-    runpy.run_path(str(HERE / script_name), run_name="__main__")
+    try:
+        runpy.run_path(str(HERE / script_name), run_name="__main__")
+    except SystemExit as exc:
+        # The dedicated patchers use `raise SystemExit(main())`. A successful
+        # patcher must not prevent the next activation layer from running.
+        if exc.code not in (None, 0):
+            raise
+
+print("eMule Next runtime/UI activation complete")
