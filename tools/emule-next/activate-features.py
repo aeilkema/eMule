@@ -18,6 +18,7 @@ for script_name in (
     "finalize-peer-share-processing.py",
     "activate-theme.py",
     "activate-next-settings.py",
+    "activate-next-views.py",
     "finalize-search-results.py",
 ):
     try:
