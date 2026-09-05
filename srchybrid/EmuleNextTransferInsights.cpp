@@ -3,6 +3,7 @@
 //GPL v2 or later
 #include "stdafx.h"
 #include "EmuleNextTransferInsights.h"
+#include "UpDownClient.h"
 #include "PartFile.h"
 
 #include <algorithm>
