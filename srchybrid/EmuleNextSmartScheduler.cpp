@@ -199,6 +199,34 @@ uint16 CEmuleNextSmartScheduler::AdjustPartRank(const CPartFile* file, UINT part
     return static_cast<uint16>(legacyRank > bonus ? legacyRank - bonus : 0);
 }
 
+bool CEmuleNextSmartScheduler::PreferA4AFCandidate(const CPartFile* currentFile, const CPartFile* candidateFile, bool legacyPreference) const
+{
+    if (candidateFile == NULL)
+        return legacyPreference;
+    if (theApp.GetProfileInt(_T("eMule Next"), _T("SmartSchedulingMode"), ENSM_ANALYSIS_ONLY) != ENSM_AUTOMATIC
+        || theApp.GetProfileInt(_T("eMule Next"), _T("SmartA4AF"), 1) == 0)
+        return legacyPreference;
+
+    EmuleNextSchedulerSnapshot candidate;
+    if (!GetSnapshot(candidateFile->GetFileHash(), candidate))
+        return legacyPreference;
+
+    const uint32 minimumScore = static_cast<uint32>(std::max(0,
+        theApp.GetProfileInt(_T("eMule Next"), _T("SmartA4AFMinimumScore"), 650)));
+    if (candidate.decision.a4afScore < minimumScore)
+        return legacyPreference;
+
+    EmuleNextSchedulerSnapshot current;
+    const bool hasCurrent = currentFile != NULL && GetSnapshot(currentFile->GetFileHash(), current);
+    const uint32 currentScore = hasCurrent ? current.decision.a4afScore : 0;
+    const uint32 currentAttention = hasCurrent ? current.decision.attention : 0;
+
+    if (candidate.decision.a4afScore >= currentScore + 80
+        && candidate.decision.attention >= currentAttention)
+        return true;
+    return legacyPreference;
+}
+
 bool CEmuleNextSmartScheduler::GetSnapshot(const unsigned char* fileHash, EmuleNextSchedulerSnapshot& snapshot) const
 {
     Key key;
