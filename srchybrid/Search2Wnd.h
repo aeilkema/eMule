@@ -24,6 +24,9 @@ protected:
     afx_msg BOOL OnEraseBkgnd(CDC* dc);
     afx_msg HBRUSH OnCtlColor(CDC* dc, CWnd* wnd, UINT ctlColor);
     afx_msg void OnSearchClicked();
+    afx_msg void OnSavedSearchChanged();
+    afx_msg void OnSaveSearchClicked();
+    afx_msg void OnDeleteSearchClicked();
     afx_msg void OnFavoriteClicked();
     afx_msg void OnDownloadLaterClicked();
     afx_msg void OnBlockClicked();
@@ -34,15 +37,25 @@ private:
     void LayoutControls(int cx, int cy);
     void StartSearch();
     void PopulateResults();
+    void ReloadSavedSearches();
+    void ApplySavedSearch(const EmuleNextSavedSearch& search);
+    EmuleNextSearchFilter CurrentFilter() const;
     int SelectedIndex() const;
     void UpdateActionButtons();
     static CString HashText(const EmuleNextHash16& hash);
     static CString DateText(uint64 timestamp);
 
+    CStatic m_title;
+    CStatic m_subtitle;
     CEdit m_query;
     CButton m_search;
     CButton m_hideDownloaded;
     CButton m_favoritesOnly;
+    CButton m_missingOnly;
+    CStatic m_savedSearchLabel;
+    CComboBox m_savedSearch;
+    CButton m_saveSearch;
+    CButton m_deleteSearch;
     CStatic m_status;
     CListCtrl m_results;
     CButton m_favorite;
@@ -50,5 +63,6 @@ private:
     CButton m_block;
     CBrush m_darkBrush;
     std::vector<EmuleNextSearchFileResult> m_rows;
+    std::vector<EmuleNextSavedSearch> m_savedSearches;
     bool m_loading;
 };
