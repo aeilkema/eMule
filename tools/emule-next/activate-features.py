@@ -41,6 +41,7 @@ for script_name in (
     "activate-peer-alias-editor.py",
     "activate-transfer-intelligence-columns.py",
     "activate-dashboard.py",
+    "fix-dashboard-compile.py",
     "activate-file-intelligence-columns.py",
     "activate-transfer-lifecycle.py",
     "activate-upload-transfer-lifecycle.py",
