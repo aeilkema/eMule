@@ -31,15 +31,20 @@ protected:
 
 private:
     void LayoutControls(int cx, int cy);
-    void Populate();
+    void PopulateTransfers();
+    void PopulateSources();
     void UpdateSummary();
     static CString DateText(uint64 timestamp);
 
     CButton m_refreshButton;
     CStatic m_summary;
+    CStatic m_transferLabel;
+    CStatic m_sourceLabel;
     CListCtrl m_transfers;
+    CListCtrl m_sources;
     CBrush m_darkBrush;
     std::vector<EmuleNextTransferHistoryRecord> m_rows;
+    std::vector<EmuleNextSourceHistoryRecord> m_sourceRows;
     bool m_loading;
     UINT_PTR m_refreshTimer;
 };
