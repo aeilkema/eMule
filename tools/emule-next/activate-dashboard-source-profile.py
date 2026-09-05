@@ -39,6 +39,13 @@ def main() -> int:
             raise RuntimeError('Dashboard live source profile details anchor not found')
         text = text.replace(eta_anchor, eta_new, 1)
 
+    queue_anchor = '''    else\n        confidence = _T("--");\n\n    CString details;\n'''
+    queue_new = '''    else\n        confidence = _T("--");\n\n    CString bestQueue;\n    if (sourceProfile.bestQueueRank > 0)\n        bestQueue.Format(_T("%u"), sourceProfile.bestQueueRank);\n    else\n        bestQueue = _T("--");\n\n    CString details;\n'''
+    if 'CString bestQueue;' not in text:
+        if queue_anchor not in text:
+            raise RuntimeError('Dashboard live source queue-text anchor not found')
+        text = text.replace(queue_anchor, queue_new, 1)
+
     old_format = '''        _T("Smart ETA: %s   Confidence: %s   Discovery budget: %u/%u   A4AF score: %u%%\\r\\n")\n        _T("ETA basis: %s\\r\\nRecommendation: %s\\r\\nDouble-click or press Enter to jump to this file in Transfers."),\n'''
     new_format = '''        _T("Smart ETA: %s   Confidence: %s   Discovery budget: %u/%u   A4AF score: %u%%\\r\\n")\n        _T("Live sources: %u tracked   Best quality: %u%%   Average: %u%%   Strong: %u   Transferring: %u   Best queue: %s\\r\\n")\n        _T("ETA basis: %s\\r\\nRecommendation: %s\\r\\nDouble-click or press Enter to jump to this file in Transfers."),\n'''
     if 'Live sources: %u tracked' not in text:
@@ -47,7 +54,7 @@ def main() -> int:
         text = text.replace(old_format, new_format, 1)
 
     args_anchor = '''        (row.a4afScore + 5) / 10,\n        row.eta.reason.IsEmpty() ? _T("not enough stable rate data") : (LPCTSTR)row.eta.reason,\n'''
-    args_new = '''        (row.a4afScore + 5) / 10,\n        sourceProfile.count,\n        (sourceProfile.bestQuality + 5) / 10,\n        (sourceProfile.averageQuality + 5) / 10,\n        sourceProfile.strong,\n        sourceProfile.transferring,\n        sourceProfile.bestQueueRank > 0 ? (LPCTSTR)CString(std::to_wstring(sourceProfile.bestQueueRank).c_str()) : _T("--"),\n        row.eta.reason.IsEmpty() ? _T("not enough stable rate data") : (LPCTSTR)row.eta.reason,\n'''
+    args_new = '''        (row.a4afScore + 5) / 10,\n        sourceProfile.count,\n        (sourceProfile.bestQuality + 5) / 10,\n        (sourceProfile.averageQuality + 5) / 10,\n        sourceProfile.strong,\n        sourceProfile.transferring,\n        (LPCTSTR)bestQueue,\n        row.eta.reason.IsEmpty() ? _T("not enough stable rate data") : (LPCTSTR)row.eta.reason,\n'''
     if 'sourceProfile.count,' not in text:
         if args_anchor not in text:
             raise RuntimeError('Dashboard live source args anchor not found')
