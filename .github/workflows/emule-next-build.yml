@@ -7,6 +7,7 @@ on:
       - 'srchybrid/**'
       - 'mbedtls/**'
       - 'tools/emule-next/**'
+      - 'build-local.ps1'
       - '.github/workflows/emule-next-build.yml'
   pull_request:
     branches: [develop, main]
@@ -105,6 +106,12 @@ jobs:
             throw "Dependency build failed with exit code $depExit"
           }
           Write-Host 'Dependency build succeeded; verbose output retained in runner temp log.'
+
+      - name: Patch generated linker dependencies
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:EMULE_SOURCE_DIR 'emule.vcxproj'
+          & .\tools\emule-next\patch-link-dependencies.ps1 -ProjectPath $target
 
       - name: Build eMule Next Release x64
         shell: pwsh
