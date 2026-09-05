@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "EmuleNextSettingsWnd.h"
 #include "EmuleNextTheme.h"
+#include "EmuleNextVersion.h"
 #include "ClientList.h"
 #include "emule.h"
 #include "emuledlg.h"
@@ -54,7 +55,7 @@ int CEmuleNextSettingsWnd::OnCreate(LPCREATESTRUCT createStruct)
 
     m_darkBrush.CreateSolidBrush(CEmuleNextTheme::BackgroundColor());
     CRect empty(0, 0, 0, 0);
-    if (!m_heading.Create(_T("eMule Next settings"), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
+    if (!m_heading.Create(EMULENEXT_PRODUCT_WITH_CORE_TEXT, WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
         || !m_themeLabel.Create(_T("Appearance"), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
         || !m_themeMode.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
             empty, this, IDC_EN_THEME)
