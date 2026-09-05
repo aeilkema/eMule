@@ -13,15 +13,18 @@ lf = raw.count(b"\n") - crlf
 newline = "\r\n" if crlf >= lf and crlf else "\n"
 text = raw.decode("latin-1").replace("\r\n", "\n").replace("\r", "\n")
 
-flag = '\t\tknownUsers->bClientSharedFiles = true;\n'
-if flag not in text:
-    anchor = '\t\tknownUsers->strSpecialTitle = _T("Known users");\n'
-    if anchor not in text:
-        raise RuntimeError("Known Users tab construction was not found")
-    # Reuse the existing client/shared-files icon without adding another icon
-    # resource. All behavioral paths still identify the permanent view by its
-    # reserved ID, so this flag is presentation-only here.
-    text = text.replace(anchor, anchor + flag, 1)
+old = "\tif (pParams->bClientSharedFiles)\n\t\tti.iImage = sriClient;\n"
+new = (
+    "\tif (pParams->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID || pParams->bClientSharedFiles)\n"
+    "\t\tti.iImage = sriClient;\n"
+)
+if new not in text:
+    if old not in text:
+        raise RuntimeError("Search tab icon branch was not found")
+    # Keep the runtime insertion block byte-for-byte unchanged so the main
+    # activator remains idempotent. The permanent view simply reuses the
+    # existing client icon by its reserved view ID.
+    text = text.replace(old, new, 1)
 
 if newline != "\n":
     text = text.replace("\n", newline)
