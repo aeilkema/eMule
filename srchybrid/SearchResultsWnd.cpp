@@ -47,6 +47,7 @@
 #include "UserMsgs.h"
 #include "Log.h"
 #include "EmuleNextTheme.h"
+#include "EmuleNextVersion.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -141,6 +142,11 @@ CSearchResultsWnd::~CSearchResultsWnd()
 void CSearchResultsWnd::OnInitialUpdate()
 {
 	CResizableFormView::OnInitialUpdate();
+
+	// Product branding only. The network/protocol core still reports its
+	// upstream-compatible eMule version where protocol logic requires it.
+	if (theApp.emuledlg != NULL)
+		theApp.emuledlg->SetWindowText(EMULENEXT_PRODUCT_WITH_CORE_TEXT);
 
 	InitWindowStyles(this);
 	theApp.searchlist->SetOutputWnd(&searchlistctrl);
