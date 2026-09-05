@@ -32,6 +32,7 @@ for script_name in (
     "activate-next-views.py",
     "finalize-search-results.py",
     "activate-transfers-next.py",
+    "activate-transfer-lifecycle.py",
     "activate-branding.py",
     "fix-preview1-build.py",
 ):
