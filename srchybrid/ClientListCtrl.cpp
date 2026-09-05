@@ -28,6 +28,7 @@
 #include "ClientCredits.h"
 #include "ListenSocket.h"
 #include "ChatWnd.h"
+#include "EmuleNextRuntime.h"
 #include "Kademlia/Kademlia/Kademlia.h"
 
 #ifdef _DEBUG
@@ -36,6 +37,60 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+namespace
+{
+	const UINT MP_NEXT_SET_ALIAS = 0xEE10;
+	const UINT MP_NEXT_CLEAR_ALIAS = 0xEE11;
+	const UINT MP_NEXT_FAVORITE = 0xEE12;
+
+	CString GetClipboardAlias(HWND owner)
+	{
+		CString value;
+		if (!::OpenClipboard(owner))
+			return value;
+
+#ifdef _UNICODE
+		HANDLE data = ::GetClipboardData(CF_UNICODETEXT);
+		if (data != NULL) {
+			LPCWSTR text = static_cast<LPCWSTR>(::GlobalLock(data));
+			if (text != NULL) {
+				value = text;
+				::GlobalUnlock(data);
+			}
+		}
+#else
+		HANDLE data = ::GetClipboardData(CF_TEXT);
+		if (data != NULL) {
+			LPCSTR text = static_cast<LPCSTR>(::GlobalLock(data));
+			if (text != NULL) {
+				value = text;
+				::GlobalUnlock(data);
+			}
+		}
+#endif
+		::CloseClipboard();
+		value.Trim();
+		return value;
+	}
+
+	CString GetPeerDisplayName(const CUpDownClient* client)
+	{
+		CString name;
+		if (client == NULL)
+			return name;
+
+		if (!theEmuleNext.GetPeerAlias(client->GetUserHash(), name)) {
+			if (client->GetUserName() != NULL)
+				name = client->GetUserName();
+			else
+				name.Format(_T("(%s)"), (LPCTSTR)GetResString(IDS_UNKNOWN));
+		}
+
+		if (theEmuleNext.IsPeerFavorite(client->GetUserHash()))
+			name = _T("[*] ") + name;
+		return name;
+	}
+}
 
 IMPLEMENT_DYNAMIC(CClientListCtrl, CMuleListCtrl)
 
@@ -163,11 +218,8 @@ CString CClientListCtrl::GetItemDisplayText(const CUpDownClient *client, int iSu
 {
 	CString sText;
 	switch (iSubItem) {
-	case 0: //user name
-		if (client->GetUserName() != NULL)
-			sText = client->GetUserName();
-		else
-			sText.Format(_T("(%s)"), (LPCTSTR)GetResString(IDS_UNKNOWN));
+	case 0: //user name / eMule Next alias
+		sText = GetPeerDisplayName(client);
 		break;
 	case 1: //upload status
 		sText = client->GetUploadStateDisplayString();
@@ -255,13 +307,12 @@ int CALLBACK CClientListCtrl::SortProc(LPARAM lParam1, LPARAM lParam2, LPARAM lP
 
 	int iResult = 0;
 	switch (LOWORD(lParamSort)) {
-	case 0: //user name
-		if (item1->GetUserName() && item2->GetUserName())
-			iResult = CompareLocaleStringNoCase(item1->GetUserName(), item2->GetUserName());
-		else if (item1->GetUserName() == NULL)
-			iResult = 1; // place clients with no user names at bottom
-		else if (item2->GetUserName() == NULL)
-			iResult = -1; // place clients with no user names at bottom
+	case 0: //user name / eMule Next alias
+		{
+			const CString name1 = GetPeerDisplayName(item1);
+			const CString name2 = GetPeerDisplayName(item2);
+			iResult = CompareLocaleStringNoCase(name1, name2);
+		}
 		break;
 	case 1: //upload status
 		iResult = item1->GetUploadState() - item2->GetUploadState();
@@ -336,6 +387,9 @@ void CClientListCtrl::OnContextMenu(CWnd*, CPoint point)
 	int iSel = GetNextItem(-1, LVIS_SELECTED | LVIS_FOCUSED);
 	const CUpDownClient *client = (iSel >= 0) ? reinterpret_cast<CUpDownClient*>(GetItemData(iSel)) : NULL;
 	const bool is_ed2k = client && client->IsEd2kClient();
+	CString peerAlias;
+	const bool hasAlias = client != NULL && theEmuleNext.GetPeerAlias(client->GetUserHash(), peerAlias);
+	const bool isFavorite = client != NULL && theEmuleNext.IsPeerFavorite(client->GetUserHash());
 
 	CTitledMenu ClientMenu;
 	ClientMenu.CreatePopupMenu();
@@ -347,6 +401,13 @@ void CClientListCtrl::OnContextMenu(CWnd*, CPoint point)
 	ClientMenu.AppendMenu(MF_STRING | ((is_ed2k && client->GetViewSharedFilesSupport()) ? MF_ENABLED : MF_GRAYED), MP_SHOWLIST, GetResString(IDS_VIEWFILES), _T("VIEWFILES"));
 	if (Kademlia::CKademlia::IsRunning() && !Kademlia::CKademlia::IsConnected())
 		ClientMenu.AppendMenu(MF_STRING | ((is_ed2k && client->GetKadPort() && client->GetKadVersion() >= KADEMLIA_VERSION2_47a) ? MF_ENABLED : MF_GRAYED), MP_BOOT, GetResString(IDS_BOOTSTRAP));
+
+	ClientMenu.AppendMenu(MF_SEPARATOR);
+	ClientMenu.AppendMenu(MF_STRING | (client ? MF_ENABLED : MF_GRAYED), MP_NEXT_SET_ALIAS, _T("Set eMule Next alias from clipboard"));
+	ClientMenu.AppendMenu(MF_STRING | ((client && hasAlias) ? MF_ENABLED : MF_GRAYED), MP_NEXT_CLEAR_ALIAS, _T("Clear eMule Next alias"));
+	ClientMenu.AppendMenu(MF_STRING | (client ? MF_ENABLED : MF_GRAYED) | (isFavorite ? MF_CHECKED : MF_UNCHECKED), MP_NEXT_FAVORITE, _T("eMule Next favorite"));
+
+	ClientMenu.AppendMenu(MF_SEPARATOR);
 	ClientMenu.AppendMenu(MF_STRING | (GetItemCount() > 0 ? MF_ENABLED : MF_GRAYED), MP_FIND, GetResString(IDS_FIND), _T("Search"));
 	GetPopupMenuPos(*this, point);
 	ClientMenu.TrackPopupMenu(TPM_LEFTALIGN | TPM_RIGHTBUTTON, point.x, point.y, this);
@@ -365,6 +426,31 @@ BOOL CClientListCtrl::OnCommand(WPARAM wParam, LPARAM)
 	if (iSel >= 0) {
 		CUpDownClient *client = reinterpret_cast<CUpDownClient*>(GetItemData(iSel));
 		switch (wParam) {
+		case MP_NEXT_SET_ALIAS:
+			{
+				CString alias = GetClipboardAlias(m_hWnd);
+				if (alias.IsEmpty()) {
+					AfxMessageBox(_T("Copy the desired alias to the clipboard first."), MB_OK | MB_ICONINFORMATION);
+					break;
+				}
+				if (theEmuleNext.SetPeerAlias(client->GetUserHash(), alias)) {
+					Update(iSel);
+					SortItems(SortProc, MAKELONG(GetSortItem(), !GetSortAscending()));
+				}
+			}
+			break;
+		case MP_NEXT_CLEAR_ALIAS:
+			if (theEmuleNext.SetPeerAlias(client->GetUserHash(), CString())) {
+				Update(iSel);
+				SortItems(SortProc, MAKELONG(GetSortItem(), !GetSortAscending()));
+			}
+			break;
+		case MP_NEXT_FAVORITE:
+			if (theEmuleNext.SetPeerFavorite(client->GetUserHash(), !theEmuleNext.IsPeerFavorite(client->GetUserHash()))) {
+				Update(iSel);
+				SortItems(SortProc, MAKELONG(GetSortItem(), !GetSortAscending()));
+			}
+			break;
 		case MP_SHOWLIST:
 			client->RequestSharedFileList();
 			break;
