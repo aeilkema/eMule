@@ -4,8 +4,10 @@
 
 #include "stdafx.h"
 #include "DownloadIntelligenceService.h"
+#include "DownloadIntelligence.h"
 
 #include <winsqlite3.h>
+#include <time.h>
 
 namespace
 {
@@ -79,6 +81,66 @@ bool CDownloadIntelligenceService::ListRecentTransfers(size_t limit,
             item.startedAt = static_cast<uint64>(sqlite3_column_int64(statement, 10));
             item.finishedAt = static_cast<uint64>(sqlite3_column_int64(statement, 11));
             transfers.push_back(item);
+        }
+    }
+
+    if (statement != NULL)
+        sqlite3_finalize(statement);
+    sqlite3_close(database);
+    return ok;
+}
+
+bool CDownloadIntelligenceService::ListSourceHistory(size_t limit,
+    std::vector<EmuleNextSourceHistoryRecord>& sources) const
+{
+    sources.clear();
+    sqlite3* database = OpenReadOnly(m_databasePath);
+    if (database == NULL)
+        return false;
+
+    static const char sql[] =
+        "SELECT p.user_hash,f.ed2k_hash,COALESCE(p.username,''),COALESCE(f.canonical_name,''),"
+        "sh.successful_sessions,sh.failed_sessions,sh.bytes_received,CAST(sh.ewma_bps AS INTEGER),"
+        "COALESCE(sh.last_success,0),COALESCE(sh.last_failure,0) "
+        "FROM source_history sh "
+        "JOIN peers p ON p.id=sh.peer_id "
+        "JOIN files f ON f.id=sh.file_id "
+        "ORDER BY MAX(COALESCE(sh.last_success,0),COALESCE(sh.last_failure,0)) DESC,"
+        "sh.bytes_received DESC LIMIT ?1";
+
+    sqlite3_stmt* statement = NULL;
+    bool ok = sqlite3_prepare_v2(database, sql, -1, &statement, NULL) == SQLITE_OK;
+    if (ok) {
+        sqlite3_bind_int64(statement, 1, static_cast<sqlite3_int64>(limit));
+        const uint64 now = static_cast<uint64>(::time(NULL));
+        while (sqlite3_step(statement) == SQLITE_ROW) {
+            EmuleNextSourceHistoryRecord item;
+            item.peerHash = ColumnHash(statement, 0);
+            item.fileHash = ColumnHash(statement, 1);
+            item.userName = ColumnText(statement, 2);
+            item.fileName = ColumnText(statement, 3);
+            item.successfulSessions = static_cast<uint32>(sqlite3_column_int(statement, 4));
+            item.failedSessions = static_cast<uint32>(sqlite3_column_int(statement, 5));
+            item.bytesReceived = static_cast<uint64>(sqlite3_column_int64(statement, 6));
+            item.historicalBytesPerSecond = static_cast<uint32>(sqlite3_column_int(statement, 7));
+            item.lastSuccess = static_cast<uint64>(sqlite3_column_int64(statement, 8));
+            item.lastFailure = static_cast<uint64>(sqlite3_column_int64(statement, 9));
+
+            const uint64 sessions = static_cast<uint64>(item.successfulSessions) + item.failedSessions;
+            item.reliabilityPercent = sessions > 0
+                ? static_cast<uint32>((static_cast<uint64>(item.successfulSessions) * 100ui64) / sessions)
+                : 0;
+
+            EmuleNextSourceSignals signals;
+            signals.historicalEwmaBytesPerSecond = static_cast<double>(item.historicalBytesPerSecond);
+            signals.successfulSessions = item.successfulSessions;
+            signals.failedSessions = item.failedSessions;
+            if (item.lastSuccess > 0 && now > item.lastSuccess) {
+                const uint64 age = now - item.lastSuccess;
+                signals.secondsSinceLastSuccess = static_cast<uint32>(age > _UI32_MAX ? _UI32_MAX : age);
+            }
+            item.historyQuality = CDownloadIntelligence::SourceQuality(signals);
+            sources.push_back(item);
         }
     }
 
