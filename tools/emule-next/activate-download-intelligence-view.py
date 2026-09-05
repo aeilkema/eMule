@@ -68,14 +68,12 @@ def patch_results() -> None:
         "\t\t|| searchID == EMULENEXT_DOWNLOAD_INTELLIGENCE_VIEW_ID\n"
         "\t\t|| searchID == EMULENEXT_SEARCH2_VIEW_ID\n"
     )
-    if "EMULENEXT_DOWNLOAD_INTELLIGENCE_VIEW_ID" not in text:
+    if "|| searchID == EMULENEXT_DOWNLOAD_INTELLIGENCE_VIEW_ID" not in text:
         if old_persistent not in text:
             raise RuntimeError("Persistent-view anchor not found")
         text = text.replace(old_persistent, new_persistent, 1)
 
-    create_anchor = (
-        "\tif (m_search2Wnd.Create(this)) {\n"
-    )
+    create_anchor = "\tif (m_search2Wnd.Create(this)) {\n"
     create_block = (
         "\tif (m_downloadIntelligenceWnd.Create(this)) {\n"
         "\t\tm_downloadIntelligenceWnd.ShowWindow(SW_HIDE);\n"
@@ -93,10 +91,21 @@ def patch_results() -> None:
             raise RuntimeError("Download Intelligence create anchor not found")
         text = text.replace(create_anchor, create_block + create_anchor, 1)
 
-    hide_anchor = "\tm_knownUsersWnd.ShowWindow(SW_HIDE);\n"
-    hide_addition = "\tm_downloadIntelligenceWnd.ShowWindow(SW_HIDE);\n"
-    # Apply specifically inside ShowResults; first occurrence of this hide call is there.
-    text = add_after(text, hide_anchor, hide_addition, path)
+    show_results_anchor = (
+        "void CSearchResultsWnd::ShowResults(const SSearchParams *pParams)\n"
+        "{\n"
+        "\tm_knownUsersWnd.ShowWindow(SW_HIDE);\n"
+    )
+    show_results_replacement = (
+        "void CSearchResultsWnd::ShowResults(const SSearchParams *pParams)\n"
+        "{\n"
+        "\tm_knownUsersWnd.ShowWindow(SW_HIDE);\n"
+        "\tm_downloadIntelligenceWnd.ShowWindow(SW_HIDE);\n"
+    )
+    if show_results_replacement not in text:
+        if show_results_anchor not in text:
+            raise RuntimeError("ShowResults hide anchor not found")
+        text = text.replace(show_results_anchor, show_results_replacement, 1)
 
     branch_anchor = (
         "\t\tif (pParams->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID) {\n"
