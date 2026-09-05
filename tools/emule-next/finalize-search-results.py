@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Small post-runtime adjustments for the permanent eMule Next search views."""
+"""Small post-runtime adjustments for permanent eMule Next search views."""
 from __future__ import annotations
 
 import pathlib
@@ -13,18 +13,17 @@ lf = raw.count(b"\n") - crlf
 newline = "\r\n" if crlf >= lf and crlf else "\n"
 text = raw.decode("latin-1").replace("\r\n", "\n").replace("\r", "\n")
 
-old = "\tif (pParams->bClientSharedFiles)\n\t\tti.iImage = sriClient;\n"
-new = (
-    "\tif (pParams->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID || pParams->bClientSharedFiles)\n"
-    "\t\tti.iImage = sriClient;\n"
-)
-if new not in text:
-    if old not in text:
+current = "\tif (IsEmuleNextPersistentView(pParams->dwSearchID) || pParams->bClientSharedFiles)\n\t\tti.iImage = sriClient;\n"
+known_only = "\tif (pParams->dwSearchID == EMULENEXT_KNOWN_USERS_VIEW_ID || pParams->bClientSharedFiles)\n\t\tti.iImage = sriClient;\n"
+legacy = "\tif (pParams->bClientSharedFiles)\n\t\tti.iImage = sriClient;\n"
+
+if current not in text:
+    if known_only in text:
+        text = text.replace(known_only, current, 1)
+    elif legacy in text:
+        text = text.replace(legacy, current, 1)
+    else:
         raise RuntimeError("Search tab icon branch was not found")
-    # Keep the runtime insertion block byte-for-byte unchanged so the main
-    # activator remains idempotent. The permanent view simply reuses the
-    # existing client icon by its reserved view ID.
-    text = text.replace(old, new, 1)
 
 if newline != "\n":
     text = text.replace("\n", newline)
