@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Compatibility entry point for all eMule Next runtime/UI activation.
 
-The develop overlay materializes the legacy runtime hooks. Once the newer
-multi-view integration is present, the older single-Known-users patcher is
-intentionally skipped on subsequent idempotence passes so it cannot try to
-rewrite the already-upgraded SearchResultsWnd back to its intermediate form.
+The develop overlay already materializes several eMule Next runtime/UI hooks.
+Legacy structural patchers are skipped once their multi-view result is present,
+so repeated local builds stay idempotent and do not duplicate SearchResultsWnd
+helpers, view blocks or local variables.
 """
 from __future__ import annotations
 
@@ -20,7 +20,12 @@ def has_next_multi_view() -> bool:
     if not SEARCH_RESULTS.exists():
         return False
     text = SEARCH_RESULTS.read_bytes().decode("latin-1", errors="ignore")
-    return "IsEmuleNextPersistentView" in text and "m_search2Wnd" in text
+    return (
+        "static bool IsEmuleNextPersistentView(uint32 searchID)" in text
+        and "m_search2Wnd.Create(this)" in text
+        and "m_fileLibraryWnd.Create(this)" in text
+        and "m_nextSettingsWnd.Create(this)" in text
+    )
 
 
 for script_name in (
@@ -38,8 +43,8 @@ for script_name in (
     "activate-branding.py",
     "fix-preview1-build.py",
 ):
-    if script_name == "activate-runtime-features.py" and has_next_multi_view():
-        print("eMule Next legacy single-view activation already superseded; skipping")
+    if script_name in ("activate-runtime-features.py", "activate-next-views.py") and has_next_multi_view():
+        print(f"eMule Next {script_name} already materialized; skipping")
         continue
     try:
         runpy.run_path(str(HERE / script_name), run_name="__main__")
