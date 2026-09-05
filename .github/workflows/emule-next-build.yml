@@ -52,38 +52,27 @@ jobs:
           "MSBUILD_EXE=$msbuild" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "MSBuild: $msbuild"
 
-      - name: Provision pinned WinSQLite SDK files
+      - name: Provision pinned WinSQLite import library
         shell: pwsh
         run: |
           $sdkPackageVersion = '10.0.26100.7705'
+          $packageId = 'microsoft.windows.sdk.cpp.x64'
           $packageRoot = Join-Path $env:RUNNER_TEMP 'emule-winsdk-nuget'
+          $archive = Join-Path $packageRoot "$packageId.nupkg"
+          $extract = Join-Path $packageRoot $packageId
           New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
           Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-          foreach ($packageId in @('microsoft.windows.sdk.cpp', 'microsoft.windows.sdk.cpp.x64')) {
-            $url = "https://api.nuget.org/v3-flatcontainer/$packageId/$sdkPackageVersion/$packageId.$sdkPackageVersion.nupkg"
-            $archive = Join-Path $packageRoot "$packageId.nupkg"
-            $extract = Join-Path $packageRoot $packageId
-            Write-Host "Downloading pinned SDK package $packageId $sdkPackageVersion"
-            Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $archive
-            if (Test-Path -LiteralPath $extract) { Remove-Item -LiteralPath $extract -Recurse -Force }
-            [IO.Compression.ZipFile]::ExtractToDirectory($archive, $extract)
-          }
+          $url = "https://api.nuget.org/v3-flatcontainer/$packageId/$sdkPackageVersion/$packageId.$sdkPackageVersion.nupkg"
+          Write-Host "Downloading pinned SDK package $packageId $sdkPackageVersion"
+          Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $archive
+          if (Test-Path -LiteralPath $extract) { Remove-Item -LiteralPath $extract -Recurse -Force }
+          [IO.Compression.ZipFile]::ExtractToDirectory($archive, $extract)
 
-          $header = Get-ChildItem -LiteralPath $packageRoot -Recurse -Filter 'winsqlite3.h' -File | Select-Object -First 1
-          $library = Get-ChildItem -LiteralPath $packageRoot -Recurse -Filter 'winsqlite3.lib' -File |
+          $library = Get-ChildItem -LiteralPath $extract -Recurse -Filter 'winsqlite3.lib' -File |
             Where-Object { $_.FullName -match '[\\/]x64[\\/]' } |
             Select-Object -First 1
-          if ($null -eq $header) { throw 'Pinned Microsoft Windows SDK package did not contain winsqlite3.h' }
           if ($null -eq $library) { throw 'Pinned Microsoft Windows SDK x64 package did not contain winsqlite3.lib' }
-
-          # Keep the SDK WinSQLite directory intact. The header lives below
-          # Include/<version>/um/winsqlite, and flattening only winsqlite3.h into
-          # srchybrid can break assumptions made by SDK-generated headers.
-          $includePath = $header.Directory.FullName
-          $clOptions = "/I`"$includePath`""
-          if (-not [string]::IsNullOrWhiteSpace($env:CL)) { $clOptions = "$clOptions $env:CL" }
-          "CL=$clOptions" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
           $libPath = $library.Directory.FullName
           if (-not [string]::IsNullOrWhiteSpace($env:LIB)) { $libPath = "$libPath;$env:LIB" }
@@ -95,7 +84,7 @@ jobs:
           if ($null -eq $installedSdk) { throw 'No installed Windows SDK was found for the base build' }
           "EMULE_WINDOWS_SDK_VERSION=$($installedSdk.Name)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-          Write-Host "Using WinSQLite include directory: $includePath"
+          Write-Host "Using local srchybrid/winsqlite3.h ABI declarations"
           Write-Host "Using WinSQLite import library: $($library.FullName)"
           Write-Host "Base Windows SDK selected: $($installedSdk.Name)"
 
