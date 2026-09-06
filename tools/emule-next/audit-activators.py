@@ -2,8 +2,9 @@
 """Static safety audit for eMule Next activators.
 
 The audit protects repeated local builds: every helper must parse, top-level
-activation order must remain safe, materialized Dashboard 2.0 must supersede
-legacy Dashboard patchers, and Smart Scheduler hooks must preserve semantics.
+activation order must remain safe, Windows CRLF must be normalized before
+multiline patchers run, materialized Dashboard 2.0 must supersede legacy
+Dashboard patchers, and Smart Scheduler hooks must preserve semantics.
 """
 from __future__ import annotations
 
@@ -13,6 +14,7 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 HERE = pathlib.Path(__file__).resolve().parent
 ENTRY = HERE / "activate-features.py"
+NORMALIZER = HERE / "normalize-stage-newlines.py"
 
 REQUIRED_ORDER = (
     "activate-next-views.py",
@@ -97,6 +99,29 @@ def main() -> int:
             if ordered.index("verify-intelligence-goal-complete.py") > ordered.index("audit-activators.py"):
                 failures.append("intelligence completion gate must run before the activator audit")
 
+    # Windows Git checkouts often use CRLF. The central entrypoint must normalize
+    # the source overlay before any multiline activator executes; build-local.ps1
+    # performs the same step explicitly as defense in depth.
+    for marker in (
+        "def normalize_activation_sources()",
+        "normalize_activation_sources()",
+        'raw.replace(b"\\r\\n", b"\\n").replace(b"\\r", b"\\n")',
+        "ACTIVATION_TEXT_SUFFIXES",
+    ):
+        if marker not in source:
+            failures.append(f"activation newline preflight lost {marker}")
+    if not NORMALIZER.exists():
+        failures.append("normalize-stage-newlines.py missing")
+    else:
+        normalizer = read(NORMALIZER)
+        for marker in (
+            "def normalize_tree",
+            'raw.replace(b"\\r\\n", b"\\n").replace(b"\\r", b"\\n")',
+            "activation newline normalization incomplete",
+        ):
+            if marker not in normalizer:
+                failures.append(f"stage newline normalizer lost {marker}")
+
     scheduler_activator = read(HERE / "activate-smart-scheduler-runtime.py")
     expected_a4af = (
         "PreferA4AFCandidate(SwapTo, cur_file, "
@@ -104,6 +129,12 @@ def main() -> int:
     )
     if expected_a4af not in scheduler_activator:
         failures.append("A4AF hook no longer preserves legacy left/right candidate semantics")
+    for marker in (
+        '"EmuleNextSchedulerTelemetryReader.cpp"',
+        '"EmuleNextSchedulerTelemetryReader.h"',
+    ):
+        if marker not in scheduler_activator:
+            failures.append(f"Smart Scheduler project activation lost {marker}")
 
     stability = read(HERE / "activate-scheduler-action-stability.py")
     for marker in ("previousActionAt", "candidate.lastA4AFAt", "Preserve an active measurement window"):
@@ -117,6 +148,7 @@ def main() -> int:
         "scheduler_outcomes",
         "ResetFileIntelligence",
         "CEmuleNextSchedulerTelemetryReader",
+        "EmuleNextSchedulerTelemetryReader.cpp",
     ):
         if marker not in goal_gate:
             failures.append(f"intelligence completion gate lost {marker}")
