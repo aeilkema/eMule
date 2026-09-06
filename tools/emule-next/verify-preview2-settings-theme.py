@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-'''Final-state gate for complete Settings coverage and Messages dark theme.'''
+'''Final-state gate for complete Settings coverage and Preview 2 theme coverage.'''
 from __future__ import annotations
 
 import pathlib
@@ -18,10 +18,12 @@ def read(name: str) -> str:
 
 def main() -> int:
     prefs = read("PreferencesDlg.cpp")
+    main_cpp = read("EmuleDlg.cpp")
     settings_h = read("EmuleNextSettingsWnd.h")
     settings = read("EmuleNextSettingsWnd.cpp")
     chat_h = read("ChatWnd.h")
     chat = read("ChatWnd.cpp")
+    selector_h = read("ChatSelector.h")
     selector = read("ChatSelector.cpp")
 
     expected_members = [
@@ -56,23 +58,43 @@ def main() -> int:
     if "Open settings page..." not in settings or "original eMule preference page" not in settings:
         raise SystemExit("Preview2 Settings/theme verification: original-page UX missing")
 
+    # Every legacy workspace is re-themed when activated; Preferences gets the
+    # same recursive theme application after all original property pages exist.
+    for marker in (
+        "Preview 2: re-apply the active theme to every legacy workspace",
+        "CEmuleNextTheme::ApplyToWindow(dlg->m_hWnd);",
+    ):
+        if marker not in main_cpp:
+            raise SystemExit(f"Preview2 Settings/theme verification: legacy workspace routing missing {marker}")
+    for marker in (
+        "Preview 2 themes the complete original Preferences tree",
+        "CEmuleNextTheme::ApplyToWindow(m_hWnd);",
+    ):
+        if marker not in prefs:
+            raise SystemExit(f"Preview2 Settings/theme verification: Preferences theming missing {marker}")
+
     for marker in (
         "CBrush m_preview2ThemeBrush;",
         "void ApplyPreview2Theme();",
     ):
         if marker not in chat_h:
             raise SystemExit(f"Preview2 Settings/theme verification: Chat theme header missing {marker}")
+    if "void\t\tApplyPreview2Theme();" not in selector_h and "void ApplyPreview2Theme();" not in selector_h:
+        raise SystemExit("Preview2 Settings/theme verification: ChatSelector theme refresh API missing")
+
     for marker in (
         '#include "EmuleNextTheme.h"',
         "ApplyPreview2Theme();",
         "CEmuleNextModernUi::ApplyList(m_FriendListCtrl);",
         "CEmuleNextModernUi::SetExplorerTheme(chatselector.m_hWnd);",
+        "chatselector.ApplyPreview2Theme();",
         "CEmuleNextTheme::IsDarkMode()",
         "m_preview2ThemeBrush.GetSafeHandle()",
     ):
         if marker not in chat:
             raise SystemExit(f"Preview2 Settings/theme verification: Chat theme implementation missing {marker}")
     for marker in (
+        "void CChatSelector::ApplyPreview2Theme()",
         "SetDfltForegroundColor(CEmuleNextTheme::TextColor())",
         "SetDfltBackgroundColor(CEmuleNextTheme::SurfaceColor())",
         "SetBackgroundColor(FALSE, CEmuleNextTheme::SurfaceColor())",
@@ -80,7 +102,7 @@ def main() -> int:
         if marker not in selector:
             raise SystemExit(f"Preview2 Settings/theme verification: chat log dark surface missing {marker}")
 
-    print("eMule Next Preview 2 Settings completeness + Messages theme verification passed")
+    print("eMule Next Preview 2 Settings completeness + theme coverage verification passed")
     return 0
 
 
