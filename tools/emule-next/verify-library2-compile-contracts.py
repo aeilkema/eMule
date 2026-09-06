@@ -33,6 +33,7 @@ def main() -> int:
         require(header, marker, label)
 
     for marker, label in (
+        ('#include "emule.h"', "legacy core dependency"),
         ('#include "DownloadQueue.h"', "download queue dependency"),
         ('#include "ED2KLink.h"', "ED2K link dependency"),
         ('#include "KnownFile.h"', "legacy file-hash dependency"),
@@ -47,8 +48,12 @@ def main() -> int:
     ):
         require(cpp, marker, label)
 
+    if cpp.find('#include "emule.h"') > cpp.find('#include "DownloadQueue.h"'):
+        raise SystemExit("Library 2 compile verifier: emule.h must precede DownloadQueue.h because the legacy queue header depends on core hash declarations")
+
     require(queue_h, "void\tAddFileLinkToDownload(const CED2KFileLink &Link, int cat = 0);", "download queue link API")
     require(queue_h, "bool\tIsFileExisting(const uchar *fileid, bool bLogWarnings = true) const;", "download duplicate API")
+    require(queue_h, "char fileid[MDX_DIGEST_SIZE];", "legacy DownloadQueue hash-size dependency")
     require(known_h, "bool\tCreateFromFile(LPCTSTR directory, LPCTSTR filename, LPVOID pvProgressParam);", "known-file hash API")
 
     stale = (
