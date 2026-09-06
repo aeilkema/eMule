@@ -28,15 +28,6 @@ def save(path: pathlib.Path, text: str, newline: str) -> None:
     path.write_bytes(text.encode("latin-1"))
 
 
-def patch_create_name(path: pathlib.Path, class_name: str, old_call_tokens: tuple[str, ...]) -> None:
-    text, nl = load(path)
-    text = text.replace("bool Create(CWnd* parent);", "bool CreateView(CWnd* parent);")
-    text = text.replace(f"bool {class_name}::Create(CWnd* parent)", f"bool {class_name}::CreateView(CWnd* parent)")
-    for token in old_call_tokens:
-        text = text.replace(token, token.replace(".Create(", ".CreateView("))
-    save(path, text, nl)
-
-
 def patch_dashboard_create() -> None:
     h = SRC / "EmuleNextDashboardWnd.h"
     cpp = SRC / "EmuleNextDashboardWnd.cpp"
@@ -53,12 +44,19 @@ def patch_dashboard_create() -> None:
     save(h, ht, hn)
     save(cpp, ct, cn)
 
-    # Dashboard is hosted from TransferWnd/DownloadList activation materialization.
+    found = False
     for path in SRC.glob("*.cpp"):
         text, nl = load(path)
-        changed = text.replace("m_dashboardWnd.Create(", "m_dashboardWnd.CreateView(")
+        changed = text
+        for member in ("m_nextDashboard", "m_dashboardWnd"):
+            changed = changed.replace(f"{member}.Create(", f"{member}.CreateView(")
         if changed != text:
+            found = True
             save(path, changed, nl)
+    if not found:
+        # Idempotent reruns may already contain CreateView.
+        if not any("m_nextDashboard.CreateView(" in load(path)[0] for path in SRC.glob("*.cpp")):
+            raise SystemExit("Warning cleanup: Dashboard host Create call missing")
 
 
 def patch_download_intelligence_create() -> None:
@@ -77,12 +75,18 @@ def patch_download_intelligence_create() -> None:
     save(h, ht, hn)
     save(cpp, ct, cn)
 
+    found = False
     for path in SRC.glob("*.cpp"):
         text, nl = load(path)
-        changed = text.replace("m_downloadIntelligenceWnd.Create(", "m_downloadIntelligenceWnd.CreateView(")
-        changed = changed.replace("m_intelligenceWnd.Create(", "m_intelligenceWnd.CreateView(")
+        changed = text
+        for member in ("m_downloadIntelligenceWnd", "m_intelligenceWnd"):
+            changed = changed.replace(f"{member}.Create(", f"{member}.CreateView(")
         if changed != text:
+            found = True
             save(path, changed, nl)
+    if not found:
+        if not any("m_downloadIntelligenceWnd.CreateView(" in load(path)[0] for path in SRC.glob("*.cpp")):
+            raise SystemExit("Warning cleanup: Download Intelligence host Create call missing")
 
 
 def patch_kad_varargs() -> None:
@@ -100,9 +104,7 @@ def patch_kad_varargs() -> None:
     text, nl = load(kad)
     for name in ("uLength", "uBitrate", "uAvailability"):
         text = text.replace(f"(LPCTSTR){name}", name)
-    # The old pragma existed only to tolerate the integer-to-pointer transport.
-    start = text.find("#pragma warning(push)\n#pragma warning(disable:4312)\nvoid CSearch::ProcessResultKeyword")
-    if start >= 0:
+    if "#pragma warning(disable:4312)\nvoid CSearch::ProcessResultKeyword" in text:
         text = text.replace("#pragma warning(push)\n#pragma warning(disable:4312)\nvoid CSearch::ProcessResultKeyword", "void CSearch::ProcessResultKeyword", 1)
         text = text.replace("}\n#pragma warning(pop)\n\nvoid CSearch::SendFindValue", "}\n\nvoid CSearch::SendFindValue", 1)
     save(kad, text, nl)
