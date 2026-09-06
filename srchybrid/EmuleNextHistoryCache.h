@@ -35,6 +35,8 @@ public:
     size_t Size() const;
     uint64 Generation() const;
     bool PersistenceReady() const;
+    size_t PendingPersistenceWrites() const;
+    uint64 DroppedPersistenceWrites() const;
     void Clear();
 
 private:
@@ -63,4 +65,6 @@ private:
     CStringW m_databasePath;
     bool m_stopPersistence;
     bool m_persistenceReady;
+    bool m_persistenceStarting;
+    uint64 m_droppedPersistWrites;
 };
