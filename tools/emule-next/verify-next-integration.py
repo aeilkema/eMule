@@ -56,6 +56,27 @@ CHECKS = {
     "EmuleNextSmartScheduler.cpp": (
         "theEmuleNext.Database()",
     ),
+    "EmuleNextWinSqliteCompat.h": (
+        "#include <winsqlite3.h>",
+        "sqlite3_reset(sqlite3_stmt* statement)",
+        "sqlite3_clear_bindings(sqlite3_stmt* statement)",
+        "sqlite3_bind_double(sqlite3_stmt* statement, int index, double value)",
+        "sqlite3_column_double(sqlite3_stmt* statement, int column)",
+        "sqlite3_column_type(sqlite3_stmt* statement, int column)",
+        "#define SQLITE_NULL 5",
+    ),
+    "EmuleNextDatabase.cpp": (
+        '#include "EmuleNextWinSqliteCompat.h"',
+    ),
+    "EmuleNextHistoryCache.cpp": (
+        '#include "EmuleNextWinSqliteCompat.h"',
+    ),
+    "EmuleNextSchedulerTelemetry.cpp": (
+        '#include "EmuleNextWinSqliteCompat.h"',
+    ),
+    "EmuleNextSchedulerTelemetryReader.cpp": (
+        '#include "EmuleNextWinSqliteCompat.h"',
+    ),
     "emule.vcxproj": (
         "Condition=\"'$(Platform)'=='x64'\">WINVER=0x0A00;_WIN32_WINNT=0x0A00;NTDDI_VERSION=0x0A000001;%(PreprocessorDefinitions)",
         "Condition=\"'$(Platform)'=='Win32'\">XP_BUILD;%(PreprocessorDefinitions)",
@@ -69,6 +90,18 @@ FORBIDDEN = {
     ),
     "EmuleNextSmartScheduler.cpp": (
         "theEmuleNextRuntime.Database()",
+    ),
+    "EmuleNextDatabase.cpp": (
+        "#include <winsqlite3.h>",
+    ),
+    "EmuleNextHistoryCache.cpp": (
+        "#include <winsqlite3.h>",
+    ),
+    "EmuleNextSchedulerTelemetry.cpp": (
+        "#include <winsqlite3.h>",
+    ),
+    "EmuleNextSchedulerTelemetryReader.cpp": (
+        "#include <winsqlite3.h>",
     ),
     "emule.vcxproj": (
         "Condition=\"'$(Platform)'!='ARM64'\">XP_BUILD",
