@@ -83,6 +83,7 @@ for script_name in (
     "prepare-search-results.py",
     "activate-runtime-features.py",
     "activate-modern-windows-target.py",
+    "activate-winsqlite-compat.py",
     "finalize-peer-share-processing.py",
     "activate-theme.py",
     "activate-next-settings.py",
