@@ -4,8 +4,8 @@
 Some serviced Windows SDK 26100 installations expose only part of the
 winsqlite3.h declaration surface to this legacy MFC project even though the
 corresponding exports have been present in winsqlite3.dll since Windows 10
-1511.  Keep using the system DLL/import library and supply only the stable
-SQLite declarations that eMule Next needs but that those headers may omit.
+1511. Keep using the system DLL/import library and supply only the stable
+SQLite declarations/constants that eMule Next needs but those headers may omit.
 """
 from __future__ import annotations
 
@@ -27,9 +27,9 @@ HEADER_TEXT = r'''//this file is part of eMule Next
 //GPL v2 or later
 #pragma once
 
-// Windows provides WinSQLite in winsqlite3.dll.  Include the SDK header first
-// and then redeclare a small set of long-stable APIs which are absent from
-// some Windows SDK 26100 header/toolchain combinations used by this project.
+// Windows provides WinSQLite in winsqlite3.dll. Include the SDK header first
+// and then redeclare a small set of long-stable APIs/constants which are absent
+// from some Windows SDK 26100 header/toolchain combinations used by this project.
 #include <winsqlite3.h>
 
 #ifndef SQLITE_API
@@ -39,10 +39,13 @@ HEADER_TEXT = r'''//this file is part of eMule Next
 #define SQLITE_APICALL
 #endif
 
-// sqlite3_column_type() returns one of the five canonical SQLite storage class
-// values. SQLITE_NULL has been 5 for the complete SQLite 3 API lifetime.
+// Canonical SQLite constants which may be absent from older/narrow WinSQLite
+// declaration surfaces. These numeric values are part of SQLite's stable API.
 #ifndef SQLITE_NULL
 #define SQLITE_NULL 5
+#endif
+#ifndef SQLITE_CHECKPOINT_TRUNCATE
+#define SQLITE_CHECKPOINT_TRUNCATE 3
 #endif
 
 #ifdef __cplusplus
@@ -52,6 +55,7 @@ extern "C" {
 SQLITE_API int SQLITE_APICALL sqlite3_reset(sqlite3_stmt* statement);
 SQLITE_API int SQLITE_APICALL sqlite3_clear_bindings(sqlite3_stmt* statement);
 SQLITE_API int SQLITE_APICALL sqlite3_bind_double(sqlite3_stmt* statement, int index, double value);
+SQLITE_API int SQLITE_APICALL sqlite3_bind_text(sqlite3_stmt* statement, int index, const char* value, int bytes, void(*destructor)(void*));
 SQLITE_API double SQLITE_APICALL sqlite3_column_double(sqlite3_stmt* statement, int column);
 SQLITE_API int SQLITE_APICALL sqlite3_column_type(sqlite3_stmt* statement, int column);
 
@@ -99,15 +103,17 @@ def main() -> int:
         changed += 1
 
     # Fail here, before MSVC, if the generated shim ever loses the exact API
-    # contract that fixed the SDK-specific compile failure.
+    # contract needed by the supported Windows SDK variants.
     generated = HEADER.read_text(encoding="ascii")
     required = (
         "sqlite3_reset(sqlite3_stmt* statement)",
         "sqlite3_clear_bindings(sqlite3_stmt* statement)",
         "sqlite3_bind_double(sqlite3_stmt* statement, int index, double value)",
+        "sqlite3_bind_text(sqlite3_stmt* statement, int index, const char* value, int bytes, void(*destructor)(void*))",
         "sqlite3_column_double(sqlite3_stmt* statement, int column)",
         "sqlite3_column_type(sqlite3_stmt* statement, int column)",
         "#define SQLITE_NULL 5",
+        "#define SQLITE_CHECKPOINT_TRUNCATE 3",
     )
     missing = [marker for marker in required if marker not in generated]
     if missing:
