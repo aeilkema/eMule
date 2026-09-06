@@ -34,8 +34,11 @@ struct EmuleNextSchedulerRuntimeStatus
     bool a4af;
     bool rareParts;
     bool historyEnabled;
+    bool historyPersistenceReady;
     bool telemetryEnabled;
     uint32 trackedFiles;
+    uint32 historyFiles;
+    uint64 historyGeneration;
     uint64 decisions;
     uint64 appliedInterventions;
 
