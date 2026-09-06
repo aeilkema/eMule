@@ -46,6 +46,10 @@ def main() -> int:
         "CEmuleNextSchedulerTelemetryReader",
         "DASHBOARD_MAX_FILES = 1000",
         "m_lastRefreshDurationMs > 250 ? 6000 : 3000",
+        "case 7: compare = StallText(a.stall).CompareNoCase",
+        "case 11: compare = static_cast<int>(a.schedulerAction)",
+        "case 15:",
+        "samePersistedFile",
     ))
     print("Dashboard Intelligence 2.0 verification passed")
     return 0
