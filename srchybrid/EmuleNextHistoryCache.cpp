@@ -8,6 +8,7 @@
 #include <winsqlite3.h>
 #include <algorithm>
 #include <chrono>
+#include <utility>
 #include <vector>
 
 #ifdef min
