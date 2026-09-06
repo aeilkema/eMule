@@ -9,7 +9,6 @@ bulk Favorite/Download-Later actions without synchronous SQLite work.
 from __future__ import annotations
 
 import pathlib
-import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SRC = ROOT / "srchybrid"
@@ -85,6 +84,9 @@ def patch_header() -> None:
     text = text.replace(
         "    void SnapshotLiveResults(std::vector<EmuleNextUnifiedSearchResult>& rows) const;",
         "    void SnapshotLiveResults(const EmuleNextSearchRequest& request, std::vector<EmuleNextUnifiedSearchResult>& rows) const;")
+    text = text.replace(
+        "    afx_msg void OnSearch2ContextMenu(CWnd* wnd, CPoint point);",
+        "    afx_msg void OnContextMenu(CWnd* wnd, CPoint point);")
     if "CEdit m_maxSources;" not in text:
         anchor = "    CEdit m_minSources;"
         if anchor not in text:
@@ -100,8 +102,10 @@ def patch_header() -> None:
 
 def patch_cpp() -> None:
     text, enc = read(WND_CPP)
+    text = text.replace(
+        "void CSearch2Wnd::OnSearch2ContextMenu(CWnd* wnd, CPoint point)",
+        "void CSearch2Wnd::OnContextMenu(CWnd* wnd, CPoint point)")
 
-    # Background merge: all unified rows get one bounded rule pass on the worker.
     worker_anchor = '''                if (!merged)
                     result->rows.push_back(row);
             }
@@ -115,7 +119,6 @@ def patch_cpp() -> None:
         if (result->ok && !context->savedSearchName.IsEmpty()) {'''
     text = replace_once(text, worker_anchor, worker_new, "background unified rule filter")
 
-    # Max-peers UI.
     create_anchor = '''        || !m_sourcesLabel.Create(_T("Min peers"), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
         || !m_minSources.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_BORDER | ES_AUTOHSCROLL, empty, this, 0x7E74)
         || !m_savedMeta.Create'''
@@ -157,7 +160,6 @@ def patch_cpp() -> None:
     int seenSelection = 0;'''
     text = replace_once(text, apply_anchor, apply_new, "max peer saved filter")
 
-    # Pass the full request into the live snapshot and apply the same non-DB filters.
     text = text.replace("SnapshotLiveResults(context->liveRows);", "SnapshotLiveResults(context->request, context->liveRows);")
     sig_old = "void CSearch2Wnd::SnapshotLiveResults(std::vector<EmuleNextUnifiedSearchResult>& rows) const"
     sig_new = "void CSearch2Wnd::SnapshotLiveResults(const EmuleNextSearchRequest& request, std::vector<EmuleNextUnifiedSearchResult>& rows) const"
@@ -202,7 +204,6 @@ def patch_cpp() -> None:
         bool duplicate = false;'''
     text = replace_once(text, insertion_anchor, insertion_new, "live filter application")
 
-    # Context-menu bulk actions. Database favorite/download-later writes are queued/non-blocking.
     menu_anchor = '''    CMenu menu; menu.CreatePopupMenu();
     menu.AppendMenu(MF_STRING, 0x7E90, _T("Export selected"));
     menu.AppendMenu(MF_STRING, 0x7E91, _T("Export all results"));
@@ -229,7 +230,7 @@ def patch_cpp() -> None:
     text = replace_once(text, command_anchor, command_new, "bulk menu dispatch")
 
     if "void CSearch2Wnd::ApplyBulkAction(bool favorite)" not in text:
-        anchor = "void CSearch2Wnd::OnSearch2ContextMenu(CWnd* wnd, CPoint point)"
+        anchor = "void CSearch2Wnd::OnContextMenu(CWnd* wnd, CPoint point)"
         pos = text.find(anchor)
         if pos < 0:
             raise SystemExit("Search 2 hardening: context menu helper missing")
@@ -284,7 +285,7 @@ def main() -> int:
     patch_service()
     patch_header()
     patch_cpp()
-    print("Search 2 live-filter parity, unified rule filtering, max-peers UI and bounded bulk actions materialized")
+    print("Search 2 live-filter parity, unified rule filtering, max-peers UI, MFC context menu and bounded bulk actions materialized")
     return 0
 
 
