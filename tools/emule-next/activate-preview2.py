@@ -15,6 +15,7 @@ PREVIEW2_STEPS = (
     "activate-preview2-polish-library.py",
     "activate-preview2-polish-known-users.py",
     "activate-preview2-polish-dashboard.py",
+    "activate-preview2-dashboard-ux.py",
     "activate-preview2-polish-transfers.py",
     "activate-preview2-navigation.py",
     "activate-preview2-main-shell.py",
@@ -27,9 +28,6 @@ PREVIEW2_STEPS = (
 
 
 def main() -> int:
-    # Parse the complete late materialization chain before touching the source
-    # tree. This makes syntax failures deterministic and keeps partial Preview2
-    # activation out of the build overlay.
     for name in PREVIEW2_STEPS:
         path = HERE / name
         if not path.exists():
