@@ -20,6 +20,18 @@ def require(haystack: str, needle: str, label: str) -> None:
         raise SystemExit(f"Search 2 verifier: missing {label}: {needle}")
 
 
+def has_database_call(source: str) -> bool:
+    forbidden = (
+        "theEmuleNext.Database()",
+        "Database().",
+        "sqlite3_",
+        "winsqlite3",
+        "CSearch2Service service",
+        "CLibraryBrowserService",
+    )
+    return any(token in source for token in forbidden)
+
+
 def main() -> int:
     service_h = text("Search2Service.h")
     service_cpp = text("Search2Service.cpp")
@@ -97,7 +109,7 @@ def main() -> int:
     if snapshot_start < 0 or snapshot_end < 0:
         raise SystemExit("Search 2 verifier: snapshot body not found")
     snapshot = wnd_cpp[snapshot_start:snapshot_end]
-    if "Database()" in snapshot or "sqlite" in snapshot.lower():
+    if has_database_call(snapshot):
         raise SystemExit("Search 2 verifier: live snapshot performs database work on the UI thread")
 
     print("Search 2.0 completion gate passed")
