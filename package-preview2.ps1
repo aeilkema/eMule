@@ -10,6 +10,8 @@ $PreviewExe = Join-Path $Artifacts "eMule-Next-0.2.0-Preview2-x64.exe"
 $Stage = Join-Path $Artifacts "preview2-portable"
 $Zip = Join-Path $Artifacts "eMule-Next-0.2.0-Preview2-x64-portable.zip"
 $Manifest = Join-Path $Artifacts "eMule-Next-0.2.0-Preview2-SHA256.txt"
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+$Ascii = [System.Text.Encoding]::ASCII
 
 if (-not (Test-Path -LiteralPath $PreviewExe -PathType Leaf)) {
     throw "Preview 2 executable not found: $PreviewExe. Run .\build-local.ps1 first."
@@ -57,7 +59,7 @@ After exporting a Diagnostics report, create-support-bundle.ps1 can create a
 privacy-bounded ZIP containing only that report, build identity and public
 release/test documentation.
 "@
-Set-Content -LiteralPath (Join-Path $Stage "README-PREVIEW2.txt") -Value $readme -Encoding utf8
+[System.IO.File]::WriteAllText((Join-Path $Stage "README-PREVIEW2.txt"), $readme, $Utf8NoBom)
 
 if (Test-Path -LiteralPath $Zip) {
     Remove-Item -LiteralPath $Zip -Force
@@ -69,7 +71,7 @@ $lines = foreach ($file in $files) {
     $hash = Get-FileHash -LiteralPath $file -Algorithm SHA256
     "{0}  {1}" -f $hash.Hash.ToLowerInvariant(), (Split-Path -Leaf $file)
 }
-Set-Content -LiteralPath $Manifest -Value $lines -Encoding ascii
+[System.IO.File]::WriteAllLines($Manifest, [string[]]$lines, $Ascii)
 
 Write-Host "PORTABLE PACKAGE SUCCESS"
 Write-Host "ZIP: $Zip"
