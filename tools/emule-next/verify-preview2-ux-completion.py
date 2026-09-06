@@ -69,6 +69,11 @@ def main() -> int:
     ):
         require(search2_h if marker == "CButton m_networkSearch;" else search2_cpp, marker, label)
 
+    results_include = search2_cpp.find('#include "SearchResultsWnd.h"')
+    dialog_include = search2_cpp.find('#include "SearchDlg.h"')
+    if results_include < 0 or dialog_include < 0 or results_include > dialog_include:
+        raise SystemExit("Preview2 UX verification: Search bridge include order is not compile-safe")
+
     require(settings_h, "CButton m_classicPreferences;", "classic Preferences bridge control")
     require(settings_cpp, "Classic eMule settings...", "classic Preferences bridge label")
     require(settings_cpp, "OnClassicPreferencesClicked", "classic Preferences bridge handler")
