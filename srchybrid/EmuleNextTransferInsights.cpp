@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "EmuleNextTransferInsights.h"
 #include "UpDownClient.h"
+#include "ClientCredits.h"
 #include "PartFile.h"
 
 #include <algorithm>
