@@ -63,8 +63,10 @@ private:
     std::deque<PersistItem> m_persistQueue;
     std::thread m_persistThread;
     CStringW m_databasePath;
+    CStringW m_lastAttemptPath;
     bool m_stopPersistence;
     bool m_persistenceReady;
     bool m_persistenceStarting;
+    uint64 m_lastPersistenceAttempt;
     uint64 m_droppedPersistWrites;
 };
