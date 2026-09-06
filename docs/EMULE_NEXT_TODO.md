@@ -126,12 +126,9 @@ Dit bestand is de operationele werklijst voor eMule Next.
 - [~] `activate-preview2-search-ux.py` maakt Search 2 primair en bewaart legacy netwerksearch via een expliciete brug.
 - [~] `activate-preview2-header-status.py` toegevoegd zonder backendlogica te dupliceren.
 - [~] `activate-preview2-dashboard-ux.py` toegevoegd na bestaande Dashboard materialization; gebruikt alleen bestaande handlers/filters.
-- [~] `verify-preview2-ux-completion.py` controleert primaire routes, Search-bridge, live header, Dashboard progressive complexity, Settings/Diagnostics-scheiding en verbiedt backendlogica in shell.
+- [~] `verify-preview2-ux-completion.py` controleert primaire routes, Search-bridge, live header, Dashboard progressive complexity, Settings/Diagnostics-scheiding en verbiedt backendlogica uitsluitend binnen Preview2-eigen shellmethoden; bestaande legacy backendcalls elders in `EmuleDlg.cpp` zijn geen fout.
 - [~] Preview2 orchestrator voert UX-completion + Search UX + Dashboard UX + live-header + UX-gate als late productlaag uit.
 - [~] Release/support privacychecks zijn regelgebonden en vermijden brede multiline wildcard-false-positives.
-- [~] Activation-chain gate is context-aware: overlay-gates lezen alleen overlaybestanden; repo/releasefiles worden vóór activation-stage gecontroleerd.
-- [~] Activation-chain verificatie gebruikt Python AST-structuur in plaats van exacte variabelenamen/whitespace/source formatting.
-- [~] Repo-level release-preflight hergebruikt dezelfde structurele activation-chain gate en dupliceert die check niet met fragiele bronstrings.
 - [ ] Nieuwe head lokaal Release x64 bouwen.
 - [ ] Bij buildfout eerst volledige nieuwe Preview2-laag/gates als één foutgroep nalopen vóór nieuwe buildvraag.
 
@@ -213,5 +210,6 @@ Dit bestand is de operationele werklijst voor eMule Next.
 9. Verifiers controleren eindcontracten, geen toevallige pixelwaarden of fragiele tekstvolgorde.
 10. Overlay-verifiers mogen alleen bestanden eisen die daadwerkelijk naar activation-stage worden gekopieerd; repo-level files horen in repo-preflight.
 11. Python chain/order-verifiers gebruiken AST/structurele inspectie, niet exacte variabelenamen of whitespace/source-formatting.
-12. Packaging/installer bezit of verwijdert geen user config, intelligence DB, peer history of incomplete downloads.
-13. Iedere door gebruiker bevestigde build/runtimebevinding wordt meteen hier als bewezen basis vastgelegd.
+12. In gedeelde legacy translation units (zoals `EmuleDlg.cpp`) mogen Preview2-gates alleen Preview2-eigen functies/regions controleren; whole-file forbidden-token scans geven false positives op bestaande autoritatieve corelogica.
+13. Packaging/installer bezit of verwijdert geen user config, intelligence DB, peer history of incomplete downloads.
+14. Iedere door gebruiker bevestigde build/runtimebevinding wordt meteen hier als bewezen basis vastgelegd.
