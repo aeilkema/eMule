@@ -48,9 +48,18 @@ def main() -> int:
     require(library, '#include "EmuleNextUiMetrics.h"', "Library metrics include")
     require(library, "const int controlsTop = CEmuleNextUiMetrics::Scale", "Library scaled layout")
     require(library, "CEmuleNextUiMetrics::Scale(m_hWnd, 340)", "Library scaled columns")
+
+    # Known Users 2.0 owns its DPI-aware geometry directly instead of relying
+    # on the legacy activate-next-view-dpi.py constants (190/84/105 etc.).
+    # Verify the actual 2.0 contract so the old verifier cannot reject a newer
+    # layout merely because a column width was intentionally changed.
     require(known, '#include "EmuleNextUiMetrics.h"', "Known Users metrics include")
-    require(known, "const int refreshWidth = CEmuleNextUiMetrics::Scale", "Known Users scaled layout")
-    require(known, "CEmuleNextUiMetrics::Scale(m_hWnd, 190)", "Known Users scaled columns")
+    require(known, "const int margin = CEmuleNextUiMetrics::Scale(m_hWnd, 8);", "Known Users 2.0 scaled margin")
+    require(known, "const int modesWidth = CEmuleNextUiMetrics::Scale(m_hWnd, 330);", "Known Users 2.0 scaled mode tabs")
+    require(known, "const int searchWidth = CEmuleNextUiMetrics::Scale(m_hWnd, 200);", "Known Users 2.0 scaled search field")
+    require(known, "m_users.InsertColumn(0, _T(\"User\"), LVCFMT_LEFT, CEmuleNextUiMetrics::Scale(m_hWnd, 170));", "Known Users 2.0 scaled user columns")
+    require(known, "m_files.InsertColumn(0, _T(\"File\"), LVCFMT_LEFT, CEmuleNextUiMetrics::Scale(m_hWnd, 300));", "Known Users 2.0 scaled file columns")
+    require(known, "const int usersHeight = max(CEmuleNextUiMetrics::Scale(m_hWnd, 120)", "Known Users 2.0 scaled minimum list height")
 
     print("eMule Next DPI-aware UI metrics verification passed")
     return 0
