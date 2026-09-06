@@ -28,6 +28,12 @@ if ($LASTEXITCODE -ne 0) {
     throw "Feature activation failed."
 }
 
+Write-Host "Verifying activation idempotence..."
+python .\tools\emule-next\verify-activation-idempotence.py
+if ($LASTEXITCODE -ne 0) {
+    throw "Feature activation is not idempotent. See the changed overlay files above."
+}
+
 $SourceDir = Join-Path $RepoRoot "build\upstream-v0.72a\eMule0.72a-Sources\srchybrid"
 
 if ($RebuildDependencies -or -not (Test-Path "$SourceDir\emule.vcxproj")) {
@@ -52,7 +58,7 @@ if ($RebuildDependencies -or -not (Test-Path "$SourceDir\emule.vcxproj")) {
     }
 }
 
-# Apply the current repository overlay to the generated source tree.
+# Apply the fully activated, verified repository overlay to the generated source tree.
 Get-ChildItem .\srchybrid -Force | ForEach-Object {
     Copy-Item $_.FullName -Destination $SourceDir -Recurse -Force
 }
