@@ -22,6 +22,7 @@ PREVIEW2_STEPS = (
     "activate-preview2-main-shell.py",
     "activate-preview2-ux-completion.py",
     "activate-preview2-settings-complete.py",
+    "activate-preview2-settings-complete-hardening.py",
     "activate-preview2-search-ux.py",
     "activate-preview2-header-status.py",
     "activate-preview2-legacy-theme-routing.py",
