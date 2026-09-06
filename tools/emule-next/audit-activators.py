@@ -6,9 +6,6 @@ activation order must remain safe, Windows CRLF must be normalized before
 multiline patchers run, Dashboard 2.0 host integration must remain active while
 obsolete render patchers are skipped, precursor activators must recognize their
 final superseding state, and Smart Scheduler hooks must preserve semantics.
-
-Verifier scripts are read-only by design. Cross-file coupling checks therefore
-inspect only helpers which can actually mutate/materialize source.
 """
 from __future__ import annotations
 
@@ -36,6 +33,8 @@ REQUIRED_ORDER = (
     "activate-dashboard.py",
     "activate-dashboard-navigation.py",
     "activate-dashboard-host-hardening.py",
+    "activate-file-intelligence-columns.py",
+    "verify-file-intelligence-transition.py",
     "activate-smart-scheduler-runtime.py",
     "activate-scheduler-action-stability.py",
     "activate-scheduler-schema-v2.py",
@@ -175,21 +174,46 @@ def main() -> int:
             if marker not in normalizer:
                 failures.append(f"stage newline normalizer lost {marker}")
 
-    # activate-file-intelligence-columns.py creates the intermediate 16..18
-    # file-intelligence form. activate-transfer-insights-2.py later replaces it
-    # with the canonical 16..22 shared implementation and removes the duplicate
-    # BuildNextFileSignals helper. The precursor must explicitly recognize that
-    # final state so a second activation pass is a strict no-op.
+    # The 16..18 precursor and 16..22 consumer form an explicit contract. Raw
+    # Python strings must not be used for C++ snippets containing \t/\" escapes,
+    # otherwise literal escape characters leak into DownloadListCtrl.cpp.
     file_intelligence = read(HERE / "activate-file-intelligence-columns.py")
     for marker in (
         "def final_shared_intelligence2",
         "legacy file intelligence superseded by shared Transfers Intelligence 2.0; skipping",
         'InsertColumn(22,\\t_T("Scheduler")',
         "nColumn >= 16 && nColumn <= 22",
-        "EmuleNextFileSignals BuildNextFileSignals(",
+        "File intelligence materialized escaped Python text",
     ):
         if marker not in file_intelligence:
-            failures.append(f"file-intelligence precursor idempotence lost {marker}")
+            failures.append(f"file-intelligence precursor contract lost {marker}")
+    if "helpers = r'''" in file_intelligence or 'helpers = r"""' in file_intelligence:
+        failures.append("file-intelligence precursor uses a raw C++ helper string")
+
+    transfer2 = read(HERE / "activate-transfer-insights-2.py")
+    for marker in (
+        "precursor contract missing",
+        "escaped Python text remains in C++",
+        "function_pattern.sub(lambda _:",
+        "final contract missing",
+    ):
+        if marker not in transfer2:
+            failures.append(f"Transfers Intelligence 2 transition contract lost {marker}")
+    if "replacement = r'''" in transfer2 or 'replacement = r"""' in transfer2:
+        failures.append("Transfers Intelligence 2 uses a raw regex replacement for C++")
+
+    transition_verifier = HERE / "verify-file-intelligence-transition.py"
+    if not transition_verifier.exists():
+        failures.append("Transfers intelligence transition verifier missing")
+    else:
+        transition = read(transition_verifier)
+        for marker in (
+            "precursor contract passed",
+            "shared Intelligence 2.0 already satisfies transition contract",
+            "escaped Python text leaked into C++",
+        ):
+            if marker not in transition:
+                failures.append(f"Transfers transition verifier lost {marker}")
 
     scheduler_activator = read(HERE / "activate-smart-scheduler-runtime.py")
     expected_a4af = (
