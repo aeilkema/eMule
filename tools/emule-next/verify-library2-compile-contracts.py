@@ -23,6 +23,8 @@ def require(source: str, marker: str, label: str) -> None:
 def main() -> int:
     header = read("FileLibraryWnd.h")
     cpp = read("FileLibraryWnd.cpp")
+    runtime_h = read("EmuleNextRuntime.h")
+    download_cpp = read("DownloadQueue.cpp")
     queue_h = read("DownloadQueue.h")
     known_h = read("KnownFile.h")
 
@@ -33,28 +35,40 @@ def main() -> int:
         require(header, marker, label)
 
     for marker, label in (
-        ('#include "emule.h"', "legacy core dependency"),
-        ('#include "DownloadQueue.h"', "download queue dependency"),
-        ('#include "ED2KLink.h"', "ED2K link dependency"),
         ('#include "KnownFile.h"', "legacy file-hash dependency"),
         ("#include <afxdlgs.h>", "MFC file-dialog dependency"),
         ("int CFileLibraryWnd::SelectedIndex()", "selected-index implementation"),
         ("std::vector<size_t> CFileLibraryWnd::SelectedIndices(size_t limit)", "selection implementation"),
-        ("CED2KFileLink link(name, size, hash, params, NULL);", "ED2K file-link construction"),
-        ("theApp.downloadqueue->AddFileLinkToDownload(link);", "legacy download queue call"),
-        ("theApp.downloadqueue->IsFileExisting(row.fileHash.bytes.data(), false)", "existing-download guard"),
+        ("theEmuleNext.IsDownloadQueued(row.fileHash.bytes.data())", "download duplicate bridge call"),
+        ("theEmuleNext.AddLibraryDownload(name, row.fileSize, hash)", "legacy download bridge call"),
         ("CKnownFile candidate;", "relink hash object"),
         ("candidate.CreateFromFile(directory, name, NULL)", "legacy file hash call"),
     ):
         require(cpp, marker, label)
 
-    if cpp.find('#include "emule.h"') > cpp.find('#include "DownloadQueue.h"'):
-        raise SystemExit("Library 2 compile verifier: emule.h must precede DownloadQueue.h because the legacy queue header depends on core hash declarations")
+    for marker, label in (
+        ("bool IsDownloadQueued(const unsigned char* fileHash) const;", "runtime duplicate-check bridge declaration"),
+        ("bool AddLibraryDownload(LPCTSTR fileName, uint64 fileSize, LPCTSTR ed2kHash);", "runtime add-download bridge declaration"),
+    ):
+        require(runtime_h, marker, label)
+
+    for marker, label in (
+        ("bool CEmuleNextRuntime::IsDownloadQueued(const unsigned char* fileHash) const", "duplicate bridge implementation"),
+        ("bool CEmuleNextRuntime::AddLibraryDownload(LPCTSTR fileName, uint64 fileSize, LPCTSTR ed2kHash)", "download bridge implementation"),
+        ("CED2KFileLink link(fileName, size, ed2kHash, params, NULL);", "legacy link construction in valid legacy TU"),
+        ("theApp.downloadqueue->AddFileLinkToDownload(link);", "legacy download queue call in valid legacy TU"),
+        ("theApp.downloadqueue->IsFileExisting(link.GetHashKey(), false)", "post-add duplicate verification"),
+    ):
+        require(download_cpp, marker, label)
 
     require(queue_h, "void\tAddFileLinkToDownload(const CED2KFileLink &Link, int cat = 0);", "download queue link API")
     require(queue_h, "bool\tIsFileExisting(const uchar *fileid, bool bLogWarnings = true) const;", "download duplicate API")
-    require(queue_h, "char fileid[MDX_DIGEST_SIZE];", "legacy DownloadQueue hash-size dependency")
     require(known_h, "bool\tCreateFromFile(LPCTSTR directory, LPCTSTR filename, LPVOID pvProgressParam);", "known-file hash API")
+
+    if '#include "DownloadQueue.h"' in cpp or '#include "ED2KLink.h"' in cpp:
+        raise SystemExit("Library 2 compile verifier: Library UI directly includes legacy download headers")
+    if "theApp.downloadqueue->" in cpp:
+        raise SystemExit("Library 2 compile verifier: Library UI directly accesses downloadqueue")
 
     stale = (
         "SelectedIndex() const",
