@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
     [switch]$RebuildDependencies,
-    [switch]$KeepActivationStage
+    [switch]$KeepActivationStage,
+    [switch]$ActivationOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,7 +18,7 @@ $StageRoot = Join-Path $RepoRoot "build\activation-stage"
 $StageSource = Join-Path $StageRoot "srchybrid"
 $StageTools = Join-Path $StageRoot "tools\emule-next"
 
-if (-not (Test-Path $MSBuild)) {
+if (-not $ActivationOnly -and -not (Test-Path $MSBuild)) {
     throw "Visual Studio 2026 Build Tools MSBuild niet gevonden: $MSBuild"
 }
 
@@ -73,6 +74,18 @@ Write-Host "Verifying activation idempotence in staging..."
 python (Join-Path $StageTools "verify-activation-idempotence.py")
 if ($LASTEXITCODE -ne 0) {
     throw "Feature activation is not idempotent. Inspect the staging overlay at $StageRoot"
+}
+
+if ($ActivationOnly) {
+    Write-Host ""
+    Write-Host "ACTIVATION SUCCESS"
+    Write-Host "Integration, feature activation, all verifiers and second-pass idempotence succeeded."
+    Write-Host "Stage: $StageRoot"
+    Write-Host "Repository overlay was not modified by integration/activation."
+    if (-not $KeepActivationStage -and (Test-Path -LiteralPath $StageRoot)) {
+        Remove-Item -LiteralPath $StageRoot -Recurse -Force
+    }
+    return
 }
 
 $SourceDir = Join-Path $RepoRoot "build\upstream-v0.72a\eMule0.72a-Sources\srchybrid"
