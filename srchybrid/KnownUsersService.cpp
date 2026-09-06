@@ -10,7 +10,6 @@ namespace
 {
     const int kMaximumKnownUsers = 2000;
     const int kMaximumKnownFilesPerUser = 2000;
-    const sqlite3_int64 kRecentSeconds = 7 * 24 * 60 * 60;
 
     CStringW ColumnText(sqlite3_stmt* statement, int column)
     {
@@ -64,7 +63,7 @@ CKnownUsersService::CKnownUsersService(const CStringW& databasePath)
 {
 }
 
-bool CKnownUsersService::ListUsers(EmuleNextKnownUsersQuery query,
+bool CKnownUsersService::ListUsers(const EmuleNextKnownUsersQuery& query,
     std::vector<EmuleNextKnownUserRecord>& users) const
 {
     users.clear();
@@ -94,15 +93,28 @@ bool CKnownUsersService::ListUsers(EmuleNextKnownUsersQuery query,
         " SELECT pe2.id FROM peer_endpoints pe2 WHERE pe2.peer_id=p.id"
         " ORDER BY pe2.last_seen DESC,pe2.id DESC LIMIT 1) "
         "WHERE (?1=0 OR (?1=1 AND COALESCE(pm.favorite,0)<>0)"
-        " OR (?1=2 AND p.last_seen>=CAST(strftime('%s','now') AS INTEGER)-?2)) "
-        "ORDER BY p.last_seen DESC,p.id DESC LIMIT ?3";
+        " OR (?1=2 AND p.last_seen>=?2)) "
+        "AND (?3='' OR COALESCE(pm.alias,'') LIKE ?4 COLLATE NOCASE"
+        " OR COALESCE(p.username,'') LIKE ?4 COLLATE NOCASE"
+        " OR COALESCE(p.client_software,'') LIKE ?4 COLLATE NOCASE"
+        " OR COALESCE(p.client_version,'') LIKE ?4 COLLATE NOCASE) "
+        "ORDER BY p.last_seen DESC,p.id DESC LIMIT ?5";
 
     sqlite3_stmt* statement = NULL;
     bool ok = sqlite3_prepare_v2(database, sql, -1, &statement, NULL) == SQLITE_OK;
     if (ok) {
-        sqlite3_bind_int(statement, 1, static_cast<int>(query));
-        sqlite3_bind_int64(statement, 2, kRecentSeconds);
-        sqlite3_bind_int(statement, 3, kMaximumKnownUsers);
+        const CStringW search = query.text;
+        CStringW pattern;
+        if (!search.IsEmpty()) {
+            pattern = L"%";
+            pattern += search;
+            pattern += L"%";
+        }
+        sqlite3_bind_int(statement, 1, static_cast<int>(query.mode));
+        sqlite3_bind_int64(statement, 2, static_cast<sqlite3_int64>(query.recentSince));
+        sqlite3_bind_text16(statement, 3, search.GetString(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_text16(statement, 4, pattern.GetString(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(statement, 5, kMaximumKnownUsers);
         while (sqlite3_step(statement) == SQLITE_ROW) {
             EmuleNextKnownUserRecord item;
             item.userHash = ColumnHash(statement, 0);
