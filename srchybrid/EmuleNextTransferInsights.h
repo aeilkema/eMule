@@ -17,6 +17,13 @@ struct EmuleNextTransferInsight
     uint32 health;
     uint32 attention;
     uint32 bestSourceQuality;
+    uint32 averageSourceQuality;
+    uint32 sampledSources;
+    uint32 strongSources;
+    uint32 normalSources;
+    uint32 weakSources;
+    uint32 failedSources;
+    uint32 transferringSources;
     uint64 bytesRemaining;
 
     EmuleNextTransferInsight();
