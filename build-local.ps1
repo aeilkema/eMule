@@ -1,9 +1,11 @@
 ﻿[CmdletBinding()]
 param(
-    [switch]$RebuildDependencies
+    [switch]$RebuildDependencies,
+    [switch]$KeepActivationStage
 )
 
 $ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
 
 $RepoRoot = $PSScriptRoot
 Set-Location $RepoRoot
@@ -11,27 +13,47 @@ Set-Location $RepoRoot
 $MSBuild = "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
 $PreviewExeName = "eMule-Next-0.1.0-Preview1-x64.exe"
 $LatestExeName = "eMule-Next-x64.exe"
+$StageRoot = Join-Path $RepoRoot "build\activation-stage"
+$StageSource = Join-Path $StageRoot "srchybrid"
+$StageTools = Join-Path $StageRoot "tools\emule-next"
 
 if (-not (Test-Path $MSBuild)) {
     throw "Visual Studio 2026 Build Tools MSBuild niet gevonden: $MSBuild"
 }
 
-Write-Host "Applying eMule Next integration..."
-python .\tools\emule-next\integrate.py
-if ($LASTEXITCODE -ne 0) {
-    throw "Integration failed."
+# Feature activators deliberately edit their overlay. Run them on an isolated
+# copy so a build can never dirty C:\Projects\eMule\srchybrid. The activated,
+# verified staging overlay is copied over the generated upstream tree later.
+if (Test-Path -LiteralPath $StageRoot) {
+    Remove-Item -LiteralPath $StageRoot -Recurse -Force
+}
+New-Item -ItemType Directory -Force -Path $StageSource | Out-Null
+New-Item -ItemType Directory -Force -Path $StageTools | Out-Null
+
+Write-Host "Preparing isolated eMule Next activation overlay..."
+Get-ChildItem -LiteralPath (Join-Path $RepoRoot "srchybrid") -Force | ForEach-Object {
+    Copy-Item -LiteralPath $_.FullName -Destination $StageSource -Recurse -Force
+}
+Get-ChildItem -LiteralPath (Join-Path $RepoRoot "tools\emule-next") -Force | ForEach-Object {
+    Copy-Item -LiteralPath $_.FullName -Destination $StageTools -Recurse -Force
 }
 
-Write-Host "Activating eMule Next runtime features..."
-python .\tools\emule-next\activate-features.py
+Write-Host "Applying eMule Next integration in staging..."
+python (Join-Path $StageTools "integrate.py")
 if ($LASTEXITCODE -ne 0) {
-    throw "Feature activation failed."
+    throw "Integration failed in isolated staging overlay: $StageRoot"
 }
 
-Write-Host "Verifying activation idempotence..."
-python .\tools\emule-next\verify-activation-idempotence.py
+Write-Host "Activating eMule Next runtime features in staging..."
+python (Join-Path $StageTools "activate-features.py")
 if ($LASTEXITCODE -ne 0) {
-    throw "Feature activation is not idempotent. See the changed overlay files above."
+    throw "Feature activation failed in isolated staging overlay: $StageRoot"
+}
+
+Write-Host "Verifying activation idempotence in staging..."
+python (Join-Path $StageTools "verify-activation-idempotence.py")
+if ($LASTEXITCODE -ne 0) {
+    throw "Feature activation is not idempotent. Inspect the staging overlay at $StageRoot"
 }
 
 $SourceDir = Join-Path $RepoRoot "build\upstream-v0.72a\eMule0.72a-Sources\srchybrid"
@@ -58,9 +80,13 @@ if ($RebuildDependencies -or -not (Test-Path "$SourceDir\emule.vcxproj")) {
     }
 }
 
-# Apply the fully activated, verified repository overlay to the generated source tree.
-Get-ChildItem .\srchybrid -Force | ForEach-Object {
-    Copy-Item $_.FullName -Destination $SourceDir -Recurse -Force
+if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) {
+    throw "Generated eMule source directory not found: $SourceDir"
+}
+
+# Apply only the fully activated and second-pass-verified staging overlay.
+Get-ChildItem -LiteralPath $StageSource -Force | ForEach-Object {
+    Copy-Item -LiteralPath $_.FullName -Destination $SourceDir -Recurse -Force
 }
 
 Write-Host "Building eMule Next Preview 1 x64..."
@@ -77,7 +103,7 @@ Write-Host "Building eMule Next Preview 1 x64..."
     /verbosity:minimal
 
 if ($LASTEXITCODE -ne 0) {
-    throw "eMule build failed."
+    throw "eMule build failed. Activated staging overlay kept at $StageRoot for diagnosis."
 }
 
 $Exe = Join-Path $SourceDir "x64\Release\emule.exe"
@@ -96,7 +122,12 @@ Copy-Item $Exe $LatestExe -Force
 
 Get-FileHash $PreviewExe -Algorithm SHA256
 
+if (-not $KeepActivationStage -and (Test-Path -LiteralPath $StageRoot)) {
+    Remove-Item -LiteralPath $StageRoot -Recurse -Force
+}
+
 Write-Host ""
 Write-Host "SUCCESS"
 Write-Host "Preview: $PreviewExe"
 Write-Host "Latest alias: $LatestExe"
+Write-Host "Repository overlay was not modified by integration/activation."
