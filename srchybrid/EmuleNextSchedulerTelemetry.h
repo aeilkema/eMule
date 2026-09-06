@@ -4,6 +4,7 @@
 #pragma once
 
 #include "DownloadIntelligence.h"
+#include <array>
 #include <condition_variable>
 #include <deque>
 #include <mutex>
@@ -12,6 +13,8 @@
 struct EmuleNextSchedulerEvent
 {
     uint64 timestamp;
+    std::array<unsigned char, 16> fileHash;
+    bool fileHashValid;
     CString fileName;
     EmuleNextSchedulingMode mode;
     EmuleNextSchedulingAction action;
@@ -54,7 +57,7 @@ public:
     size_t PendingPersistenceEvents() const;
     uint64 DroppedPersistenceEvents() const;
     void Record(const EmuleNextSchedulerEvent& event);
-    void MarkAppliedIntervention(const CString& fileName);
+    void MarkAppliedIntervention(const unsigned char* fileHash, const CString& fileName);
     void Snapshot(std::deque<EmuleNextSchedulerEvent>& events) const;
     void Summary(EmuleNextSchedulerTelemetrySummary& summary) const;
     void Clear();
@@ -62,8 +65,17 @@ public:
     uint64 DecisionCount() const;
 
 private:
+    struct AppliedPersistItem
+    {
+        std::array<unsigned char, 16> fileHash;
+        bool fileHashValid;
+        CString fileName;
+        AppliedPersistItem();
+    };
+
+    static bool CopyHash(const unsigned char* source, std::array<unsigned char, 16>& destination);
     void QueuePersist(const EmuleNextSchedulerEvent& event);
-    void QueueAppliedPersist(const CString& fileName);
+    void QueueAppliedPersist(const unsigned char* fileHash, const CString& fileName);
     void StopPersistence();
     void PersistenceMain();
 
@@ -80,7 +92,7 @@ private:
     mutable std::mutex m_persistMutex;
     std::condition_variable m_persistCondition;
     std::deque<EmuleNextSchedulerEvent> m_persistQueue;
-    std::deque<CString> m_persistAppliedQueue;
+    std::deque<AppliedPersistItem> m_persistAppliedQueue;
     std::thread m_persistThread;
     CStringW m_databasePath;
     CStringW m_lastAttemptPath;
