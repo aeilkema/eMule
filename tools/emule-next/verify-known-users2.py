@@ -67,15 +67,20 @@ def main() -> int:
     search_h = read("SearchList.h")
 
     require(service_h, (
+        "enum EmuleNextKnownUsersQueryMode", "struct EmuleNextKnownUsersQuery",
+        "EmuleNextKnownUsersQueryMode mode;", "CStringW text;", "uint64 recentSince;",
         "ENKUQ_FAVORITES", "ENKUQ_RECENT", "CStringW alias", "clientSoftware",
         "endpointIp", "endpointTcpPort", "lastVerified", "DeletePeerHistory",
+        "ListUsers(const EmuleNextKnownUsersQuery& query",
     ), "query model", failures)
     require(service, (
         "kMaximumKnownUsers = 2000", "kMaximumKnownFilesPerUser = 2000",
         "PRAGMA query_only=ON", "peer_metadata", "peer_endpoints pe ON pe.id=(",
-        "GROUP BY d.peer_id", "LIMIT ?3", "LIMIT ?2", "BEGIN IMMEDIATE",
+        "GROUP BY d.peer_id", "LIMIT ?5", "LIMIT ?2", "BEGIN IMMEDIATE",
         "DELETE FROM peers WHERE user_hash=?1", "PRAGMA foreign_keys=ON",
         '#include "EmuleNextWinSqliteCompat.h"',
+        "static_cast<int>(query.mode)", "query.recentSince", "const CStringW search = query.text",
+        "sqlite3_bind_text16(statement, 3", "sqlite3_bind_text16(statement, 4",
     ), "bounded persistence/query service", failures)
 
     require(wnd_h, (
@@ -93,6 +98,7 @@ def main() -> int:
         "QueuePeerShareRefresh", "DeleteHistoryWorker", "AfxBeginThread(DeleteHistoryWorker",
         "SetPeerFavorite", "SetPeerAlias", "file.lastSeen + 5 >= state.lastCompleted",
         "FindClientByUserHash(user.userHash.bytes.data())", "EmuleNextUiMetrics::Scale",
+        "context->query.mode", "context->query.text", "context->query.recentSince",
         "void CKnownUsersWnd::SaveViewState()\n",
         'if (seconds >= 3600) value.Format(_T("%I64uh %02I64um"), seconds / 3600, (seconds % 3600) / 60);',
         'else if (seconds >= 60) value.Format(_T("%I64um %02I64us"), seconds / 60, seconds % 60);',
