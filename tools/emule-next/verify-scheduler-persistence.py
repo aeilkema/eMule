@@ -29,7 +29,10 @@ def main() -> int:
     require(scheduler, "m_history.SetDatabasePath(database.GetDatabasePath());", "history database wiring")
     require(scheduler, "m_telemetry.SetDatabasePath(database.GetDatabasePath());", "telemetry database wiring")
     require(scheduler, "m_history.PendingPersistenceWrites()", "history runtime queue diagnostics")
+    require(scheduler, "m_history.DroppedPersistenceWrites()", "history runtime drop diagnostics")
     require(scheduler, "m_telemetry.Summary(telemetry)", "telemetry runtime diagnostics")
+    require(scheduler, "MarkApplied(file->GetFileHash(), file->GetFileName())", "rare-part applied identity")
+    require(scheduler, "MarkApplied(candidateFile->GetFileHash(), candidateFile->GetFileName())", "A4AF applied identity")
 
     require(history, "void CEmuleNextHistoryCache::PersistenceMain()", "history worker")
     require(history, "CREATE TABLE IF NOT EXISTS scheduler_file_history", "scheduler history schema")
@@ -37,6 +40,9 @@ def main() -> int:
     require(history, "DroppedPersistenceWrites", "history drop diagnostics")
     require(telemetry, "void CEmuleNextSchedulerTelemetry::PersistenceMain()", "telemetry worker")
     require(telemetry, "CREATE TABLE IF NOT EXISTS scheduler_decisions", "scheduler_decisions schema")
+    require(telemetry, "m_persistAppliedQueue", "delayed applied-state queue")
+    require(telemetry, "QueueAppliedPersist(fileName)", "delayed applied persistence enqueue")
+    require(telemetry, "UPDATE scheduler_decisions SET applied=1", "durable applied-state update")
     require(telemetry, "m_lastPersistenceAttempt", "telemetry retry backoff")
     require(telemetry, "pendingPersistenceEvents", "telemetry persistence diagnostics")
 
@@ -45,11 +51,14 @@ def main() -> int:
         if token in scheduler:
             raise SystemExit(f"Scheduler persistence: hot-path SQL token found in EmuleNextSmartScheduler.cpp: {token}")
 
+    if "m_persistQueue.size() >= 8192" not in history:
+        raise SystemExit("Scheduler persistence: history queue is not explicitly bounded")
+    if "m_persistQueue.size() + m_persistAppliedQueue.size() >= 8192" not in telemetry:
+        raise SystemExit("Scheduler persistence: combined telemetry queues are not explicitly bounded")
+
     for label, worker in (("history", history), ("telemetry", telemetry)):
         if "BEGIN IMMEDIATE" not in worker or "ROLLBACK" not in worker or "COMMIT" not in worker:
             raise SystemExit(f"Scheduler persistence: {label} transaction handling incomplete")
-        if "m_persistQueue.size() >= 8192" not in worker:
-            raise SystemExit(f"Scheduler persistence: {label} queue is not explicitly bounded")
         if "now - m_lastPersistenceAttempt < 30" not in worker:
             raise SystemExit(f"Scheduler persistence: {label} retry backoff is missing")
 
