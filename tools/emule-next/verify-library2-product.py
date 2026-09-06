@@ -51,6 +51,7 @@ def main() -> int:
         ("bool availableAgain", "available-again state"),
         ("uint64 lastVerified", "verification timestamp"),
         ("uint64 missingSince", "missing timestamp"),
+        ("uint64 completedAt", "completion timestamp for rediscovery matching"),
     ):
         require(svc_h, marker, label)
 
@@ -61,7 +62,10 @@ def main() -> int:
         ("GetFileAttributesW", "background filesystem verification"),
         ("COUNT(DISTINCT pf.peer_id)", "hash-linked peer availability"),
         ("pf.last_seen>=?1", "recent availability window"),
-        ("row.availableAgain = row.completed && row.missing && row.recentPeerCount != 0", "available-again derivation"),
+        ("COALESCE(le.completed_at,0)", "completion timestamp query"),
+        ("row.completed = row.completedAt != 0", "completion timestamp decode"),
+        ("row.lastSeen > row.completedAt + 60", "Search/history rediscovery availability"),
+        ("row.recentPeerCount != 0", "known-peer rediscovery availability"),
     ):
         require(svc_cpp, marker, label)
 
