@@ -71,7 +71,7 @@ def main() -> int:
 
     for marker, label in (
         ("EMULENEXT_LIBRARY2_PRODUCT", "Library 2 product marker"),
-        ("std::vector<size_t> SelectedIndices(size_t limit = 2000) const", "bounded multi-selection contract"),
+        ("std::vector<size_t> SelectedIndices(size_t limit = 2000);", "bounded multi-selection contract"),
         ("OnDownloadAgainClicked", "Download again action"),
         ("OnRelinkClicked", "relink action"),
         ("OnColumnClick", "column sorting"),
@@ -89,7 +89,7 @@ def main() -> int:
         ("WriteProfileInt(PROFILE_SECTION, _T(\"SortColumn\")", "sort persistence"),
         ("WriteProfileString(PROFILE_SECTION, _T(\"TextFilter\")", "text filter persistence"),
         ("ColumnWidth%d", "column width persistence"),
-        ("CFileLibraryWnd::SelectedIndices(size_t limit) const", "bulk selection implementation"),
+        ("CFileLibraryWnd::SelectedIndices(size_t limit)", "bulk selection implementation"),
         ("indices.size() < limit", "bounded bulk selection implementation"),
         ("RemoveDownloadLater(row.fileHash, row.fileSize)", "Download Later toggle removal"),
         ("AddFileLinkToDownload(link)", "legacy authoritative download route"),
