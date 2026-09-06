@@ -8,7 +8,6 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SRC = ROOT / "srchybrid"
 HERE = pathlib.Path(__file__).resolve().parent
-MATRIX = ROOT / "docs" / "EMULE_NEXT_RUNTIME_TEST_MATRIX.md"
 
 
 def read(name: str) -> str:
@@ -128,11 +127,12 @@ def main() -> int:
         for marker in markers:
             require(source, marker, label)
 
-    if not MATRIX.exists():
-        raise SystemExit("Perf2 verification: runtime test matrix missing")
-    matrix = MATRIX.read_text(encoding="utf-8")
-    for marker in ("ED2K-01", "KAD-01", "UP-01", "SCHED-01", "HASH-01", "Static gates prove architecture and compile contracts only"):
-        require(matrix, marker, "runtime test matrix")
+    # Documentation is intentionally not required from this build-stage gate.
+    # build-local.ps1 creates an isolated activation overlay containing source
+    # and tools, but not the repository docs/ tree. The runtime matrix remains
+    # versioned in docs/EMULE_NEXT_RUNTIME_TEST_MATRIX.md and is reviewed at
+    # repository level, while this gate validates only artifacts that MSBuild
+    # actually consumes from the activation overlay.
 
     order = activation_order()
     if not order:
