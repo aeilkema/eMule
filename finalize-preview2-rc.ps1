@@ -16,6 +16,7 @@ $Msi = Join-Path $Artifacts "eMule-Next-0.2.0-Preview2-x64.msi"
 $RcManifest = Join-Path $Artifacts "eMule-Next-0.2.0-Preview2-RC-MANIFEST.txt"
 $Acceptance = Join-Path $Artifacts "preview2-runtime-acceptance.json"
 $AcceptanceHarness = Join-Path $RepoRoot "preview2-runtime-acceptance.ps1"
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 if (-not (Test-Path -LiteralPath $Exe -PathType Leaf)) {
     throw "Preview 2 executable missing: $Exe. Run .\build-local.ps1 -KeepActivationStage first."
@@ -86,6 +87,6 @@ $entries.Add("Core runtime acceptance is bound to this Git head and executable S
 $entries.Add("Package acceptance remains separate until PORTABLE/MSI checks in preview2-runtime-acceptance.json are PASS.")
 $entries.Add("Use .\preview2-runtime-acceptance.ps1 -VerifyAll before calling the complete package set release-ready.")
 
-Set-Content -LiteralPath $RcManifest -Value $entries -Encoding utf8
+[System.IO.File]::WriteAllLines($RcManifest, [string[]]$entries, $Utf8NoBom)
 Write-Host "PREVIEW 2 RC ARTIFACT FINALIZATION SUCCESS"
 Write-Host "Manifest: $RcManifest"
