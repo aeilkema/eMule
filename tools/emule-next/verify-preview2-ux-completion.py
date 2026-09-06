@@ -21,6 +21,7 @@ def require(text: str, marker: str, label: str) -> None:
 
 
 def main() -> int:
+    main_h = read("EmuleDlg.h")
     main_cpp = read("EmuleDlg.cpp")
     search_h = read("SearchResultsWnd.h")
     search_cpp = read("SearchResultsWnd.cpp")
@@ -40,8 +41,13 @@ def main() -> int:
         ("ShowNextWorkspace(EMULENEXT_SETTINGS_VIEW_ID)", "Settings direct route"),
         ("ShowNextWorkspace(EMULENEXT_DIAGNOSTICS_VIEW_ID)", "Diagnostics direct route"),
         ("ShowLegacySearchWorkspace()", "legacy Search direct route"),
+        ("UpdatePreview2HeaderStatus();", "live header refresh"),
+        ("GetConnectionStateString()", "header connection status"),
+        ("GetTransferRateString()", "header transfer status"),
     ):
         require(main_cpp, marker, label)
+    require(main_h, "CStatic m_preview2HeaderStatus;", "header status control")
+    require(main_h, "void UpdatePreview2HeaderStatus();", "header status helper")
 
     require(search_h, "bool ShowNextWorkspace(uint32 searchID);", "public Next workspace router")
     require(search_h, "void ShowLegacySearchWorkspace();", "public legacy Search router")
