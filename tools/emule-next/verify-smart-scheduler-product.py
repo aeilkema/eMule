@@ -20,22 +20,33 @@ def main() -> int:
         "EmuleNextSchedulerRuntimeStatus",
         "GetRuntimeStatusText",
         "maxFilesPerRound",
+        "historyPendingWrites",
+        "historyDroppedWrites",
         "telemetryEnabled",
         "MarkApplied",
     ))
     require(SRC / "EmuleNextSmartScheduler.cpp", (
         "SmartSchedulerMaxFilesPerRound",
         "SmartHistoryCache",
+        "SmartHistoryCacheCapacity",
         "SmartTelemetryCapacity",
         "event.applied = intervened",
-        "MarkApplied(candidateFile->GetFileHash())",
-        "MarkApplied(file->GetFileHash())",
+        "event.fileHash = key",
+        "MarkApplied(candidateFile->GetFileHash(), candidateFile->GetFileName())",
+        "MarkApplied(file->GetFileHash(), file->GetFileName())",
+        "m_telemetry.MarkAppliedIntervention(fileHash, fileName)",
     ))
     require(SRC / "EmuleNextSchedulerTelemetry.h", (
         "EmuleNextSchedulerTelemetrySummary",
+        "fileHashValid",
         "appliedInterventions",
-        "MarkAppliedIntervention",
+        "MarkAppliedIntervention(const unsigned char* fileHash, const CString& fileName)",
         "void Clear()",
+    ))
+    require(SRC / "EmuleNextSchedulerTelemetry.cpp", (
+        "file_hash BLOB",
+        "idx_scheduler_decisions_hash_applied",
+        "m_persistAppliedQueue",
     ))
     require(SRC / "EmuleNextSettingsWnd.cpp", (
         "SmartSchedulerProfile",
@@ -43,6 +54,7 @@ def main() -> int:
         "SmartSchedulerMaxFilesPerRound",
         "SmartA4AFMinimumScore",
         "SmartHistoryCache",
+        "SmartHistoryCacheCapacity",
         "SmartTelemetry",
         "SmartTelemetryCapacity",
     ))
@@ -50,11 +62,12 @@ def main() -> int:
         'InsertColumn(14, _T("Scheduler")',
         "theEmuleNextScheduler.GetRuntimeStatusText()",
         "schedulerSnapshot.applied",
+        "CEmuleNextTransferInsights::Build(file, historicalBytesPerSecond)",
     ))
 
-    for hot in ("EmuleNextDashboardWnd.cpp", "DownloadQueue.cpp", "PartFile.cpp", "DownloadListCtrl.cpp"):
+    for hot in ("EmuleNextDashboardWnd.cpp", "EmuleNextSmartScheduler.cpp", "DownloadQueue.cpp", "PartFile.cpp", "DownloadListCtrl.cpp"):
         text = (SRC / hot).read_bytes().decode("latin-1", errors="ignore").lower()
-        if "sqlite3_" in text:
+        if "sqlite3_" in text or "winsqlite3.h" in text:
             raise SystemExit(f"Smart Scheduler product verification failed: SQLite in hot/UI path {hot}")
 
     print("eMule Next Smart Scheduler product verification passed")
