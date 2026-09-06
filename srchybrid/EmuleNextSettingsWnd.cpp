@@ -5,6 +5,7 @@
 #include "stdafx.h"
 #include "EmuleNextSettingsWnd.h"
 #include "EmuleNextTheme.h"
+#include "EmuleNextUiMetrics.h"
 #include "EmuleNextVersion.h"
 #include "EmuleNextSmartScheduler.h"
 #include "DownloadIntelligence.h"
@@ -29,6 +30,7 @@ namespace
         IDC_EN_SCHED_RARE,
         IDC_EN_SCHED_ETA_HEALTH,
         IDC_EN_SCHED_HISTORY,
+        IDC_EN_SCHED_HISTORY_CAPACITY,
         IDC_EN_SCHED_TELEMETRY,
         IDC_EN_SCHED_TELEMETRY_CAPACITY,
         IDC_EN_APPLY
@@ -37,6 +39,7 @@ namespace
     const int kCooldownValues[] = { 30, 45, 60, 90, 120, 180, 300, 600 };
     const int kBatchValues[] = { 2, 4, 6, 8, 12, 16, 24, 32 };
     const int kA4AFValues[] = { 400, 500, 590, 650, 720, 800, 900 };
+    const int kHistoryValues[] = { 512, 1024, 2048, 4096, 8192, 16384 };
     const int kTelemetryValues[] = { 64, 128, 256, 512, 1024, 2048, 4096 };
 
     int ClampInt(int value, int low, int high)
@@ -124,8 +127,10 @@ int CEmuleNextSettingsWnd::OnCreate(LPCREATESTRUCT createStruct)
         || !m_a4afIntelligence.Create(_T("A4AF Intelligence"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, empty, this, IDC_EN_SCHED_A4AF)
         || !m_rarePartIntelligence.Create(_T("Rare Part Intelligence"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, empty, this, IDC_EN_SCHED_RARE)
         || !m_etaHealthDisplay.Create(_T("Show Smart ETA and Health intelligence"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, empty, this, IDC_EN_SCHED_ETA_HEALTH)
-        || !m_historyCache.Create(_T("Use bounded in-memory transfer history cache"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, empty, this, IDC_EN_SCHED_HISTORY)
-        || !m_telemetry.Create(_T("Keep scheduler decision telemetry in memory"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, empty, this, IDC_EN_SCHED_TELEMETRY)
+        || !m_historyCache.Create(_T("Use persistent bounded transfer-history cache"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, empty, this, IDC_EN_SCHED_HISTORY)
+        || !m_historyCapacityLabel.Create(_T("History cache capacity (files)"), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
+        || !m_historyCapacity.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, empty, this, IDC_EN_SCHED_HISTORY_CAPACITY)
+        || !m_telemetry.Create(_T("Persist bounded scheduler decision telemetry"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, empty, this, IDC_EN_SCHED_TELEMETRY)
         || !m_telemetryCapacityLabel.Create(_T("Telemetry retention (events)"), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
         || !m_telemetryCapacity.Create(WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, empty, this, IDC_EN_SCHED_TELEMETRY_CAPACITY)
         || !m_schedulerRuntime.Create(_T("Scheduler runtime: waiting for first pass"), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
@@ -139,8 +144,8 @@ int CEmuleNextSettingsWnd::OnCreate(LPCREATESTRUCT createStruct)
         &m_schedulerProfileLabel, &m_schedulerProfile, &m_schedulerCooldownLabel, &m_schedulerCooldown,
         &m_schedulerBatchLabel, &m_schedulerBatch, &m_a4afThresholdLabel, &m_a4afThreshold,
         &m_sourceDiscoveryIntelligence, &m_a4afIntelligence, &m_rarePartIntelligence, &m_etaHealthDisplay,
-        &m_historyCache, &m_telemetry, &m_telemetryCapacityLabel, &m_telemetryCapacity,
-        &m_schedulerRuntime, &m_schedulerSafety, &m_apply, &m_status };
+        &m_historyCache, &m_historyCapacityLabel, &m_historyCapacity, &m_telemetry, &m_telemetryCapacityLabel,
+        &m_telemetryCapacity, &m_schedulerRuntime, &m_schedulerSafety, &m_apply, &m_status };
     for (int i = 0; i < _countof(controls); ++i) controls[i]->SetFont(font);
 
     m_themeMode.AddString(_T("System")); m_themeMode.AddString(_T("Light")); m_themeMode.AddString(_T("Dark"));
@@ -154,6 +159,7 @@ int CEmuleNextSettingsWnd::OnCreate(LPCREATESTRUCT createStruct)
     FillNumberCombo(m_schedulerCooldown, kCooldownValues, _countof(kCooldownValues));
     FillNumberCombo(m_schedulerBatch, kBatchValues, _countof(kBatchValues));
     FillNumberCombo(m_a4afThreshold, kA4AFValues, _countof(kA4AFValues));
+    FillNumberCombo(m_historyCapacity, kHistoryValues, _countof(kHistoryValues));
     FillNumberCombo(m_telemetryCapacity, kTelemetryValues, _countof(kTelemetryValues));
 
     Refresh();
@@ -176,6 +182,7 @@ void CEmuleNextSettingsWnd::Refresh()
     SelectNumber(m_schedulerCooldown, kCooldownValues, _countof(kCooldownValues), static_cast<int>(theApp.GetProfileInt(_T("eMule Next"), _T("SmartSchedulerCooldown"), 90)));
     SelectNumber(m_schedulerBatch, kBatchValues, _countof(kBatchValues), static_cast<int>(theApp.GetProfileInt(_T("eMule Next"), _T("SmartSchedulerMaxFilesPerRound"), 8)));
     SelectNumber(m_a4afThreshold, kA4AFValues, _countof(kA4AFValues), static_cast<int>(theApp.GetProfileInt(_T("eMule Next"), _T("SmartA4AFMinimumScore"), 650)));
+    SelectNumber(m_historyCapacity, kHistoryValues, _countof(kHistoryValues), static_cast<int>(theApp.GetProfileInt(_T("eMule Next"), _T("SmartHistoryCacheCapacity"), 4096)));
     SelectNumber(m_telemetryCapacity, kTelemetryValues, _countof(kTelemetryValues), static_cast<int>(theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetryCapacity"), 256)));
     m_sourceDiscoveryIntelligence.SetCheck(theApp.GetProfileInt(_T("eMule Next"), _T("SmartSourceDiscovery"), 1) ? BST_CHECKED : BST_UNCHECKED);
     m_a4afIntelligence.SetCheck(theApp.GetProfileInt(_T("eMule Next"), _T("SmartA4AF"), 1) ? BST_CHECKED : BST_UNCHECKED);
@@ -195,32 +202,46 @@ void CEmuleNextSettingsWnd::OnSize(UINT type, int cx, int cy)
 
 void CEmuleNextSettingsWnd::LayoutControls(int cx, int /*cy*/)
 {
-    const int margin = 18, labelWidth = 250, fieldLeft = margin + labelWidth + 16;
-    const int fieldWidth = cx - fieldLeft - margin > 290 ? 290 : (cx - fieldLeft - margin < 150 ? 150 : cx - fieldLeft - margin);
-    const int checkWidth = cx - fieldLeft - margin > 280 ? cx - fieldLeft - margin : 280;
-    int y = 14;
-    m_heading.MoveWindow(margin, y, cx - margin * 2 > 200 ? cx - margin * 2 : 200, 22); y += 32;
-    m_themeLabel.MoveWindow(margin, y + 4, labelWidth, 20); m_themeMode.MoveWindow(fieldLeft, y, fieldWidth, 220); y += 31;
-    m_discoveryLabel.MoveWindow(margin, y + 3, labelWidth, 20); m_discoveryEnabled.MoveWindow(fieldLeft, y, checkWidth, 22); y += 29;
-    m_concurrencyLabel.MoveWindow(margin, y + 4, labelWidth, 20); m_maxConcurrent.MoveWindow(fieldLeft, y, 90, 220); y += 38;
+    const int margin = CEmuleNextUiMetrics::Scale(m_hWnd, 18);
+    const int labelWidth = CEmuleNextUiMetrics::Scale(m_hWnd, 250);
+    const int fieldGap = CEmuleNextUiMetrics::Scale(m_hWnd, 16);
+    const int fieldLeft = margin + labelWidth + fieldGap;
+    const int fieldMax = CEmuleNextUiMetrics::Scale(m_hWnd, 290);
+    const int fieldMin = CEmuleNextUiMetrics::Scale(m_hWnd, 150);
+    const int available = cx - fieldLeft - margin;
+    const int fieldWidth = available > fieldMax ? fieldMax : (available < fieldMin ? fieldMin : available);
+    const int checkMin = CEmuleNextUiMetrics::Scale(m_hWnd, 280);
+    const int checkWidth = available > checkMin ? available : checkMin;
+    const int comboHeight = CEmuleNextUiMetrics::Scale(m_hWnd, 220);
+    const int shortCombo = CEmuleNextUiMetrics::Scale(m_hWnd, 120);
+    const int row = CEmuleNextUiMetrics::Scale(m_hWnd, 29);
+    const int checkRow = CEmuleNextUiMetrics::Scale(m_hWnd, 24);
+    const int lineHeight = CEmuleNextUiMetrics::Scale(m_hWnd, 20);
+    int y = CEmuleNextUiMetrics::Scale(m_hWnd, 14);
 
-    m_schedulerHeading.MoveWindow(margin, y, cx - margin * 2 > 200 ? cx - margin * 2 : 200, 22); y += 27;
-    m_schedulerModeLabel.MoveWindow(margin, y + 4, labelWidth, 20); m_schedulerMode.MoveWindow(fieldLeft, y, fieldWidth, 220); y += 29;
-    m_schedulerProfileLabel.MoveWindow(margin, y + 4, labelWidth, 20); m_schedulerProfile.MoveWindow(fieldLeft, y, fieldWidth, 220); y += 29;
-    m_schedulerCooldownLabel.MoveWindow(margin, y + 4, labelWidth, 20); m_schedulerCooldown.MoveWindow(fieldLeft, y, 120, 220); y += 29;
-    m_schedulerBatchLabel.MoveWindow(margin, y + 4, labelWidth, 20); m_schedulerBatch.MoveWindow(fieldLeft, y, 120, 220); y += 29;
-    m_a4afThresholdLabel.MoveWindow(margin, y + 4, labelWidth, 20); m_a4afThreshold.MoveWindow(fieldLeft, y, 120, 220); y += 31;
-    m_sourceDiscoveryIntelligence.MoveWindow(fieldLeft, y, checkWidth, 21); y += 24;
-    m_a4afIntelligence.MoveWindow(fieldLeft, y, checkWidth, 21); y += 24;
-    m_rarePartIntelligence.MoveWindow(fieldLeft, y, checkWidth, 21); y += 24;
-    m_etaHealthDisplay.MoveWindow(fieldLeft, y, checkWidth, 21); y += 24;
-    m_historyCache.MoveWindow(fieldLeft, y, checkWidth, 21); y += 24;
-    m_telemetry.MoveWindow(fieldLeft, y, checkWidth, 21); y += 27;
-    m_telemetryCapacityLabel.MoveWindow(margin, y + 4, labelWidth, 20); m_telemetryCapacity.MoveWindow(fieldLeft, y, 120, 220); y += 34;
-    m_schedulerRuntime.MoveWindow(margin, y, cx - margin * 2 > 200 ? cx - margin * 2 : 200, 32); y += 35;
-    m_schedulerSafety.MoveWindow(margin, y, cx - margin * 2 > 200 ? cx - margin * 2 : 200, 34); y += 39;
-    m_apply.MoveWindow(fieldLeft, y, 100, 28);
-    m_status.MoveWindow(fieldLeft + 115, y + 5, cx - fieldLeft - 115 - margin > 100 ? cx - fieldLeft - 115 - margin : 100, 20);
+    m_heading.MoveWindow(margin, y, cx - margin * 2 > CEmuleNextUiMetrics::Scale(m_hWnd, 200) ? cx - margin * 2 : CEmuleNextUiMetrics::Scale(m_hWnd, 200), CEmuleNextUiMetrics::Scale(m_hWnd, 22)); y += CEmuleNextUiMetrics::Scale(m_hWnd, 32);
+    m_themeLabel.MoveWindow(margin, y + CEmuleNextUiMetrics::Scale(m_hWnd, 4), labelWidth, lineHeight); m_themeMode.MoveWindow(fieldLeft, y, fieldWidth, comboHeight); y += CEmuleNextUiMetrics::Scale(m_hWnd, 31);
+    m_discoveryLabel.MoveWindow(margin, y + CEmuleNextUiMetrics::Scale(m_hWnd, 3), labelWidth, lineHeight); m_discoveryEnabled.MoveWindow(fieldLeft, y, checkWidth, CEmuleNextUiMetrics::Scale(m_hWnd, 22)); y += row;
+    m_concurrencyLabel.MoveWindow(margin, y + CEmuleNextUiMetrics::Scale(m_hWnd, 4), labelWidth, lineHeight); m_maxConcurrent.MoveWindow(fieldLeft, y, CEmuleNextUiMetrics::Scale(m_hWnd, 90), comboHeight); y += CEmuleNextUiMetrics::Scale(m_hWnd, 38);
+
+    m_schedulerHeading.MoveWindow(margin, y, cx - margin * 2, CEmuleNextUiMetrics::Scale(m_hWnd, 22)); y += CEmuleNextUiMetrics::Scale(m_hWnd, 27);
+    m_schedulerModeLabel.MoveWindow(margin, y + CEmuleNextUiMetrics::Scale(m_hWnd, 4), labelWidth, lineHeight); m_schedulerMode.MoveWindow(fieldLeft, y, fieldWidth, comboHeight); y += row;
+    m_schedulerProfileLabel.MoveWindow(margin, y + CEmuleNextUiMetrics::Scale(m_hWnd, 4), labelWidth, lineHeight); m_schedulerProfile.MoveWindow(fieldLeft, y, fieldWidth, comboHeight); y += row;
+    m_schedulerCooldownLabel.MoveWindow(margin, y + CEmuleNextUiMetrics::Scale(m_hWnd, 4), labelWidth, lineHeight); m_schedulerCooldown.MoveWindow(fieldLeft, y, shortCombo, comboHeight); y += row;
+    m_schedulerBatchLabel.MoveWindow(margin, y + CEmuleNextUiMetrics::Scale(m_hWnd, 4), labelWidth, lineHeight); m_schedulerBatch.MoveWindow(fieldLeft, y, shortCombo, comboHeight); y += row;
+    m_a4afThresholdLabel.MoveWindow(margin, y + CEmuleNextUiMetrics::Scale(m_hWnd, 4), labelWidth, lineHeight); m_a4afThreshold.MoveWindow(fieldLeft, y, shortCombo, comboHeight); y += CEmuleNextUiMetrics::Scale(m_hWnd, 31);
+    m_sourceDiscoveryIntelligence.MoveWindow(fieldLeft, y, checkWidth, CEmuleNextUiMetrics::Scale(m_hWnd, 21)); y += checkRow;
+    m_a4afIntelligence.MoveWindow(fieldLeft, y, checkWidth, CEmuleNextUiMetrics::Scale(m_hWnd, 21)); y += checkRow;
+    m_rarePartIntelligence.MoveWindow(fieldLeft, y, checkWidth, CEmuleNextUiMetrics::Scale(m_hWnd, 21)); y += checkRow;
+    m_etaHealthDisplay.MoveWindow(fieldLeft, y, checkWidth, CEmuleNextUiMetrics::Scale(m_hWnd, 21)); y += checkRow;
+    m_historyCache.MoveWindow(fieldLeft, y, checkWidth, CEmuleNextUiMetrics::Scale(m_hWnd, 21)); y += CEmuleNextUiMetrics::Scale(m_hWnd, 27);
+    m_historyCapacityLabel.MoveWindow(margin, y + CEmuleNextUiMetrics::Scale(m_hWnd, 4), labelWidth, lineHeight); m_historyCapacity.MoveWindow(fieldLeft, y, shortCombo, comboHeight); y += row;
+    m_telemetry.MoveWindow(fieldLeft, y, checkWidth, CEmuleNextUiMetrics::Scale(m_hWnd, 21)); y += CEmuleNextUiMetrics::Scale(m_hWnd, 27);
+    m_telemetryCapacityLabel.MoveWindow(margin, y + CEmuleNextUiMetrics::Scale(m_hWnd, 4), labelWidth, lineHeight); m_telemetryCapacity.MoveWindow(fieldLeft, y, shortCombo, comboHeight); y += CEmuleNextUiMetrics::Scale(m_hWnd, 34);
+    m_schedulerRuntime.MoveWindow(margin, y, cx - margin * 2, CEmuleNextUiMetrics::Scale(m_hWnd, 42)); y += CEmuleNextUiMetrics::Scale(m_hWnd, 45);
+    m_schedulerSafety.MoveWindow(margin, y, cx - margin * 2, CEmuleNextUiMetrics::Scale(m_hWnd, 38)); y += CEmuleNextUiMetrics::Scale(m_hWnd, 43);
+    m_apply.MoveWindow(fieldLeft, y, CEmuleNextUiMetrics::Scale(m_hWnd, 100), CEmuleNextUiMetrics::Scale(m_hWnd, 28));
+    m_status.MoveWindow(fieldLeft + CEmuleNextUiMetrics::Scale(m_hWnd, 115), y + CEmuleNextUiMetrics::Scale(m_hWnd, 5), cx - fieldLeft - CEmuleNextUiMetrics::Scale(m_hWnd, 115) - margin > CEmuleNextUiMetrics::Scale(m_hWnd, 100) ? cx - fieldLeft - CEmuleNextUiMetrics::Scale(m_hWnd, 115) - margin : CEmuleNextUiMetrics::Scale(m_hWnd, 100), lineHeight);
 }
 
 void CEmuleNextSettingsWnd::UpdateSchedulingControls()
@@ -236,6 +257,7 @@ void CEmuleNextSettingsWnd::UpdateSchedulingControls()
     m_rarePartIntelligence.EnableWindow(enabled);
     m_etaHealthDisplay.EnableWindow(TRUE);
     m_historyCache.EnableWindow(TRUE);
+    m_historyCapacity.EnableWindow(m_historyCache.GetCheck() == BST_CHECKED);
     m_telemetry.EnableWindow(TRUE);
     m_telemetryCapacity.EnableWindow(m_telemetry.GetCheck() == BST_CHECKED);
     if (mode == ENSM_AUTOMATIC)
@@ -285,6 +307,7 @@ void CEmuleNextSettingsWnd::OnApplyClicked()
     const int cooldown = SelectedNumber(m_schedulerCooldown, kCooldownValues, _countof(kCooldownValues), 90);
     const int batch = SelectedNumber(m_schedulerBatch, kBatchValues, _countof(kBatchValues), 8);
     const int a4afThreshold = SelectedNumber(m_a4afThreshold, kA4AFValues, _countof(kA4AFValues), 650);
+    const int historyCapacity = SelectedNumber(m_historyCapacity, kHistoryValues, _countof(kHistoryValues), 4096);
     const int telemetryCapacity = SelectedNumber(m_telemetryCapacity, kTelemetryValues, _countof(kTelemetryValues), 256);
 
     theApp.WriteProfileInt(_T("eMule Next"), _T("SmartSchedulingMode"), schedulerMode);
@@ -297,16 +320,18 @@ void CEmuleNextSettingsWnd::OnApplyClicked()
     theApp.WriteProfileInt(_T("eMule Next"), _T("SmartRareParts"), m_rarePartIntelligence.GetCheck() == BST_CHECKED ? 1 : 0);
     theApp.WriteProfileInt(_T("eMule Next"), _T("SmartEtaHealthDisplay"), m_etaHealthDisplay.GetCheck() == BST_CHECKED ? 1 : 0);
     theApp.WriteProfileInt(_T("eMule Next"), _T("SmartHistoryCache"), m_historyCache.GetCheck() == BST_CHECKED ? 1 : 0);
+    theApp.WriteProfileInt(_T("eMule Next"), _T("SmartHistoryCacheCapacity"), historyCapacity);
     theApp.WriteProfileInt(_T("eMule Next"), _T("SmartTelemetry"), m_telemetry.GetCheck() == BST_CHECKED ? 1 : 0);
     theApp.WriteProfileInt(_T("eMule Next"), _T("SmartTelemetryCapacity"), telemetryCapacity);
+    theEmuleNextScheduler.History().SetCapacity(static_cast<size_t>(historyCapacity));
     theEmuleNextScheduler.Telemetry().SetCapacity(static_cast<size_t>(telemetryCapacity));
 
     if (theApp.emuledlg != NULL) CEmuleNextTheme::ApplyToWindow(theApp.emuledlg->GetSafeHwnd());
     else CEmuleNextTheme::ApplyToWindow(m_hWnd);
     CString status;
-    status.Format(_T("Applied: %s / %s, %d files per pass, %ds cooldown."),
+    status.Format(_T("Applied: %s / %s, %d files/pass, %ds cooldown, history %d, telemetry %d."),
         (LPCTSTR)CDownloadIntelligence::SchedulingModeText(static_cast<EmuleNextSchedulingMode>(schedulerMode)),
-        (LPCTSTR)CEmuleNextSmartScheduler::ProfileText(schedulerProfile), batch, cooldown);
+        (LPCTSTR)CEmuleNextSmartScheduler::ProfileText(schedulerProfile), batch, cooldown, historyCapacity, telemetryCapacity);
     m_status.SetWindowText(status);
     m_schedulerRuntime.SetWindowText(_T("Scheduler runtime: ") + theEmuleNextScheduler.GetRuntimeStatusText());
     UpdateSchedulingControls();
