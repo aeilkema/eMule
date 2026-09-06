@@ -45,12 +45,36 @@ def patch_search2() -> None:
             raise SystemExit("Preview2 Search UX: rules handler anchor missing")
         header = header.replace(anchor, anchor + "    afx_msg void OnNetworkSearchClicked();\n", 1)
 
-    for include in ('#include "emuledlg.h"', '#include "SearchDlg.h"'):
-        if include not in cpp:
-            anchor = '#include "emule.h"\n'
-            if anchor not in cpp:
-                raise SystemExit("Preview2 Search UX: emule include anchor missing")
-            cpp = cpp.replace(anchor, anchor + include + "\n", 1)
+    # SearchDlg.h exposes methods used by the legacy-network bridge, but its
+    # public surface references CSearchResultsWnd. Keep SearchResultsWnd.h ahead
+    # of SearchDlg.h so this late materialization has an explicit compile-order
+    # contract instead of relying on precompiled-header side effects.
+    if '#include "SearchResultsWnd.h"' not in cpp:
+        anchor = '#include "emule.h"\n'
+        if anchor not in cpp:
+            raise SystemExit("Preview2 Search UX: emule include anchor missing")
+        cpp = cpp.replace(anchor, anchor + '#include "SearchResultsWnd.h"\n', 1)
+    if '#include "SearchDlg.h"' not in cpp:
+        anchor = '#include "SearchResultsWnd.h"\n'
+        if anchor not in cpp:
+            raise SystemExit("Preview2 Search UX: SearchResults include anchor missing")
+        cpp = cpp.replace(anchor, anchor + '#include "SearchDlg.h"\n', 1)
+    if '#include "emuledlg.h"' not in cpp:
+        anchor = '#include "SearchDlg.h"\n'
+        if anchor not in cpp:
+            raise SystemExit("Preview2 Search UX: SearchDlg include anchor missing")
+        cpp = cpp.replace(anchor, anchor + '#include "emuledlg.h"\n', 1)
+
+    # Normalize a previously materialized unsafe order if this script is run
+    # against a retained activation stage.
+    includes = ('#include "SearchResultsWnd.h"', '#include "SearchDlg.h"', '#include "emuledlg.h"')
+    if all(item in cpp for item in includes):
+        for item in includes:
+            cpp = cpp.replace(item + "\n", "", 1)
+        anchor = '#include "emule.h"\n'
+        if anchor not in cpp:
+            raise SystemExit("Preview2 Search UX: include normalization anchor missing")
+        cpp = cpp.replace(anchor, anchor + "\n".join(includes) + "\n", 1)
 
     if "IDC_EN_SEARCH2_NETWORK" not in cpp:
         old = "        IDC_EN_SEARCH2_RULES\n"
@@ -165,18 +189,23 @@ def patch_primary_route() -> None:
 
 
 def verify() -> None:
-    combined = "\n".join(path.read_bytes().decode("latin-1", errors="ignore") for path in (HEADER, CPP, MAIN))
+    header = HEADER.read_bytes().decode("latin-1", errors="ignore")
+    cpp = CPP.read_bytes().decode("latin-1", errors="ignore")
+    main = MAIN.read_bytes().decode("latin-1", errors="ignore")
     for marker in (
         "m_networkSearch",
         "Network search...",
         "OnNetworkSearchClicked",
         "ShowLegacySearchWorkspace()",
         "OpenParametersWnd()",
-        "ShowNextWorkspace(EMULENEXT_SEARCH2_VIEW_ID)",
         "place Network search beside the knowledge search",
     ):
-        if marker not in combined:
+        if marker not in header + "\n" + cpp:
             raise SystemExit(f"Preview2 Search UX: final contract missing {marker}")
+    if "ShowNextWorkspace(EMULENEXT_SEARCH2_VIEW_ID)" not in main:
+        raise SystemExit("Preview2 Search UX: main Search route is not Search 2")
+    if cpp.find('#include "SearchResultsWnd.h"') > cpp.find('#include "SearchDlg.h"'):
+        raise SystemExit("Preview2 Search UX: unsafe SearchDlg/SearchResults include order")
 
 
 def main() -> int:
