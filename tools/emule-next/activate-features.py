@@ -9,6 +9,11 @@ Only obsolete Dashboard render/content patchers are skipped in that case.
 Windows Git checkouts commonly use CRLF. Before any activator runs, the isolated
 source overlay is normalized byte-for-byte to LF so multiline anchors are
 deterministic. No decoding/re-encoding of legacy source text is involved.
+
+All historic/runtime/product gates run first. Preview 2 is then materialized
+exactly once as the final product layer through activate-preview2.py. This keeps
+clean activation authoritative and prevents a successful build from depending
+on stale generated source from an earlier run.
 """
 from __future__ import annotations
 
@@ -185,4 +190,14 @@ for script_name in (
         if exc.code not in (None, 0):
             raise
 
-print("eMule Next runtime/UI activation complete")
+print("eMule Next runtime/UI activation complete; applying final Preview 2 product layer")
+preview2 = HERE / "activate-preview2.py"
+if not preview2.exists():
+    raise SystemExit("eMule Next Preview 2 orchestrator missing")
+try:
+    runpy.run_path(str(preview2), run_name="__main__")
+except SystemExit as exc:
+    if exc.code not in (None, 0):
+        raise
+
+print("eMule Next runtime/UI + Preview 2 activation complete")
