@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Materialize DATA-01 schema v2 for Smart Scheduler persistence.
 
-The core database initializer remains the owner of schema versioning. The
-scheduler workers still use CREATE IF NOT EXISTS defensively, but these tables
-are now part of the formal eMule Next schema rather than worker-private state.
+The core database initializer owns schema versioning. Existing Preview
+databases may already contain scheduler_decisions without file_hash, so the
+migration adds that column after the base transaction and only then creates the
+hash index. Duplicate-column failure is intentionally harmless.
 """
 from __future__ import annotations
 
@@ -45,13 +46,46 @@ def main() -> int:
             '            " mode INTEGER NOT NULL,action INTEGER NOT NULL,health INTEGER NOT NULL,attention INTEGER NOT NULL,"\n'
             '            " discovery_budget INTEGER NOT NULL,a4af_score INTEGER NOT NULL,rare_part_index INTEGER,applied INTEGER NOT NULL,reason TEXT);"\n'
             '            "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_ts ON scheduler_decisions(ts DESC);"\n'
-            '            "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_hash_applied ON scheduler_decisions(file_hash,applied,id DESC);"\n'
             '            "CREATE TABLE IF NOT EXISTS scheduler_outcomes("\n'
             '            " id INTEGER PRIMARY KEY AUTOINCREMENT,ts INTEGER NOT NULL,file_name TEXT NOT NULL,file_hash BLOB,"\n'
             '            " action INTEGER NOT NULL,window_seconds INTEGER NOT NULL,bytes_per_second REAL NOT NULL,usable_sources INTEGER NOT NULL);"\n'
             '            "CREATE INDEX IF NOT EXISTS idx_scheduler_outcomes_hash_ts ON scheduler_outcomes(file_hash,ts DESC);"\n'
         )
         text = text.replace(anchor, addition, 1)
+        changed = True
+
+    migration_marker = "eMule Next schema v2 additive scheduler migration"
+    if migration_marker not in text:
+        old_return = '''        if (!ExecSql(db, schema, &error)) {
+            ExecSql(db, "ROLLBACK;");
+            SetError(error);
+            return false;
+        }
+        return true;
+'''
+        new_return = '''        if (!ExecSql(db, schema, &error)) {
+            ExecSql(db, "ROLLBACK;");
+            SetError(error);
+            return false;
+        }
+
+        // eMule Next schema v2 additive scheduler migration. Existing Preview
+        // databases may already have scheduler_decisions without file_hash.
+        // Duplicate-column failure is harmless; the index is created only after
+        // this upgrade attempt so old databases cannot fail the base transaction.
+        sqlite3_exec(db, "ALTER TABLE scheduler_decisions ADD COLUMN file_hash BLOB", NULL, NULL, NULL);
+        if (!ExecSql(db,
+            "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_hash_applied ON scheduler_decisions(file_hash,applied,id DESC);"
+            "CREATE INDEX IF NOT EXISTS idx_scheduler_outcomes_hash_ts ON scheduler_outcomes(file_hash,ts DESC);",
+            &error)) {
+            SetError(error);
+            return false;
+        }
+        return true;
+'''
+        if old_return not in text:
+            raise SystemExit("Scheduler schema v2: Initialize return anchor missing")
+        text = text.replace(old_return, new_return, 1)
         changed = True
 
     if changed:
