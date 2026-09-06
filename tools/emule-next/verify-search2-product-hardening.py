@@ -20,6 +20,18 @@ def require(text: str, marker: str, label: str) -> None:
         raise SystemExit(f"Search 2 hardening verifier: missing {label}: {marker}")
 
 
+def has_database_call(source: str) -> bool:
+    forbidden = (
+        "theEmuleNext.Database()",
+        "Database().",
+        "sqlite3_",
+        "winsqlite3",
+        "CSearch2Service service",
+        "CLibraryBrowserService",
+    )
+    return any(token in source for token in forbidden)
+
+
 def main() -> int:
     service_h = read("Search2Service.h")
     service_cpp = read("Search2Service.cpp")
@@ -57,7 +69,7 @@ def main() -> int:
     if snapshot_start < 0 or snapshot_end < 0:
         raise SystemExit("Search 2 hardening verifier: live snapshot body missing")
     snapshot = wnd_cpp[snapshot_start:snapshot_end]
-    if "Database()" in snapshot or "sqlite" in snapshot.lower():
+    if has_database_call(snapshot):
         raise SystemExit("Search 2 hardening verifier: live snapshot performs database work on the GUI thread")
 
     worker_start = wnd_cpp.find("UINT AFX_CDECL SearchWorker")
