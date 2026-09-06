@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Harmonize final Next workspace spacing, navigation tabs and Dashboard styling."""
+"""Harmonize final Next workspace spacing and Search-workspace tabs."""
 from __future__ import annotations
 
 import pathlib
@@ -54,41 +54,6 @@ def harmonize(path: pathlib.Path) -> None:
     write(path, text, enc)
 
 
-def patch_dashboard() -> None:
-    path = SRC / "EmuleNextDashboardWnd.cpp"
-    text, enc = read(path)
-    text = add_helper_include(text)
-    if "CEmuleNextWorkspaceUi::StyleList(m_downloads);" not in text:
-        anchor = "    m_downloads.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_GRIDLINES);"
-        if anchor not in text:
-            raise SystemExit("UI2 layout: Dashboard list-style anchor missing")
-        text = text.replace(anchor, anchor + "\n    CEmuleNextWorkspaceUi::StyleList(m_downloads);", 1)
-
-    if "message->wParam == VK_F5" not in text[text.find("BOOL CEmuleNextDashboardWnd::PreTranslateMessage"):]:
-        anchor = '''BOOL CEmuleNextDashboardWnd::PreTranslateMessage(MSG* message)
-{
-'''
-        if anchor not in text:
-            raise SystemExit("UI2 layout: Dashboard keyboard anchor missing")
-        addition = '''    if (message != NULL && message->message == WM_KEYDOWN && message->wParam == VK_F5) {
-        OnRefreshNow();
-        return TRUE;
-    }
-'''
-        text = text.replace(anchor, anchor + addition, 1)
-
-    for old, new in {
-        "const int margin = CEmuleNextUiMetrics::Scale(m_hWnd, 8);":
-            "const int margin = CEmuleNextWorkspaceUi::Margin(m_hWnd);",
-        "const int gap = CEmuleNextUiMetrics::Scale(m_hWnd, 5);":
-            "const int gap = CEmuleNextWorkspaceUi::Gap(m_hWnd);",
-        "const int actionHeight = CEmuleNextUiMetrics::Scale(m_hWnd, 27);":
-            "const int actionHeight = CEmuleNextWorkspaceUi::ActionHeight(m_hWnd);",
-    }.items():
-        text = text.replace(old, new)
-    write(path, text, enc)
-
-
 def patch_navigation_tabs() -> None:
     path = SRC / "SearchResultsWnd.cpp"
     text, enc = read(path)
@@ -105,9 +70,8 @@ def main() -> int:
         if not path.exists():
             raise SystemExit(f"UI2 layout: missing {name}")
         harmonize(path)
-    patch_dashboard()
     patch_navigation_tabs()
-    print("eMule Next UI 2 shared spacing, navigation tabs and Dashboard styling materialized")
+    print("eMule Next UI 2 shared spacing and DPI-aware workspace tabs materialized")
     return 0
 
 
