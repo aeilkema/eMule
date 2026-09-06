@@ -214,3 +214,77 @@ void CEmuleNextCard::DrawItem(LPDRAWITEMSTRUCT drawItemStruct)
     dc.DrawText(m_detail, detailRect, DT_LEFT | DT_WORDBREAK | DT_END_ELLIPSIS);
     dc.Detach();
 }
+
+BEGIN_MESSAGE_MAP(CEmuleNextNavList, CListBox)
+    ON_WM_ERASEBKGND()
+END_MESSAGE_MAP()
+
+CEmuleNextNavList::CEmuleNextNavList()
+{
+}
+
+void CEmuleNextNavList::RefreshPalette()
+{
+    if (!::IsWindow(m_hWnd))
+        return;
+    CEmuleNextModernUi::SetExplorerTheme(m_hWnd);
+    Invalidate(FALSE);
+}
+
+BOOL CEmuleNextNavList::OnEraseBkgnd(CDC* dc)
+{
+    if (dc == NULL)
+        return TRUE;
+    CRect rect;
+    GetClientRect(&rect);
+    dc->FillSolidRect(rect, CEmuleNextModernUi::NavigationColor());
+    return TRUE;
+}
+
+void CEmuleNextNavList::MeasureItem(LPMEASUREITEMSTRUCT measureItemStruct)
+{
+    if (measureItemStruct != NULL)
+        measureItemStruct->itemHeight = CEmuleNextModernUi::Scale(m_hWnd, 42);
+}
+
+void CEmuleNextNavList::DrawItem(LPDRAWITEMSTRUCT drawItemStruct)
+{
+    if (drawItemStruct == NULL || drawItemStruct->itemID == static_cast<UINT>(-1))
+        return;
+
+    CDC dc;
+    dc.Attach(drawItemStruct->hDC);
+    CRect rect(drawItemStruct->rcItem);
+    dc.FillSolidRect(rect, CEmuleNextModernUi::NavigationColor());
+
+    const bool selected = (drawItemStruct->itemState & ODS_SELECTED) != 0;
+    const bool focused = (drawItemStruct->itemState & ODS_FOCUS) != 0;
+    CRect itemRect = rect;
+    itemRect.DeflateRect(CEmuleNextModernUi::Scale(m_hWnd, 6), CEmuleNextModernUi::Scale(m_hWnd, 3));
+
+    if (selected) {
+        CEmuleNextModernUi::DrawRoundedCard(dc, itemRect,
+            CEmuleNextModernUi::CardHoverColor(), CEmuleNextModernUi::AccentColor(),
+            CEmuleNextModernUi::Scale(m_hWnd, 8));
+        CRect accent = itemRect;
+        accent.right = accent.left + CEmuleNextModernUi::Scale(m_hWnd, 4);
+        dc.FillSolidRect(accent, CEmuleNextModernUi::AccentColor());
+    }
+
+    CString text;
+    GetText(static_cast<int>(drawItemStruct->itemID), text);
+    CRect textRect = itemRect;
+    textRect.left += CEmuleNextModernUi::Scale(m_hWnd, 16);
+    textRect.right -= CEmuleNextModernUi::Scale(m_hWnd, 10);
+    dc.SetBkMode(TRANSPARENT);
+    dc.SetTextColor(selected ? CEmuleNextModernUi::TextColor() : CEmuleNextModernUi::MutedTextColor());
+    CFont* font = GetFont();
+    CFont* oldFont = font != NULL ? dc.SelectObject(font) : NULL;
+    dc.DrawText(text, textRect, DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS | DT_NOPREFIX);
+    if (oldFont != NULL)
+        dc.SelectObject(oldFont);
+
+    if (focused && !selected)
+        dc.DrawFocusRect(itemRect);
+    dc.Detach();
+}
