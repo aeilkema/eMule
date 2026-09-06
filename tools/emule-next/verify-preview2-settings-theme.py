@@ -57,6 +57,10 @@ def main() -> int:
         raise SystemExit("Preview2 Settings/theme verification: fewer than 15 direct original-page routes")
     if "Open settings page..." not in settings or "original eMule preference page" not in settings:
         raise SystemExit("Preview2 Settings/theme verification: original-page UX missing")
+    if "LBS_NOINTEGRALHEIGHT | WS_VSCROLL" not in settings:
+        raise SystemExit("Preview2 Settings/theme verification: complete Settings navigation is not scrollable")
+    if "CEmuleNextTheme::ApplyToWindow(theApp.emuledlg != NULL ? theApp.emuledlg->m_hWnd : m_hWnd);" not in settings:
+        raise SystemExit("Preview2 Settings/theme verification: Settings does not refresh the complete application theme tree")
 
     # Every legacy workspace is re-themed when activated; Preferences gets the
     # same recursive theme application after all original property pages exist.
@@ -79,7 +83,7 @@ def main() -> int:
     ):
         if marker not in chat_h:
             raise SystemExit(f"Preview2 Settings/theme verification: Chat theme header missing {marker}")
-    if "void\t\tApplyPreview2Theme();" not in selector_h and "void ApplyPreview2Theme();" not in selector_h:
+    if "ApplyPreview2Theme();" not in selector_h:
         raise SystemExit("Preview2 Settings/theme verification: ChatSelector theme refresh API missing")
 
     for marker in (
