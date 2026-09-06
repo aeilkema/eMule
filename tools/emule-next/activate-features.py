@@ -82,6 +82,7 @@ DASHBOARD_RENDER_PATCHERS = {
 for script_name in (
     "prepare-search-results.py",
     "activate-runtime-features.py",
+    "activate-modern-windows-target.py",
     "finalize-peer-share-processing.py",
     "activate-theme.py",
     "activate-next-settings.py",
@@ -97,6 +98,7 @@ for script_name in (
     "fix-dashboard-compile.py",
     "activate-dashboard-navigation.py",
     "activate-dashboard-host-hardening.py",
+    "fix-dashboard-host-compile.py",
     "activate-dashboard-actions.py",
     "activate-dashboard-source-profile.py",
     "activate-file-intelligence-columns.py",
