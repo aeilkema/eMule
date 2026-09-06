@@ -24,6 +24,7 @@ PREVIEW2_STEPS = (
     "activate-preview2-settings-complete.py",
     "activate-preview2-search-ux.py",
     "activate-preview2-header-status.py",
+    "activate-preview2-legacy-theme-routing.py",
     "activate-preview2-theme-coverage.py",
     "activate-preview2-build-identity.py",
     "verify-preview2-activation-chain.py",
@@ -34,9 +35,6 @@ PREVIEW2_STEPS = (
 
 
 def main() -> int:
-    # Parse the complete late materialization chain before touching the source
-    # tree. This keeps syntax failures deterministic and prevents partially
-    # applied Preview 2 stages inside the clean activation overlay.
     for name in PREVIEW2_STEPS:
         path = HERE / name
         if not path.exists():
