@@ -36,11 +36,19 @@ CHECKS = {
         "Source profile",
         "CEmuleNextTransferInsights::Build(file, historical)",
     ),
+    "TransferWnd.h": (
+        "EmuleNextDashboardWnd.h",
+        "w1iNextDashboard",
+        "CEmuleNextDashboardWnd\tm_nextDashboard",
+        "ShowNextDashboard();",
+    ),
     "TransferWnd.cpp": (
         "EMULENEXT_DASHBOARD_VIEW",
         "void CTransferWnd::ShowNextDashboard()",
         "message == WM_APP + 0x568",
         "downloadlistctrl.SelectFile(file, wParam != 0)",
+        "restore persisted Dashboard safely after first real layout",
+        "rebuilding toolbar chrome must not discard Dashboard selection",
     ),
     "PartFile.h": (
         "GetPartSourceFrequency(UINT part)",
