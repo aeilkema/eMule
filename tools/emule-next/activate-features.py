@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Compatibility entry point for all eMule Next runtime/UI activation.
 
-Materialized Next views are preferred over historic patch chains. Legacy
-structural patchers are skipped once their final result is present, keeping
-repeated local builds idempotent and preventing newer code from being
-accidentally downgraded by an older activator.
+Materialized Next views are preferred over historic patch chains. Dashboard
+host integration (TransferWnd, DownloadListCtrl and PartFile bridges) must
+always run, even when Dashboard Intelligence 2.0 is already materialized.
+Only obsolete Dashboard render/content patchers are skipped in that case.
 
 Windows Git checkouts commonly use CRLF. Before any activator runs, the isolated
 source overlay is normalized byte-for-byte to LF so multiline anchors are
@@ -66,10 +66,19 @@ def has_dashboard_intelligence2() -> bool:
 
 normalize_activation_sources()
 
-DASHBOARD_LEGACY_PATCHERS = {
+# These two scripts are infrastructure, not legacy Dashboard rendering. They
+# must remain active so Dashboard 2.0 is hosted in Transfers and can navigate
+# back to the authoritative download list.
+DASHBOARD_HOST_INTEGRATORS = {
     "activate-dashboard.py",
-    "fix-dashboard-compile.py",
     "activate-dashboard-navigation.py",
+}
+
+# These scripts patch the old Dashboard implementation itself. Intelligence
+# 2.0 already contains their final behavior, so replaying them would downgrade
+# or duplicate the materialized Dashboard source.
+DASHBOARD_RENDER_PATCHERS = {
+    "fix-dashboard-compile.py",
     "activate-dashboard-actions.py",
     "activate-dashboard-source-profile.py",
     "activate-smart-scheduler-ui.py",
@@ -141,7 +150,7 @@ for script_name in (
     ) and has_next_multi_view():
         print(f"eMule Next {script_name} already materialized; skipping")
         continue
-    if script_name in DASHBOARD_LEGACY_PATCHERS and has_dashboard_intelligence2():
+    if script_name in DASHBOARD_RENDER_PATCHERS and has_dashboard_intelligence2():
         print(f"eMule Next {script_name} superseded by Dashboard Intelligence 2.0; skipping")
         continue
     try:
