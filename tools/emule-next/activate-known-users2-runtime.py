@@ -41,7 +41,8 @@ def patch_header() -> None:
 def patch_cpp() -> None:
     path = SRC / "ClientList.cpp"
     text, newline = load(path)
-    if "bool CClientList::QueuePeerShareRefresh(const EmuleNextHash16& peerHash)" not in text:
+    final_marker = "bool CClientList::QueuePeerShareRefresh(const EmuleNextHash16& peerHash)"
+    if final_marker not in text:
         anchor = "CClientList::~CClientList()\n{\n\tRemoveAllTrackedClients();\n}\n"
         if anchor not in text:
             raise RuntimeError("Known Users 2 runtime implementation anchor missing")
@@ -49,7 +50,19 @@ def patch_cpp() -> None:
 
 bool CClientList::QueuePeerShareRefresh(const EmuleNextHash16& peerHash)
 {
-\tif (!peerHash.valid || !IsPeerOnline(peerHash))
+\tif (!peerHash.valid)
+\t\treturn false;
+\tCUpDownClient *client = FindClientByUserHash(peerHash.bytes.data());
+\tif (client == NULL)
+\t\treturn false;
+\tif (!client->GetViewSharedFilesSupport()) {
+\t\t// Materialize a scanner state first, then record the capability outcome.
+\t\t// This makes Unsupported diagnosable without ever sending a request.
+\t\tm_peerShareScanner.QueuePeer(peerHash, true);
+\t\tm_peerShareScanner.OnUnsupported(peerHash);
+\t\treturn false;
+\t}
+\tif (!IsPeerOnline(peerHash))
 \t\treturn false;
 \tif (!m_peerShareScanner.QueuePeerManual(peerHash))
 \t\treturn false;
