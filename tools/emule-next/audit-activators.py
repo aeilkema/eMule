@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """Static safety audit for eMule Next activators.
 
-The audit protects the integration contract that made repeated local builds
-reliable: one top-level activation order, no Dashboard injection through
-SearchResultsWnd, stable Smart Scheduler hooks and no accidental duplicate
-script execution.
+The audit protects repeated local builds: every helper must parse, top-level
+activation order must remain safe, Dashboard must not be injected through
+SearchResultsWnd, and the legacy Smart Scheduler hooks must preserve semantics.
 """
 from __future__ import annotations
 
 import ast
 import pathlib
-import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 HERE = pathlib.Path(__file__).resolve().parent
@@ -18,16 +16,25 @@ ENTRY = HERE / "activate-features.py"
 
 REQUIRED_ORDER = (
     "activate-smart-scheduler-runtime.py",
+    "activate-scheduler-persistence.py",
     "activate-smart-scheduler-ui.py",
+    "activate-scheduler-persistence-status.py",
+    "activate-dashboard-shared-insights.py",
+    "activate-ui-metrics.py",
+    "activate-next-view-dpi.py",
     "verify-smart-scheduling.py",
     "verify-smart-scheduler-runtime.py",
     "verify-smart-scheduler-product.py",
+    "verify-transfer-insights-bounds.py",
+    "verify-dashboard-shared-insights.py",
+    "verify-ui-metrics.py",
     "verify-no-hotpath-sqlite.py",
+    "verify-scheduler-persistence.py",
 )
 
 
 def read(path: pathlib.Path) -> str:
-    return path.read_bytes().decode("latin-1", errors="ignore")
+    return path.read_bytes().decode("utf-8-sig", errors="replace")
 
 
 def script_order(source: str) -> list[str]:
@@ -45,8 +52,20 @@ def script_order(source: str) -> list[str]:
 
 def main() -> int:
     failures: list[str] = []
+
+    # Parse every integration helper, not only the entry point. This catches a
+    # broken activator before it can partially mutate the build tree.
+    for path in sorted(HERE.glob("*.py")):
+        try:
+            ast.parse(read(path), filename=str(path))
+        except SyntaxError as exc:
+            failures.append(f"Python syntax error in {path.name}:{exc.lineno}: {exc.msg}")
+
     source = read(ENTRY)
-    ordered = script_order(source)
+    try:
+        ordered = script_order(source)
+    except SyntaxError:
+        ordered = []
     if not ordered:
         failures.append("unable to locate activation script order")
     else:
@@ -60,7 +79,7 @@ def main() -> int:
             else:
                 indexes.append(ordered.index(required))
         if indexes and indexes != sorted(indexes):
-            failures.append("Smart Scheduler activation/verification order is unsafe")
+            failures.append("Smart Scheduler persistence/UI activation order is unsafe")
 
     scheduler_activator = read(HERE / "activate-smart-scheduler-runtime.py")
     expected_a4af = (
