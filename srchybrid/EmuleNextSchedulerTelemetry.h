@@ -54,7 +54,7 @@ public:
     size_t PendingPersistenceEvents() const;
     uint64 DroppedPersistenceEvents() const;
     void Record(const EmuleNextSchedulerEvent& event);
-    void MarkAppliedIntervention();
+    void MarkAppliedIntervention(const CString& fileName);
     void Snapshot(std::deque<EmuleNextSchedulerEvent>& events) const;
     void Summary(EmuleNextSchedulerTelemetrySummary& summary) const;
     void Clear();
@@ -63,6 +63,7 @@ public:
 
 private:
     void QueuePersist(const EmuleNextSchedulerEvent& event);
+    void QueueAppliedPersist(const CString& fileName);
     void StopPersistence();
     void PersistenceMain();
 
@@ -79,6 +80,7 @@ private:
     mutable std::mutex m_persistMutex;
     std::condition_variable m_persistCondition;
     std::deque<EmuleNextSchedulerEvent> m_persistQueue;
+    std::deque<CString> m_persistAppliedQueue;
     std::thread m_persistThread;
     CStringW m_databasePath;
     CStringW m_lastAttemptPath;
