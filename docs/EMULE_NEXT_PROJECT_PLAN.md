@@ -12,15 +12,15 @@ eMule moderniseren zonder de bewezen eD2K/Kad-protocolkern onnodig te herschrijv
 
 | ID | Requirement | Acceptatiecriterium | Status |
 |---|---|---|---|
-| CORE-01 | Windows 10/11 x64 moderne build | Schone Release x64 build in lokale Build Tools; artifact wordt gepubliceerd | Release x64 groen op `goal-1-5` head `250f87f70029bd6cacb4cd10000206c50e7a442f`; Known Users 2.0 is de volgende buildtranche |
+| CORE-01 | Windows 10/11 x64 moderne build | Schone Release x64 build in lokale Build Tools; artifact wordt gepubliceerd | Release x64 groen op `goal-1-5` head `98f8272bd84a70f22da6a0ec1dad34af1c59bd75`; Known Users 2.0 compileert en linkt succesvol |
 | CORE-02 | Oude eMule-protocollen compatibel houden | eD2K/Kad, bestaande downloads/uploads en handmatige View Shared Files blijven werken | Doorlopend; volledige regressiematrix vóór Preview 2 |
 | PERF-01 | Interface mag niet blokkeren door nieuwe functies | Databasewrites, history-reads en automatische shared-file verwerking gebeuren buiten zware legacy GUI-inserts | Ver gevorderd: scheduler/history/telemetry async, Search/Library/Known Users achtergrondwerk; Known Users 2.0 gebruikt bounded query-only reads en async history-delete; runtime-stresstest blijft nodig |
 | PERF-02 | Snellere lookups | Client- en downloadindex vervangen lineaire scans waar veilig, met compatibiliteitsfallback | Actief; hardening/stale-entry tests nog nodig |
-| PEER-01 | Persistente known users | Peer hash, naam, endpoints, first/last seen worden historisch opgeslagen | Implementatie gereed in Known Users 2.0; first/last seen, endpoint, alias/favorite en live/history-status zichtbaar; lokale build/runtimevalidatie volgt |
+| PEER-01 | Persistente known users | Peer hash, naam, endpoints, first/last seen worden historisch opgeslagen | Known Users 2.0 implementatie en lokale Release x64 build geslaagd; first/last seen, endpoint, alias/favorite en live/history-status zichtbaar; runtimevalidatie volgt |
 | PEER-02 | Automatisch gedeelde bestanden inventariseren | Alleen normale eMule View Shared Files-functionaliteit gebruiken; privacy/denial respecteren; throttling/cooldown | Implementatie gereed: bestaande scanner-state wordt zichtbaar gemaakt en per-peer refresh respecteert denied/failure-cooldowns; echte peer-runtimevalidatie volgt |
-| PEER-03 | Eén geconsolideerde Known users-weergave | Permanente tab met users boven en bekende bestanden van geselecteerde user onder; geen automatische tab per peer | Known Users 2.0 implementatie gereed met search, Current/History/Favorites/Recent, sortering, persistente viewstate en selected-peer detail/files |
+| PEER-03 | Eén geconsolideerde Known users-weergave | Permanente tab met users boven en bekende bestanden van geselecteerde user onder; geen automatische tab per peer | Known Users 2.0 implementatie en lokale build geslaagd met search, Current/History/Favorites/Recent, sortering, persistente viewstate en selected-peer detail/files; runtimevalidatie volgt |
 | PEER-04 | Oude/herstelde user-tabs herkennen | Herstelde View Shared Files-resultaten worden bij reconnect aan dezelfde peer gekoppeld en geïmporteerd; geen dubbele automatische aanvraag/tab | Userhash blijft primaire match; endpoint-disambiguatie voor dubbele namen en deterministische duplicate-username gate aanwezig; echte restored-tab runtime-test blijft open |
-| PEER-05 | Peer↔file historie | Vastleggen wanneer een bestand bij een peer is gezien, inclusief first/last seen | Implementatie gereed; file first/last seen en current-vs-history state zichtbaar; per-peer intelligence-history kan gecontroleerd worden verwijderd |
+| PEER-05 | Peer↔file historie | Vastleggen wanneer een bestand bij een peer is gezien, inclusief first/last seen | Implementatie + lokale build geslaagd; file first/last seen en current-vs-history state zichtbaar; per-peer intelligence-history kan gecontroleerd worden verwijderd; runtimevalidatie blijft open |
 | SEARCH-01 | Search 2 / historische zoekfunctie | Zoeken in actuele + historische filekennis, filters, blockregels, saved searches | Actief; async/background basis en begrenzing aanwezig; live+historisch samenvoegen en UX blijven open |
 | LIB-01 | File Library | Historie van gevonden/gedownloade bestanden, favorites, download later en herstelmogelijkheden | Actief; views/background load/filtering aanwezig; recovery/download-again/session-state nog open |
 | INTEL-01 | Download intelligence | Historische bronnen/peers en downloadervaring gebruiken om downloads slimmer te hervatten/prioriteren zonder protocolbreuk | Hoofdlaag bouwbaar bevestigd op `250f87f70029bd6cacb4cd10000206c50e7a442f`: canonical transfer insights, Dashboard/Transfers Intelligence 2.0, persistent history/decisions/outcomes, stale cleanup, action-specific cooldowns, 30/120s outcome-metingen en force/reset APIs; runtimevalidatie blijft open |
@@ -30,7 +30,7 @@ eMule moderniseren zonder de bewezen eD2K/Kad-protocolkern onnodig te herschrijv
 | UI-04 | eMule Next branding | Nieuwe functies herkenbaar maar zonder protocolcompatibiliteit te suggereren die niet bestaat | Actief; Preview-branding aanwezig; Preview 2 productisering later |
 | SESSION-01 | Sessiestatus herstellen | Relevante historische/open UI-status wordt na restart herkend zonder dezelfde informatie opnieuw als nieuw te behandelen | Ver gevorderd: Dashboard filter/sort/column-state, scheduler history en Known Users mode/search/sort/column-state persistent; restored-tab runtimegedrag blijft te valideren |
 | DATA-01 | Lokale SQLite intelligence database | Migratiebaar schema, async writer, losse read-verbindingen, integrity/backup | Schedulerdeel formeel op schema v2; Known Users 2.0 gebruikt bounded query-only read-service en async gecontroleerde peer-history delete; bredere automatische backup/corruptieherstel blijft P1 |
-| CI-01 | Reproduceerbare source bootstrap | Officiële v0.72a source + gepinde dependencies + idempotente overlay/activatie | Actief: activation-stage isolatie en idempotentie bewezen op `250f87f...`; Intelligence- en Known Users 2.0-completion gates + activator-audit aanwezig; nieuwe Known Users-head lokaal nog buildbevestigen |
+| CI-01 | Reproduceerbare source bootstrap | Officiële v0.72a source + gepinde dependencies + idempotente overlay/activatie | Actief: activation-stage isolatie en idempotentie eerder bewezen; Intelligence- en Known Users 2.0-completion gates + activator-audit aanwezig; Known Users 2.0 lokaal Release x64 bevestigd op `98f8272bd84a70f22da6a0ec1dad34af1c59bd75` |
 
 ## Architectuurregels
 
@@ -65,7 +65,7 @@ eMule moderniseren zonder de bewezen eD2K/Kad-protocolkern onnodig te herschrijv
 - First/last seen, endpoint, browse-status en file-history zichtbaar maken.
 - Per-peer refresh en gecontroleerde lokale history-delete aanbieden.
 - Persistente Known Users-viewstate herstellen.
-- Implementatie is nu als Known Users 2.0 tranche gereed; lokale build en echte peer-runtimegedrag bepalen of Fase B volledig DONE kan worden.
+- Implementatie en lokale Release x64 build zijn als Known Users 2.0 tranche gereed op `98f8272bd84a70f22da6a0ec1dad34af1c59bd75`; echte peer-runtimevalidatie bepaalt of Fase B volledig DONE kan worden.
 
 ### Fase C — moderne Search en Library
 - `Search2Service` koppelen aan nieuwe Search UI.
@@ -100,19 +100,20 @@ eMule moderniseren zonder de bewezen eD2K/Kad-protocolkern onnodig te herschrijv
 
 ## Eerstvolgende acceptatietest
 
-De nieuwe `goal-1-5` Known Users 2.0 build moet aantonen dat:
+De lokaal succesvol gebouwde `goal-1-5` Known Users 2.0 head `98f8272bd84a70f22da6a0ec1dad34af1c59bd75` moet nu in runtime aantonen dat:
 
-1. de Release x64-build volledig slaagt inclusief `verify-known-users2.py`, de activator-audit en de algemene integratieverifier;
-2. de echte repository-overlay schoon blijft na `build-local.ps1`;
-3. de permanente Known Users-tab opent zonder UI-freeze en background user/file refresh blijft werken;
-4. Search en Current / History / Favorites / Recent 7d correct filteren;
-5. sortering, kolombreedtes, actieve mode en zoektekst na heropenen/restart worden hersteld;
-6. first/last seen, endpoint, alias, favorite en browse-status correct zichtbaar zijn;
-7. selected-peer files first/last seen en Current/History state tonen;
+1. de permanente Known Users-tab opent zonder UI-freeze en background user/file refresh blijft werken;
+2. Current / History / Favorites / Recent 7d correct filteren;
+3. Search de echte query gebruikt en resultaten correct beperkt/filtert;
+4. sortering, kolombreedtes, actieve mode en zoektekst na heropenen/restart worden hersteld;
+5. first/last seen, endpoint, alias, favorite en browse-status correct zichtbaar zijn;
+6. selected-peer files first/last seen en Current/History state tonen;
+7. alias en favorite/unfavorite op de juiste userhash blijven werken, ook bij peers met gelijke username;
 8. per-peer Refresh alleen de geselecteerde peer gebruikt en denied/timeout/error-cooldowns niet omzeilt;
 9. success/denied/timeout/unsupported/error en resterende TTL/cooldown begrijpelijk zichtbaar worden;
 10. Delete history asynchroon werkt, de peer-history verdwijnt en lokale alias/favorite behouden blijven;
 11. restored View Shared Files-data bij reconnect op userhash wordt hergebruikt zonder dubbele automatische aanvraag/tab;
-12. twee peers met dezelfde username maar verschillende hashes/endpoints afzonderlijk blijven in storage, UI en restored-tab matching.
+12. twee peers met dezelfde username maar verschillende hashes/endpoints afzonderlijk blijven in storage, UI en restored-tab matching;
+13. langdurig wisselen tussen modes, zoeken, sorteren, peerselectie en file-details geen merkbare UI-blocking of crash veroorzaakt.
 
-Na een geslaagde build wordt de Known Users 2.0-head bovenaan in `docs/EMULE_NEXT_TODO.md` als nieuwe bewezen buildbasis vastgelegd. Na de echte runtimechecks kan Fase B volledig DONE worden verklaard en kan de volgende `/goal`-tranche naar Search 2.0 verschuiven.
+Na een geslaagde runtime-smoketest kan Fase B volledig DONE worden verklaard en verschuift de volgende grote `/goal`-tranche naar Search 2.0. `goal-1-5` wordt niet naar `develop` gemerged zonder expliciete toestemming.
