@@ -28,13 +28,15 @@ def main() -> int:
     library = load("FileLibraryWnd.cpp")
     known = load("KnownUsersWnd.cpp")
     metrics = load("EmuleNextUiMetrics.cpp")
+    workspace = load("EmuleNextWorkspaceUi.h")
 
     require(project, '<ClCompile Include="EmuleNextUiMetrics.cpp" />', "UI metrics cpp project entry")
     require(project, '<ClInclude Include="EmuleNextUiMetrics.h" />', "UI metrics header project entry")
     require(metrics, "MulDiv(value96Dpi", "DPI scaling implementation")
+    require(workspace, "CEmuleNextUiMetrics::Scale", "workspace metrics delegation")
 
     require(dashboard, '#include "EmuleNextUiMetrics.h"', "Dashboard metrics include")
-    require(dashboard, "const int margin = CEmuleNextUiMetrics::Scale(m_hWnd, 8);", "Dashboard scaled margin")
+    require(dashboard, "const int margin = CEmuleNextWorkspaceUi::Margin(m_hWnd);", "Dashboard shared scaled margin")
     require(dashboard, "CEmuleNextUiMetrics::Scale(m_hWnd, widths[i])", "Dashboard scaled columns")
     require(dashboard, "const int filterHeight = CEmuleNextUiMetrics::Scale", "Dashboard scaled filters")
     require(settings, '#include "EmuleNextUiMetrics.h"', "Settings metrics include")
@@ -45,15 +47,14 @@ def main() -> int:
     require(search2, '#include "EmuleNextUiMetrics.h"', "Search 2 metrics include")
     require(search2, "const int queryTop = CEmuleNextUiMetrics::Scale", "Search 2 scaled layout")
     require(search2, "CEmuleNextUiMetrics::Scale(m_hWnd, 360)", "Search 2 scaled columns")
+    require(search2, "CEmuleNextWorkspaceUi::Margin(m_hWnd)", "Search shared workspace margin")
     require(library, '#include "EmuleNextUiMetrics.h"', "Library metrics include")
     require(library, "const int controlsTop = CEmuleNextUiMetrics::Scale", "Library scaled layout")
     require(library, "m_results.InsertColumn(0, _T(\"File\"), LVCFMT_LEFT, CEmuleNextUiMetrics::Scale(m_hWnd, 330));", "Library 2 scaled file column")
-    require(library, "const int actionHeight = CEmuleNextUiMetrics::Scale", "Library 2 scaled action row")
+    require(library, "const int actionHeight = CEmuleNextWorkspaceUi::ActionHeight(m_hWnd);", "Library 2 shared action row")
 
-    # Known Users 2.0 owns its DPI-aware geometry directly instead of relying
-    # on the legacy activate-next-view-dpi.py constants (190/84/105 etc.).
     require(known, '#include "EmuleNextUiMetrics.h"', "Known Users metrics include")
-    require(known, "const int margin = CEmuleNextUiMetrics::Scale(m_hWnd, 8);", "Known Users 2.0 scaled margin")
+    require(known, "const int margin = CEmuleNextWorkspaceUi::Margin(m_hWnd);", "Known Users 2.0 shared scaled margin")
     require(known, "const int modesWidth = CEmuleNextUiMetrics::Scale(m_hWnd, 330);", "Known Users 2.0 scaled mode tabs")
     require(known, "const int searchWidth = CEmuleNextUiMetrics::Scale(m_hWnd, 200);", "Known Users 2.0 scaled search field")
     require(known, "m_users.InsertColumn(0, _T(\"User\"), LVCFMT_LEFT, CEmuleNextUiMetrics::Scale(m_hWnd, 170));", "Known Users 2.0 scaled user columns")
