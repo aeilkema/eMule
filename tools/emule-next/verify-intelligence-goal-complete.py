@@ -35,6 +35,7 @@ def main() -> int:
     telemetry = load("EmuleNextSchedulerTelemetry.cpp")
     reader = load("EmuleNextSchedulerTelemetryReader.cpp")
     database = load("EmuleNextDatabase.cpp")
+    project = load("emule.vcxproj")
 
     require(dashboard_h, (
         "EMULENEXT_DASHBOARD_INTELLIGENCE2",
@@ -85,6 +86,24 @@ def main() -> int:
         "scheduler_file_history", "scheduler_decisions", "scheduler_outcomes",
         "ALTER TABLE scheduler_decisions ADD COLUMN file_hash BLOB",
     ), "DATA-01 schema")
+
+    # These translation units are referenced by the completed Dashboard/Scheduler
+    # implementation. Missing project entries would pass Python verification but
+    # fail later at compile/link time, so keep them inside the same completion gate.
+    require(project, (
+        '<ClCompile Include="EmuleNextSchedulerTelemetry.cpp" />',
+        '<ClCompile Include="EmuleNextSchedulerTelemetryReader.cpp" />',
+        '<ClCompile Include="EmuleNextTransferInsights.cpp" />',
+        '<ClCompile Include="EmuleNextHistoryCache.cpp" />',
+        '<ClCompile Include="EmuleNextSmartScheduler.cpp" />',
+        '<ClCompile Include="EmuleNextUiMetrics.cpp" />',
+        '<ClInclude Include="EmuleNextSchedulerTelemetry.h" />',
+        '<ClInclude Include="EmuleNextSchedulerTelemetryReader.h" />',
+        '<ClInclude Include="EmuleNextTransferInsights.h" />',
+        '<ClInclude Include="EmuleNextHistoryCache.h" />',
+        '<ClInclude Include="EmuleNextSmartScheduler.h" />',
+        '<ClInclude Include="EmuleNextUiMetrics.h" />',
+    ), "emule.vcxproj")
 
     print("TODO goals Dashboard/Transfers Intelligence 2.0 + Scheduler persistence: implementation gate passed")
     return 0
