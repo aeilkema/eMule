@@ -32,7 +32,7 @@ def main() -> int:
 
     require(known, "kMaximumKnownUsers = 2000", "Known Users row cap")
     require(known, "kMaximumKnownFilesPerUser = 2000", "Known User file row cap")
-    require(known, "LIMIT ?3", "parameterized Known Users limit")
+    require(known, "LIMIT ?5", "parameterized Known Users limit")
     require(known, "LIMIT ?2", "parameterized Known User files limit")
     require(known, "PRAGMA query_only=ON", "Known Users query-only read connection")
 
