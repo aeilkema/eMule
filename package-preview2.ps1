@@ -30,24 +30,32 @@ if (Test-Path -LiteralPath (Join-Path $RepoRoot "docs\EMULE_NEXT_PREVIEW2_RELEAS
 if (Test-Path -LiteralPath (Join-Path $RepoRoot "create-preview2-support-bundle.ps1")) {
     Copy-Item -LiteralPath (Join-Path $RepoRoot "create-preview2-support-bundle.ps1") -Destination (Join-Path $Stage "create-support-bundle.ps1") -Force
 }
+if (Test-Path -LiteralPath (Join-Path $RepoRoot "preview2-runtime-acceptance.ps1")) {
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "preview2-runtime-acceptance.ps1") -Destination (Join-Path $Stage "preview2-runtime-acceptance.ps1") -Force
+}
 
 $readme = @"
 eMule Next 0.2.0 Preview 2 (x64)
 ================================
 
-This package contains the Preview 2 executable plus release/test documentation
-and a safe support-bundle helper. It deliberately contains no user configuration,
-intelligence database, download state or peer history. Existing user data is
-therefore never overwritten by unpacking this ZIP.
+This package contains the Preview 2 executable plus release/test documentation,
+a safe support-bundle helper and the build-bound runtime acceptance harness.
+It deliberately contains no user configuration, intelligence database, download
+state or peer history. Existing user data is therefore never overwritten by
+unpacking this ZIP.
 
 Important safety defaults:
 - Smart Scheduling starts in Analysis only unless the existing user profile explicitly says otherwise.
 - eD2K/Kad protocol behavior remains the upstream eMule v0.72a core.
 - Intelligence/database failure is designed not to block the legacy networking core.
 
-Use Diagnostics for database health, backups, the stress self-test and the runtime validation matrix.
-After exporting a Diagnostics report, create-support-bundle.ps1 can create a privacy-bounded ZIP
-containing only that report, build identity and public release/test documentation.
+Use Diagnostics for database health, backups and the stress self-test.
+Use preview2-runtime-acceptance.ps1 in the source checkout to bind PASS/FAIL results
+to the exact Git HEAD and executable SHA256. The copy included here is provided
+as the acceptance/test reference alongside the portable binary.
+After exporting a Diagnostics report, create-support-bundle.ps1 can create a
+privacy-bounded ZIP containing only that report, build identity and public
+release/test documentation.
 "@
 Set-Content -LiteralPath (Join-Path $Stage "README-PREVIEW2.txt") -Value $readme -Encoding utf8
 
