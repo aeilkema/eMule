@@ -30,12 +30,7 @@ def save(text: str, newline: str) -> None:
 
 
 def final_shared_intelligence2(text: str) -> bool:
-    """Return True only for the final state materialized by Transfers 2.0.
-
-    All markers are required so a partially activated tree is never silently
-    accepted. The old BuildNextFileSignals helper is intentionally absent in
-    this final form.
-    """
+    """Return True only for the final state materialized by Transfers 2.0."""
     return (
         '#include "EmuleNextTransferInsights.h"' in text
         and '#include "EmuleNextSmartScheduler.h"' in text
@@ -50,10 +45,6 @@ def final_shared_intelligence2(text: str) -> bool:
 def main() -> int:
     text, newline = load()
 
-    # activate-transfer-insights-2.py supersedes this intermediate form. This
-    # guard is essential for second-pass idempotence: that later activator
-    # intentionally removes BuildNextFileSignals and expands DrawFileItem from
-    # columns 16..18 to 16..22.
     if final_shared_intelligence2(text):
         print("eMule Next legacy file intelligence superseded by shared Transfers Intelligence 2.0; skipping")
         return 0
@@ -64,7 +55,6 @@ def main() -> int:
             raise RuntimeError("DownloadListCtrl include anchor not found")
         text = text.replace(include_anchor, include_anchor + '#include "DownloadIntelligence.h"\n', 1)
 
-    # Existing source-intelligence activation creates columns 14/15 first.
     column_anchor = '\tInsertColumn(15,\t_T("Live quality"),\tLVCFMT_RIGHT,\t90);\n'
     columns = ('\tInsertColumn(16,\t_T("Health"),\tLVCFMT_RIGHT,\t80);\n'
                '\tInsertColumn(17,\t_T("Diagnosis"),\tLVCFMT_LEFT,\t135);\n'
@@ -94,7 +84,9 @@ def main() -> int:
         text = text.replace(localize_anchor, localize_anchor + localize, 1)
 
     helper_anchor = '#define RATING_ICON_WIDTH\t16\n'
-    helpers = r'''
+    # Deliberately NOT a raw string. The \t escapes below must become real tabs
+    # in C++, and escaped Python quotes must become ordinary C++ quotes.
+    helpers = '''
 
 namespace
 {
@@ -116,7 +108,6 @@ namespace
 \t\tsignals.hashing = file->GetStatus() == PS_HASHING || file->GetStatus() == PS_WAITINGFORHASH
 \t\t\t|| file->GetFileOp() == PFOP_HASHING;
 \t\tsignals.highPriority = file->GetDownPriority() == PR_HIGH || file->GetDownPriority() == PR_VERYHIGH;
-\t\t// Until Kad cycle telemetry is wired per file, avoid falsely diagnosing Kad itself.
 \t\tsignals.kadResultsLastCycle = 1;
 \t\tfor (UINT part = 0; part < file->GetPartCount(); ++part) {
 \t\t\tif (file->IsComplete(part))
@@ -205,6 +196,15 @@ namespace
         if old_draw not in text:
             raise RuntimeError("DrawFileItem anchor not found")
         text = text.replace(old_draw, new_draw, 1)
+
+    # Producer contract: never report success with escaped Python source leaked
+    # into the materialized C++ stage.
+    for forbidden in ('\\tEmuleNextFileSignals', '\\tCString NextFileIntelligenceText', '_T(\\"'):
+        if forbidden in text:
+            raise RuntimeError(f"File intelligence materialized escaped Python text: {forbidden}")
+    for required in ('EmuleNextFileSignals BuildNextFileSignals(', 'CString NextFileIntelligenceText(', 'nColumn >= 16 && nColumn <= 18'):
+        if required not in text:
+            raise RuntimeError(f"File intelligence producer contract missing: {required}")
 
     save(text, newline)
     print("eMule Next file health, stall diagnosis and Smart ETA active")
