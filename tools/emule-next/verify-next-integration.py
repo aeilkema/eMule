@@ -53,24 +53,53 @@ CHECKS = {
     "PartFile.h": (
         "GetPartSourceFrequency(UINT part)",
     ),
+    "EmuleNextSmartScheduler.cpp": (
+        "theEmuleNext.Database()",
+    ),
+    "emule.vcxproj": (
+        "Condition=\"'$(Platform)'=='x64'\">WINVER=0x0A00;_WIN32_WINNT=0x0A00;%(PreprocessorDefinitions)",
+        "Condition=\"'$(Platform)'=='Win32'\">XP_BUILD;%(PreprocessorDefinitions)",
+        "winsqlite3.lib",
+    ),
+}
+
+FORBIDDEN = {
+    "TransferWnd.cpp": (
+        "AddDebugLogLine",
+    ),
+    "EmuleNextSmartScheduler.cpp": (
+        "theEmuleNextRuntime.Database()",
+    ),
+    "emule.vcxproj": (
+        "Condition=\"'$(Platform)'!='ARM64'\">XP_BUILD",
+    ),
 }
 
 
 def main() -> int:
-    missing: list[str] = []
+    failures: list[str] = []
     for name, markers in CHECKS.items():
         path = SRC / name
         if not path.exists():
-            missing.append(f"{name}: file missing")
+            failures.append(f"{name}: file missing")
             continue
         text = path.read_bytes().decode("latin-1", errors="ignore")
         for marker in markers:
             if marker not in text:
-                missing.append(f"{name}: missing {marker!r}")
+                failures.append(f"{name}: missing {marker!r}")
 
-    if missing:
+    for name, markers in FORBIDDEN.items():
+        path = SRC / name
+        if not path.exists():
+            continue
+        text = path.read_bytes().decode("latin-1", errors="ignore")
+        for marker in markers:
+            if marker in text:
+                failures.append(f"{name}: forbidden compile-regression marker present {marker!r}")
+
+    if failures:
         print("eMule Next integration verification FAILED")
-        for item in missing:
+        for item in failures:
             print(f"  - {item}")
         raise SystemExit(2)
 
