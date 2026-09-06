@@ -3,12 +3,12 @@
 
 The audit protects repeated local builds: every helper must parse, top-level
 activation order must remain safe, Windows CRLF must be normalized before
-multiline patchers run, materialized Dashboard 2.0 must supersede legacy
-Dashboard patchers, and Smart Scheduler hooks must preserve semantics.
+multiline patchers run, Dashboard 2.0 host integration must remain active while
+obsolete render patchers are skipped, and Smart Scheduler hooks must preserve
+semantics.
 
-Important: verifier scripts are read-only by design. Cross-file coupling checks
-therefore inspect only helpers which can actually mutate/materialize source.
-Mentioning two source filenames in a verifier is not an integration dependency.
+Verifier scripts are read-only by design. Cross-file coupling checks therefore
+inspect only helpers which can actually mutate/materialize source.
 """
 from __future__ import annotations
 
@@ -20,9 +20,6 @@ HERE = pathlib.Path(__file__).resolve().parent
 ENTRY = HERE / "activate-features.py"
 NORMALIZER = HERE / "normalize-stage-newlines.py"
 
-# Only these helper families are permitted to materialize/patch the source tree.
-# `verify-*` and `audit-*` are intentionally excluded from mutation/coupling
-# scans because they merely name the files they inspect.
 MUTATING_HELPER_PREFIXES = (
     "activate-",
     "finalize-",
@@ -36,6 +33,8 @@ REQUIRED_ORDER = (
     "activate-search2-background-metadata.py",
     "activate-search2-background-actions.py",
     "finalize-search-results.py",
+    "activate-dashboard.py",
+    "activate-dashboard-navigation.py",
     "activate-smart-scheduler-runtime.py",
     "activate-scheduler-action-stability.py",
     "activate-scheduler-schema-v2.py",
@@ -81,6 +80,21 @@ def script_order(source: str) -> list[str]:
     return []
 
 
+def assigned_string_set(source: str, name: str) -> set[str]:
+    tree = ast.parse(source)
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            if not any(isinstance(target, ast.Name) and target.id == name for target in node.targets):
+                continue
+            if isinstance(node.value, (ast.Set, ast.Tuple, ast.List)):
+                values: set[str] = set()
+                for item in node.value.elts:
+                    if isinstance(item, ast.Constant) and isinstance(item.value, str):
+                        values.add(item.value)
+                return values
+    return set()
+
+
 def is_mutating_helper(path: pathlib.Path) -> bool:
     name = path.name
     if name in {"activate-features.py", "audit-activators.py"}:
@@ -121,6 +135,27 @@ def main() -> int:
             if ordered.index("verify-intelligence-goal-complete.py") > ordered.index("audit-activators.py"):
                 failures.append("intelligence completion gate must run before the activator audit")
 
+    # Dashboard 2.0 supersedes old rendering/content patches, but it does NOT
+    # supersede the TransferWnd/DownloadListCtrl/PartFile host bridges.
+    hosts = assigned_string_set(source, "DASHBOARD_HOST_INTEGRATORS")
+    render_patchers = assigned_string_set(source, "DASHBOARD_RENDER_PATCHERS")
+    expected_hosts = {"activate-dashboard.py", "activate-dashboard-navigation.py"}
+    if hosts != expected_hosts:
+        failures.append("Dashboard host integrator classification is incomplete")
+    if hosts & render_patchers:
+        failures.append("Dashboard host integrator incorrectly classified as render patcher")
+    for required in (
+        "fix-dashboard-compile.py",
+        "activate-dashboard-actions.py",
+        "activate-dashboard-source-profile.py",
+        "activate-smart-scheduler-ui.py",
+        "activate-dashboard-shared-insights.py",
+    ):
+        if required not in render_patchers:
+            failures.append(f"Dashboard render-patcher guard lost {required}")
+    if "has_dashboard_intelligence2()" not in source:
+        failures.append("Dashboard Intelligence 2.0 materialization guard missing")
+
     # Windows Git checkouts often use CRLF. The central entrypoint must normalize
     # the source overlay before any multiline activator executes; build-local.ps1
     # performs the same step explicitly as defense in depth.
@@ -158,6 +193,24 @@ def main() -> int:
         if marker not in scheduler_activator:
             failures.append(f"Smart Scheduler project activation lost {marker}")
 
+    dashboard_host = read(HERE / "activate-dashboard.py")
+    for marker in (
+        "GetPartSourceFrequency(UINT part)",
+        "ShowNextDashboard()",
+        "EMULENEXT_DASHBOARD_VIEW",
+        "m_nextDashboard.Create(this)",
+    ):
+        if marker not in dashboard_host:
+            failures.append(f"Dashboard host integration lost {marker}")
+    dashboard_navigation = read(HERE / "activate-dashboard-navigation.py")
+    for marker in (
+        "SelectFile(CPartFile *file, bool expand = false)",
+        "message == WM_APP + 0x568",
+        "downloadlistctrl.SelectFile(file, wParam != 0)",
+    ):
+        if marker not in dashboard_navigation:
+            failures.append(f"Dashboard navigation integration lost {marker}")
+
     stability = read(HERE / "activate-scheduler-action-stability.py")
     for marker in ("previousActionAt", "candidate.lastA4AFAt", "Preserve an active measurement window"):
         if marker not in stability:
@@ -184,22 +237,6 @@ def main() -> int:
         if marker not in search_actions:
             failures.append(f"Search 2 background action activator missing {marker}")
 
-    if "has_dashboard_intelligence2()" not in source or "DASHBOARD_LEGACY_PATCHERS" not in source:
-        failures.append("Dashboard Intelligence 2.0 legacy-patcher guard missing")
-    for legacy in (
-        "activate-dashboard.py",
-        "activate-dashboard-actions.py",
-        "activate-dashboard-source-profile.py",
-        "activate-smart-scheduler-ui.py",
-        "activate-dashboard-shared-insights.py",
-    ):
-        if legacy not in source:
-            failures.append(f"Dashboard legacy-patcher guard lost {legacy}")
-
-    # This guard is specifically about scripts capable of *injecting* Dashboard
-    # source into SearchResults. Read-only verifiers necessarily mention both
-    # filenames when checking separation and must never be classified as an
-    # injector simply because those string literals coexist in the verifier.
     search_injectors: list[str] = []
     for path in HERE.glob("*.py"):
         if not is_mutating_helper(path):
@@ -210,8 +247,6 @@ def main() -> int:
     if search_injectors:
         failures.append("Dashboard/SearchResults coupling found in mutating helper(s): " + ", ".join(sorted(search_injectors)))
 
-    # Regression guard for the false-positive class which previously blocked
-    # activation: the hot-path verifier legitimately inspects both source files.
     verifier = HERE / "verify-no-hotpath-sqlite.py"
     if verifier.exists():
         verifier_body = read(verifier)
