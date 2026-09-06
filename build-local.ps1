@@ -14,7 +14,7 @@ $RepoRoot = $PSScriptRoot
 Set-Location $RepoRoot
 
 $MSBuild = "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\MSBuild\Current\Bin\MSBuild.exe"
-$PreviewExeName = "eMule-Next-0.1.0-Preview1-x64.exe"
+$PreviewExeName = "eMule-Next-0.2.0-Preview2-x64.exe"
 $LatestExeName = "eMule-Next-x64.exe"
 $StageRoot = Join-Path $RepoRoot "build\activation-stage"
 $VerifyStageRoot = Join-Path $RepoRoot "build\activation-stage-verify"
@@ -151,10 +151,6 @@ function Sync-ActivatedOverlay([string]$SourceRoot, [string]$DestinationRoot) {
     Write-Host "Incremental overlay sync: $added added, $updated changed, $unchanged unchanged."
 }
 
-# Normal development builds perform one clean activation. The optional
-# -VerifyDeterminism mode performs a second independent clean activation and
-# compares the resulting trees byte-for-byte. This keeps the strong generator
-# check available without paying for it on every compile/fix cycle.
 $StageA = New-CleanActivationStage $StageRoot "A"
 Invoke-CleanActivation $StageA
 $StageSource = $StageA.Source
@@ -180,10 +176,10 @@ if ($ActivationOnly) {
     Write-Host ""
     Write-Host "ACTIVATION SUCCESS"
     if ($VerifyDeterminism) {
-        Write-Host "Integration, feature activation, all verifiers and clean-run determinism succeeded."
+        Write-Host "Integration, Preview 2 materialization, all verifiers and clean-run determinism succeeded."
     }
     else {
-        Write-Host "Integration, feature activation and all verifiers succeeded."
+        Write-Host "Integration, Preview 2 materialization and all verifiers succeeded."
     }
     Write-Host "Stage: $StageRoot"
     Write-Host "Repository overlay was not modified by integration/activation."
@@ -221,17 +217,14 @@ if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) {
     throw "Generated eMule source directory not found: $SourceDir"
 }
 
-# Content-aware copy is essential for real incremental C++ builds. Rewriting
-# every source file would update timestamps and force MSBuild to rebuild nearly
-# the whole application even when only one eMule Next file changed.
 Sync-ActivatedOverlay $StageSource $SourceDir
 
 $BuildTarget = if ($FullRebuild) { "Rebuild" } else { "Build" }
 if ($FullRebuild) {
-    Write-Host "Building eMule Next Preview 1 x64 (full rebuild)..."
+    Write-Host "Building eMule Next Preview 2 x64 (full rebuild)..."
 }
 else {
-    Write-Host "Building eMule Next Preview 1 x64 (incremental)..."
+    Write-Host "Building eMule Next Preview 2 x64 (incremental)..."
 }
 
 & $MSBuild `
@@ -246,11 +239,10 @@ else {
     /verbosity:minimal
 
 if ($LASTEXITCODE -ne 0) {
-    throw "eMule build failed. Activated staging overlay kept at $StageRoot for diagnosis."
+    throw "eMule Preview 2 build failed. Activated staging overlay kept at $StageRoot for diagnosis."
 }
 
 $Exe = Join-Path $SourceDir "x64\Release\emule.exe"
-
 if (-not (Test-Path $Exe)) {
     throw "Build succeeded but emule.exe was not found."
 }
@@ -271,6 +263,6 @@ if (-not $KeepActivationStage) {
 
 Write-Host ""
 Write-Host "SUCCESS"
-Write-Host "Preview: $PreviewExe"
+Write-Host "Preview 2: $PreviewExe"
 Write-Host "Latest alias: $LatestExe"
 Write-Host "Repository overlay was not modified by integration/activation."
