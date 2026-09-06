@@ -12,9 +12,9 @@ eMule moderniseren zonder de bewezen eD2K/Kad-protocolkern onnodig te herschrijv
 
 | ID | Requirement | Acceptatiecriterium | Status |
 |---|---|---|---|
-| CORE-01 | Windows 10/11 x64 moderne build | Schone Release x64 build in lokale Build Tools; artifact wordt gepubliceerd | Groen op huidige `goal-1-5`-build; doorlopend bewaken |
+| CORE-01 | Windows 10/11 x64 moderne build | Schone Release x64 build in lokale Build Tools; artifact wordt gepubliceerd | Groen op vorige `goal-1-5` head; nieuwe Intelligence 2.0/Scheduler-completion head wacht op lokale buildbevestiging |
 | CORE-02 | Oude eMule-protocollen compatibel houden | eD2K/Kad, bestaande downloads/uploads en handmatige View Shared Files blijven werken | Doorlopend; volledige regressiematrix vóór Preview 2 |
-| PERF-01 | Interface mag niet blokkeren door nieuwe functies | Databasewrites, history-reads en automatische shared-file verwerking gebeuren buiten zware legacy GUI-inserts | Ver gevorderd: scheduler/history/telemetry async, Search/Library/Known Users achtergrondwerk; verdere UI-stresstest nodig |
+| PERF-01 | Interface mag niet blokkeren door nieuwe functies | Databasewrites, history-reads en automatische shared-file verwerking gebeuren buiten zware legacy GUI-inserts | Ver gevorderd: scheduler/history/telemetry async, persistent telemetry reader background-only, Search/Library/Known Users achtergrondwerk; runtime-stresstest blijft nodig |
 | PERF-02 | Snellere lookups | Client- en downloadindex vervangen lineaire scans waar veilig, met compatibiliteitsfallback | Actief; hardening/stale-entry tests nog nodig |
 | PEER-01 | Persistente known users | Peer hash, naam, endpoints, first/last seen worden historisch opgeslagen | Actief en functioneel; UI-detailuitbreiding nog nodig |
 | PEER-02 | Automatisch gedeelde bestanden inventariseren | Alleen normale eMule View Shared Files-functionaliteit gebruiken; privacy/denial respecteren; throttling/cooldown | Actief / runtime-verfijning |
@@ -23,14 +23,14 @@ eMule moderniseren zonder de bewezen eD2K/Kad-protocolkern onnodig te herschrijv
 | PEER-05 | Peer↔file historie | Vastleggen wanneer een bestand bij een peer is gezien, inclusief first/last seen | Actief; verdere UI-weergave nog nodig |
 | SEARCH-01 | Search 2 / historische zoekfunctie | Zoeken in actuele + historische filekennis, filters, blockregels, saved searches | Actief; async/background basis en begrenzing aanwezig; live+historisch samenvoegen en UX blijven open |
 | LIB-01 | File Library | Historie van gevonden/gedownloade bestanden, favorites, download later en herstelmogelijkheden | Actief; views/background load/filtering aanwezig; recovery/download-again/session-state nog open |
-| INTEL-01 | Download intelligence | Historische bronnen/peers en downloadervaring gebruiken om downloads slimmer te hervatten/prioriteren zonder protocolbreuk | Sterk gevorderd: runtime scheduler, persisted history/telemetry, bounded source quality en Dashboard-koppeling aanwezig; result evaluation en verdere Transfers-integratie nog open |
-| UI-01 | Moderne hoofdstructuur | Duidelijke views: Dashboard, Search, Library, Transfers, Settings | Actief: Dashboard/Search/Library/Known Users/Settings aanwezig; Transfers en hoofdstructuur verder moderniseren |
+| INTEL-01 | Download intelligence | Historische bronnen/peers en downloadervaring gebruiken om downloads slimmer te hervatten/prioriteren zonder protocolbreuk | Implementatie hoofdlaag gereed op `goal-1-5`: canonical transfer insights, Dashboard/Transfers Intelligence 2.0, persistent history/decisions/outcomes, stale cleanup, action-specific cooldowns, 30/120s outcome-metingen en force/reset APIs; lokale build/runtimevalidatie nog nodig |
+| UI-01 | Moderne hoofdstructuur | Duidelijke views: Dashboard, Search, Library, Transfers, Settings | Actief: Dashboard Intelligence 2.0/Search/Library/Known Users/Settings aanwezig; hoofdstructuur en overige Transfers-UX verder moderniseren |
 | UI-02 | Dark/light mode | Persistente dark-mode instelling, moderne donkere common controls en uiteindelijk volledige view-consistentie | Actief; resterende dialogs/contextmenus nog uniformeren |
-| UI-03 | Schaling en moderne layout | Correcte DPI-scaling, consistente spacing, toolbar/tab/layout zonder oude vaste maatvoering waar mogelijk | In uitvoering: gedeelde `EmuleNextUiMetrics` aanwezig; praktijktests op 100–200% en verdere vaste-maten cleanup nog open |
+| UI-03 | Schaling en moderne layout | Correcte DPI-scaling, consistente spacing, toolbar/tab/layout zonder oude vaste maatvoering waar mogelijk | In uitvoering: gedeelde `EmuleNextUiMetrics` aanwezig; Dashboard 2.0 gebruikt gedeelde metrics; praktijktests op 100–200% en verdere vaste-maten cleanup nog open |
 | UI-04 | eMule Next branding | Nieuwe functies herkenbaar maar zonder protocolcompatibiliteit te suggereren die niet bestaat | Actief; Preview-branding aanwezig; Preview 2 productisering later |
-| SESSION-01 | Sessiestatus herstellen | Relevante historische/open UI-status wordt na restart herkend zonder dezelfde informatie opnieuw als nieuw te behandelen | In uitvoering; persistent scheduler history aanwezig, view-state en restored-tab gedrag nog verder afronden |
-| DATA-01 | Lokale SQLite intelligence database | Migratiebaar schema, async writer, losse read-verbindingen, integrity/backup | Actief: async writer plus scheduler history/telemetry workers aanwezig; formele schema-migratie, backup en corruptieherstel nog open |
-| CI-01 | Reproduceerbare source bootstrap | Officiële v0.72a source + gepinde dependencies + idempotente overlay/activatie | Actief en lokaal groen; activation-stage isolatie toegevoegd, verdere idempotence/runtime-validatie doorlopend |
+| SESSION-01 | Sessiestatus herstellen | Relevante historische/open UI-status wordt na restart herkend zonder dezelfde informatie opnieuw als nieuw te behandelen | In uitvoering; Dashboard filter/sort/column-state persistent, scheduler history persistent; overige view-state en restored-tab gedrag nog verder afronden |
+| DATA-01 | Lokale SQLite intelligence database | Migratiebaar schema, async writer, losse read-verbindingen, integrity/backup | Schedulerdeel formeel op schema v2 met additive upgradepad, async history/decision/outcome persistence, query-only telemetry reader en integrity/backup-smoketest; bredere automatische backup/corruptieherstel blijft P1 |
+| CI-01 | Reproduceerbare source bootstrap | Officiële v0.72a source + gepinde dependencies + idempotente overlay/activatie | Actief: activation-stage isolatie, idempotente materialized Dashboard guard en completion gate aanwezig; nieuwe head lokaal nog buildbevestigen |
 
 ## Architectuurregels
 
@@ -44,6 +44,8 @@ eMule moderniseren zonder de bewezen eD2K/Kad-protocolkern onnodig te herschrijv
 8. **Buildactivatie mag de echte checkout niet ongemerkt muteren.** Lokale feature-activatie gebeurt via een staging-overlay voordat naar de upstream-buildtree wordt gekopieerd.
 9. **Een functie is pas klaar na runtime-test.** Alleen bestanden/classes toevoegen of compileren is niet voldoende.
 10. **Automatische download-intelligence blijft opt-in.** `Analysis only` blijft de veilige standaard; legacy protocol- en schedulerbeperkingen blijven autoritatief.
+11. **Dashboard, Transfers en Scheduler delen één canonical file-intelligence model.** Nieuwe file-level health/ETA/source-profielen mogen niet opnieuw als losse UI-berekeningen worden geïntroduceerd.
+12. **Schedulerinterventies moeten evalueerbaar en stabiel zijn.** Interventies hebben action-specifieke cooldowns, anti-flapping en outcome-metingen; nieuwe automatisering mag niet onbeperkt dezelfde actie blijven herhalen zonder effectmeting.
 
 ## Uitvoeringsvolgorde
 
@@ -71,10 +73,12 @@ eMule moderniseren zonder de bewezen eD2K/Kad-protocolkern onnodig te herschrijv
 
 ### Fase D — Transfers en intelligence
 - `DownloadIntelligence` aan echte download lifecycle koppelen.
-- Historische peer/source-informatie zichtbaar maken zonder huidige downloadlogica onveilig te vervangen.
+- Dashboard, Transfers en Scheduler dezelfde `CEmuleNextTransferInsights` laten gebruiken.
 - Persistente scheduler/history-data gebruiken zonder SQLite in scheduler/UI hot paths.
-- Transfers view moderniseren en dezelfde canonical transfer-insight builder gebruiken als Dashboard/Scheduler.
-- Resultaat van schedulerinterventies meten zodat intelligence zichzelf kan evalueren.
+- Schedulerinterventies met baseline + 30 s + 120 s outcomes evalueren.
+- Stale snapshots opruimen en discovery/A4AF/rare-part cooldowns van elkaar scheiden.
+- Persistente diagnostics via een query-only background reader beschikbaar maken.
+- Deze fase is implementatie-technisch grotendeels afgerond op `goal-1-5`; lokale build/runtimevalidatie bepaalt of hij naar DONE kan.
 
 ### Fase E — volledige UI-modernisering
 - Dashboard verder afwerken als operationele cockpit.
@@ -84,24 +88,27 @@ eMule moderniseren zonder de bewezen eD2K/Kad-protocolkern onnodig te herschrijv
 - View-state, kolommen, filters en sorteringen waar nuttig over sessies herstellen.
 
 ### Fase F — hardening en Preview 2
-- Formele database schema-migraties, backup en integrity/recovery.
+- Formele database schema-migraties verder uitbreiden boven scheduler schema v2.
+- Periodieke backup, integrity/recovery en corruptieherstel.
 - Performance/stresstests op grote queues, shares en databases.
 - Volledige eD2K/Kad/upload/A4AF/rare-part/restart regressiematrix.
 - Portable/installer/upgrade-tests en Preview 2 release notes.
 
-## Huidige eerstvolgende acceptatietest
+## Eerstvolgende acceptatietest
 
-Na de succesvolle lokale `goal-1-5` build moet de runtime-smoketest aantonen dat:
+De nieuwe `goal-1-5` Intelligence 2.0 / Scheduler-completion build moet aantonen dat:
 
-1. automatisch gevonden shared files **geen nieuwe user-searchtab** meer openen;
-2. grote shared-file lijsten de interface niet meer blokkeren door legacy list-inserts;
-3. `Known users` als permanente view aanwezig is en users + files uit de SQLite-history toont;
-4. een herstelde user-tab bij reconnect wordt herkend/geïmporteerd en niet meteen opnieuw automatisch wordt geopend;
-5. dark mode actief kan zijn en de instelling wordt onthouden;
-6. Search 2 missing/favorites/saved-search/block-functionaliteit bruikbaar blijft en background-acties geen zichtbare UI-freeze veroorzaken;
-7. Library filtering bij snel typen niet meer de volledige list-control op iedere toetsaanslag herbouwt;
-8. Dashboard/Scheduler historische rate, scheduler state en persisted diagnostics tonen zonder UI-stalls;
-9. Analysis only geen netwerk/schedulerkeuzes verandert;
-10. Automatic-mode alleen begrensde, feature-gated interventies uitvoert en legacy protocolrestricties respecteert.
+1. de Release x64-build volledig slaagt inclusief alle nieuwe completion/verifier gates;
+2. de echte repository-overlay schoon blijft na `build-local.ps1`;
+3. Dashboard opent en de extra filters Low health / Intervention / A4AF werken;
+4. Dashboardkolommen sorteerbaar zijn en widths/sort/filter na heropenen worden hersteld;
+5. live speed, historical speed, source quality/profile, last intervention en last useful source zichtbaar zijn;
+6. Force analysis en Reset intelligence voor één download werken zonder crash/UI-freeze;
+7. Transfers dezelfde file-level intelligence toont als Dashboard en geen oude duplicate signal-builder gebruikt;
+8. Analysis only geen netwerk/schedulerkeuzes verandert;
+9. Automatic-mode action-specifieke cooldown/anti-flapping respecteert;
+10. applied interventions na 30 s en 120 s outcome-data opleveren;
+11. persistent decisions/outcomes na restart teruggelezen kunnen worden;
+12. schema-v2 upgrade op een bestaande Preview-database start zonder fout en integrity/backup intact blijft.
 
-Daarna volgen de P0-taken uit `docs/EMULE_NEXT_TODO.md`; het project valt niet terug op alleen backend-stubs.
+Na deze test worden de twee eerste intelligence-hoofdblokken in `docs/EMULE_NEXT_TODO.md` definitief DONE verklaard en kan de volgende `/goal`-ronde naar Known Users 2.0 verschuiven.
