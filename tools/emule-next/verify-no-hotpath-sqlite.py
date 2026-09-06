@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Fail if SQLite calls leak into eMule Next scheduler/UI/network hot paths.
 
-SQLite is allowed in the database implementation and the dedicated history
-persistence worker. Scheduler decisions, A4AF/part ranking hooks and Dashboard
-render/refresh code must stay memory-only.
+SQLite is allowed only in dedicated persistence/database implementations.
+Scheduler decisions, A4AF/part ranking hooks, queue processing and UI refresh
+code must stay memory-only.
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ FORBIDDEN = (
     "sqlite3_step",
     "sqlite3_exec",
     "sqlite3_backup",
+    "winsqlite3.h",
 )
 
 HOT_PATHS = (
@@ -30,11 +31,13 @@ HOT_PATHS = (
     "srchybrid/DownloadQueue.cpp",
     "srchybrid/DownloadClient.cpp",
     "srchybrid/PartFile.cpp",
+    "srchybrid/SearchResultsWnd.cpp",
 )
 
 ALLOWED_SQLITE_FILES = (
     "srchybrid/EmuleNextDatabase.cpp",
     "srchybrid/EmuleNextHistoryCache.cpp",
+    "srchybrid/EmuleNextSchedulerTelemetry.cpp",
 )
 
 
@@ -52,7 +55,7 @@ def main() -> int:
         source = text(path)
         for token in FORBIDDEN:
             if re.search(r"\b" + re.escape(token) + r"\b", source):
-                failures.append(f"SQLite call {token} found in hot path {rel}")
+                failures.append(f"SQLite token {token} found in hot path {rel}")
 
     for rel in ALLOWED_SQLITE_FILES:
         if not (ROOT / rel).exists():
@@ -63,6 +66,12 @@ def main() -> int:
         failures.append("history persistence is not isolated behind its worker queue")
     if "No SQLite work runs on the scheduler/core thread" not in history:
         failures.append("history persistence hot-path invariant marker missing")
+
+    telemetry = text(ROOT / "srchybrid/EmuleNextSchedulerTelemetry.cpp")
+    if "PersistenceMain" not in telemetry or "m_persistQueue" not in telemetry:
+        failures.append("telemetry persistence is not isolated behind its worker queue")
+    if "BEGIN IMMEDIATE" not in telemetry:
+        failures.append("telemetry worker transaction boundary missing")
 
     if failures:
         print("eMule Next hot-path SQLite verification FAILED")
