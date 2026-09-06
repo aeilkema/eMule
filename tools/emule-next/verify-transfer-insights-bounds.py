@@ -16,10 +16,15 @@ def main() -> int:
         "kMaxSourceQualitySamples = 32",
         "kMaxPartChecksPerSource = 256",
         "kUsefulPartsSaturation = 8",
-        "sampled < kMaxSourceQualitySamples",
+        "insight.sampledSources < kMaxSourceQualitySamples",
         "source.usefulPartCount < kUsefulPartsSaturation",
         "CDownloadIntelligence::SourceQuality(source)",
-        "insight.bestSourceQuality = BuildBoundedBestSourceQuality(file);",
+        "BuildBoundedSourceProfile(file, insight);",
+        "insight.averageSourceQuality",
+        "insight.strongSources",
+        "insight.normalSources",
+        "insight.weakSources",
+        "insight.failedSources",
         "p.bestSourceQuality = static_cast<double>(insight.bestSourceQuality);",
     )
     for marker in required:
@@ -27,7 +32,7 @@ def main() -> int:
             raise SystemExit(f"Transfer insights bounds: missing {marker}")
     if "bestSourceQuality(500)" in text or "p.bestSourceQuality = 500.0" in text:
         raise SystemExit("Transfer insights bounds: fixed source-quality placeholder remains")
-    print("Bounded live source-quality verification passed")
+    print("Bounded live source-profile verification passed")
     return 0
 
 
