@@ -6,6 +6,7 @@
 
 #include <winsqlite3.h>
 #include <algorithm>
+#include <cstring>
 
 namespace
 {
