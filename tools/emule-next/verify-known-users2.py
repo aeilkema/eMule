@@ -69,25 +69,30 @@ def main() -> int:
         "PRAGMA query_only=ON", "peer_metadata", "peer_endpoints pe ON pe.id=(",
         "GROUP BY d.peer_id", "LIMIT ?3", "LIMIT ?2", "BEGIN IMMEDIATE",
         "DELETE FROM peers WHERE user_hash=?1", "PRAGMA foreign_keys=ON",
+        '#include "EmuleNextWinSqliteCompat.h"',
     ), "bounded persistence/query service", failures)
 
     require(wnd_h, (
         "ENKUM_CURRENT", "ENKUM_HISTORY", "ENKUM_FAVORITES", "ENKUM_RECENT",
         "OnSearchChanged", "OnRefreshPeerClicked", "OnFavoriteClicked",
         "OnAliasClicked", "OnDeleteHistoryClicked", "OnUserColumnClick",
+        "void SaveViewState();",
     ), "view contract", failures)
     require(wnd, (
         '_T("Current")', '_T("History")', '_T("Favorites")', '_T("Recent 7d")',
         "IDC_EN_SEARCH", "SortUserRows", 'ColumnWidth%d', '_T("SortColumn")',
         '_T("First seen")', '_T("Last seen")', '_T("Endpoint")',
         '_T("Browse status")', "ENPSS_DENIED", "ENPSS_TIMEOUT", "ENPSS_SHARED",
-        "RemainingText(state.nextAllowed)", "QueuePeerShareRefresh",
-        "DeleteHistoryWorker", "AfxBeginThread(DeleteHistoryWorker",
+        "ENPSS_UNSUPPORTED", "ENPSS_ERROR", "RemainingText(state.nextAllowed)",
+        "QueuePeerShareRefresh", "DeleteHistoryWorker", "AfxBeginThread(DeleteHistoryWorker",
         "SetPeerFavorite", "SetPeerAlias", "file.lastSeen + 5 >= state.lastCompleted",
         "FindClientByUserHash(user.userHash.bytes.data())", "EmuleNextUiMetrics::Scale",
+        "void CKnownUsersWnd::SaveViewState()", '_T("%I64ud")',
     ), "Known Users 2.0 UI", failures)
     if "sqlite3_" in wnd:
         failures.append("Known Users window performs SQLite work directly")
+    if "void CKnownUsersWnd::SaveViewState() const" in wnd:
+        failures.append("Known Users view-state writer kept an invalid const implementation")
 
     require(scanner_h, ("QueuePeerManual",), "manual scanner API", failures)
     require(scanner, (
@@ -100,8 +105,9 @@ def main() -> int:
     ), "client-list runtime bridge header", failures)
     require(clients, (
         "bool CClientList::QueuePeerShareRefresh", "m_peerShareScanner.QueuePeerManual(peerHash)",
-        "bool CClientList::GetPeerShareState",
+        "bool CClientList::GetPeerShareState", "m_peerShareScanner.OnUnsupported(peerHash)",
         "ImportClientSharedFilesForPeer(toadd->GetUserName(), toadd->GetUserHash()",
+        "toadd->GetClientSoftVer()",
     ), "client-list runtime bridge", failures)
     require(search_h, (
         "If several", "endpoint match is required", "ImportClientSharedFilesForPeer",
