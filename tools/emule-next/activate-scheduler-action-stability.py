@@ -20,6 +20,15 @@ def main() -> int:
     text, encoding = read_text()
     changed = False
 
+    # Runtime singleton is named `theEmuleNext` in EmuleNextRuntime.h/.cpp.
+    # An earlier scheduler materialization used a non-existent alias and only
+    # surfaced once this tranche reached the real MSVC compile boundary.
+    if "theEmuleNextRuntime.Database()" in text:
+        text = text.replace("theEmuleNextRuntime.Database()", "theEmuleNext.Database()")
+        changed = True
+    elif "theEmuleNext.Database()" not in text:
+        raise SystemExit("Scheduler stability: eMule Next runtime database reference missing")
+
     old_outcome = '''    {
         std::lock_guard<std::mutex> lock(m_mutex);
         m_outcomes[key] = outcome;
