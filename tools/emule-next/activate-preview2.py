@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import pathlib
 import runpy
+import traceback
 
 HERE = pathlib.Path(__file__).resolve().parent
 
@@ -22,6 +23,9 @@ PREVIEW2_STEPS = (
 
 
 def main() -> int:
+    # Parse the complete late materialization chain before touching the source
+    # tree. This makes syntax failures deterministic and keeps partial Preview2
+    # activation out of the build overlay.
     for name in PREVIEW2_STEPS:
         path = HERE / name
         if not path.exists():
@@ -29,14 +33,22 @@ def main() -> int:
         try:
             ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
         except SyntaxError as exc:
-            raise SystemExit(f"Preview2 materialization: {name} syntax error line {exc.lineno}: {exc.msg}")
+            raise SystemExit(
+                f"Preview2 materialization: {name} syntax error line {exc.lineno}: {exc.msg}"
+            )
 
-    for name in PREVIEW2_STEPS:
+    for index, name in enumerate(PREVIEW2_STEPS, start=1):
+        print(f"Preview2 step {index}/{len(PREVIEW2_STEPS)}: {name}")
         try:
             runpy.run_path(str(HERE / name), run_name="__main__")
         except SystemExit as exc:
             if exc.code not in (None, 0):
+                print(f"Preview2 FAILED in {name}: {exc.code}")
                 raise
+        except Exception as exc:
+            print(f"Preview2 FAILED in {name}: {type(exc).__name__}: {exc}")
+            traceback.print_exc()
+            raise
 
     print("eMule Next Preview 2 final materialization complete")
     return 0
