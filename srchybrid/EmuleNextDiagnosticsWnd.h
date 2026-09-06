@@ -29,6 +29,7 @@ protected:
     afx_msg void OnPruneClicked();
     afx_msg void OnCheckpointClicked();
     afx_msg void OnOpenBackupsClicked();
+    afx_msg void OnStressClicked();
     afx_msg LRESULT OnMaintenanceResult(WPARAM, LPARAM value);
 
 private:
@@ -48,6 +49,7 @@ private:
     CButton m_prune;
     CButton m_checkpoint;
     CButton m_openBackups;
+    CButton m_stress;
     CStatic m_actionStatus;
     CBrush m_darkBrush;
     bool m_busy;
