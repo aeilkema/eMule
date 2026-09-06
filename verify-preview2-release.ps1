@@ -41,11 +41,20 @@ foreach ($marker in @(
     'eMule-Next-0.2.0-Preview2-x64.exe',
     'Building eMule Next Preview 2 x64',
     'python (Join-Path $tools "activate-features.py")',
+    '$ReleaseVerifier = Join-Path $RepoRoot "verify-preview2-release.ps1"',
+    '& $ReleaseVerifier',
+    '& $ReleaseVerifier -RequireBuiltExe',
     'Preview 2:'
 )) {
     if (-not $build.Contains($marker)) {
         throw "Preview 2 release verification: build-local.ps1 missing '$marker'"
     }
+}
+
+$preflightPos = $build.IndexOf('& $ReleaseVerifier')
+$stagePos = $build.IndexOf('$StageA = New-CleanActivationStage')
+if ($preflightPos -lt 0 -or $stagePos -lt 0 -or $preflightPos -gt $stagePos) {
+    throw "Preview 2 release verification: repository preflight must run before activation-stage creation"
 }
 
 $features = Get-Content -LiteralPath (Join-Path $RepoRoot "tools\emule-next\activate-features.py") -Raw
@@ -60,6 +69,20 @@ foreach ($marker in @(
 }
 if ($features.IndexOf('runpy.run_path(str(preview2), run_name="__main__")') -lt $features.IndexOf('"fix-preview1-build.py"')) {
     throw "Preview 2 release verification: Preview 2 is not the final product layer"
+}
+
+$activationGate = Get-Content -LiteralPath (Join-Path $RepoRoot "tools\emule-next\verify-preview2-activation-chain.py") -Raw
+foreach ($marker in @(
+    'HERE / "activate-features.py"',
+    'HERE / "activate-preview2.py"',
+    'clean activation-chain verification passed'
+)) {
+    if (-not $activationGate.Contains($marker)) {
+        throw "Preview 2 release verification: overlay activation-chain gate missing '$marker'"
+    }
+}
+if ($activationGate.Contains('ROOT / "build-local.ps1"') -or $activationGate.Contains('ROOT / "docs')) {
+    throw "Preview 2 release verification: overlay activation-chain gate depends on repository-root files"
 }
 
 $orchestrator = Get-Content -LiteralPath (Join-Path $RepoRoot "tools\emule-next\activate-preview2.py") -Raw
