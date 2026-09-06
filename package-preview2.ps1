@@ -27,14 +27,18 @@ if (Test-Path -LiteralPath (Join-Path $RepoRoot "docs\EMULE_NEXT_RUNTIME_TEST_MA
 if (Test-Path -LiteralPath (Join-Path $RepoRoot "docs\EMULE_NEXT_PREVIEW2_RELEASE_NOTES.md")) {
     Copy-Item -LiteralPath (Join-Path $RepoRoot "docs\EMULE_NEXT_PREVIEW2_RELEASE_NOTES.md") -Destination (Join-Path $Stage "RELEASE-NOTES.md") -Force
 }
+if (Test-Path -LiteralPath (Join-Path $RepoRoot "create-preview2-support-bundle.ps1")) {
+    Copy-Item -LiteralPath (Join-Path $RepoRoot "create-preview2-support-bundle.ps1") -Destination (Join-Path $Stage "create-support-bundle.ps1") -Force
+}
 
 $readme = @"
 eMule Next 0.2.0 Preview 2 (x64)
 ================================
 
-This package contains the Preview 2 executable only plus release/test documentation.
-It deliberately contains no user configuration, intelligence database, download state,
-or peer history. Existing user data is therefore never overwritten by unpacking this ZIP.
+This package contains the Preview 2 executable plus release/test documentation
+and a safe support-bundle helper. It deliberately contains no user configuration,
+intelligence database, download state or peer history. Existing user data is
+therefore never overwritten by unpacking this ZIP.
 
 Important safety defaults:
 - Smart Scheduling starts in Analysis only unless the existing user profile explicitly says otherwise.
@@ -42,6 +46,8 @@ Important safety defaults:
 - Intelligence/database failure is designed not to block the legacy networking core.
 
 Use Diagnostics for database health, backups, the stress self-test and the runtime validation matrix.
+After exporting a Diagnostics report, create-support-bundle.ps1 can create a privacy-bounded ZIP
+containing only that report, build identity and public release/test documentation.
 "@
 Set-Content -LiteralPath (Join-Path $Stage "README-PREVIEW2.txt") -Value $readme -Encoding utf8
 
