@@ -76,7 +76,7 @@ def main() -> int:
         "ENKUM_CURRENT", "ENKUM_HISTORY", "ENKUM_FAVORITES", "ENKUM_RECENT",
         "OnSearchChanged", "OnRefreshPeerClicked", "OnFavoriteClicked",
         "OnAliasClicked", "OnDeleteHistoryClicked", "OnUserColumnClick",
-        "void SaveViewState();",
+        "using CWnd::Create;", "void SaveViewState();",
     ), "view contract", failures)
     require(wnd, (
         '_T("Current")', '_T("History")', '_T("Favorites")', '_T("Recent 7d")',
@@ -87,8 +87,11 @@ def main() -> int:
         "QueuePeerShareRefresh", "DeleteHistoryWorker", "AfxBeginThread(DeleteHistoryWorker",
         "SetPeerFavorite", "SetPeerAlias", "file.lastSeen + 5 >= state.lastCompleted",
         "FindClientByUserHash(user.userHash.bytes.data())", "EmuleNextUiMetrics::Scale",
+        '#include "resource.h"', '#include "InputBox.h"',
         "void CKnownUsersWnd::SaveViewState()", '_T("%I64ud")',
     ), "Known Users 2.0 UI", failures)
+    if wnd.find('#include "resource.h"') > wnd.find('#include "InputBox.h"'):
+        failures.append("Known Users InputBox resource header is included too late")
     if "sqlite3_" in wnd:
         failures.append("Known Users window performs SQLite work directly")
     if "void CKnownUsersWnd::SaveViewState() const" in wnd:
