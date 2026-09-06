@@ -33,6 +33,9 @@ def main() -> int:
         "SmartTelemetryCapacity",
         "PruneSnapshots(queue, now)",
         "sinceDiscovery",
+        "previousActionAt",
+        "now - candidate.lastA4AFAt < cooldown",
+        "Preserve an active measurement window",
         "BeginOutcome(file, ENSA_DISCOVERY_BOOST, now)",
         "RecordOutcomeSample",
         "MarkApplied(candidateFile, ENSA_A4AF_PREFER)",
@@ -57,8 +60,11 @@ def main() -> int:
         "scheduler_outcomes",
         "PRAGMA query_only=ON",
     ))
+    require(SRC / "EmuleNextDashboardWnd.h", (
+        "EMULENEXT_DASHBOARD_INTELLIGENCE2",
+    ))
     require(SRC / "EmuleNextDashboardWnd.cpp", (
-        "EMULENEXT_DASHBOARD_INTELLIGENCE2" if False else "CEmuleNextSchedulerTelemetryReader",
+        "CEmuleNextSchedulerTelemetryReader",
         "theEmuleNextScheduler.GetRuntimeStatusText()",
         "theEmuleNextScheduler.ForceAnalyze",
         "theEmuleNextScheduler.ResetFileIntelligence",
