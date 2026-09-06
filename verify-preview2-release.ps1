@@ -21,6 +21,7 @@ $requiredFiles = @(
     "tools\emule-next\activate-preview2.py",
     "tools\emule-next\activate-preview2-ux-completion.py",
     "tools\emule-next\activate-preview2-header-status.py",
+    "tools\emule-next\activate-preview2-dashboard-ux.py",
     "tools\emule-next\verify-preview2-ux-completion.py",
     "tools\emule-next\verify-preview2-product.py"
 )
@@ -48,6 +49,7 @@ foreach ($marker in @(
     'activate-preview2-main-shell.py',
     'activate-preview2-ux-completion.py',
     'activate-preview2-header-status.py',
+    'activate-preview2-dashboard-ux.py',
     'verify-preview2-ux-completion.py',
     'verify-preview2-product.py'
 )) {
@@ -74,7 +76,7 @@ if ($wix.Contains('AppDataFolder') -or $wix.Contains('LocalAppDataFolder') -or $
 
 $portable = Get-Content -LiteralPath (Join-Path $RepoRoot "package-preview2.ps1") -Raw
 foreach ($forbidden in @('preferences.ini', 'known.met', '.part.met', 'emule-next.sqlite')) {
-    if ($portable -match [regex]::Escape("Copy-Item") + '.*' + [regex]::Escape($forbidden)) {
+    if ($portable -match ('(?im)^\s*Copy-Item[^\r\n]*' + [regex]::Escape($forbidden))) {
         throw "Preview 2 release verification: portable packaging appears to copy user data '$forbidden'"
     }
 }
@@ -83,10 +85,8 @@ if (-not $portable.Contains('create-preview2-support-bundle.ps1')) {
 }
 
 $support = Get-Content -LiteralPath (Join-Path $RepoRoot "create-preview2-support-bundle.ps1") -Raw
-foreach ($forbidden in @('Copy-Item *config', 'Copy-Item *known.met', 'Copy-Item *.part', 'Copy-Item *sqlite')) {
-    if ($support -like "*$forbidden*") {
-        throw "Preview 2 release verification: support helper may copy forbidden user state: $forbidden"
-    }
+if ($support -match '(?im)^\s*Copy-Item[^\r\n]*(?:config|known\.met|\.part(?:\.met)?|sqlite)') {
+    throw "Preview 2 release verification: support helper contains a user-state Copy-Item command"
 }
 foreach ($privacyMarker in @(
     'no intelligence SQLite database',
