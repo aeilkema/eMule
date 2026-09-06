@@ -5,6 +5,10 @@ Materialized Next views are preferred over historic patch chains. Legacy
 structural patchers are skipped once their final result is present, keeping
 repeated local builds idempotent and preventing newer code from being
 accidentally downgraded by an older activator.
+
+Windows Git checkouts commonly use CRLF. Before any activator runs, the isolated
+source overlay is normalized byte-for-byte to LF so multiline anchors are
+deterministic. No decoding/re-encoding of legacy source text is involved.
 """
 from __future__ import annotations
 
@@ -13,8 +17,31 @@ import runpy
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-SEARCH_RESULTS = ROOT / "srchybrid" / "SearchResultsWnd.cpp"
-DASHBOARD_HEADER = ROOT / "srchybrid" / "EmuleNextDashboardWnd.h"
+SOURCE_ROOT = ROOT / "srchybrid"
+SEARCH_RESULTS = SOURCE_ROOT / "SearchResultsWnd.cpp"
+DASHBOARD_HEADER = SOURCE_ROOT / "EmuleNextDashboardWnd.h"
+
+ACTIVATION_TEXT_SUFFIXES = {
+    ".c", ".cc", ".cpp", ".cxx",
+    ".h", ".hh", ".hpp", ".hxx", ".inl",
+    ".rc", ".rc2",
+    ".vcxproj", ".filters", ".props", ".targets",
+}
+
+
+def normalize_activation_sources() -> None:
+    if not SOURCE_ROOT.is_dir():
+        raise SystemExit(f"eMule Next source overlay missing: {SOURCE_ROOT}")
+    changed = 0
+    for path in SOURCE_ROOT.rglob("*"):
+        if not path.is_file() or path.suffix.lower() not in ACTIVATION_TEXT_SUFFIXES:
+            continue
+        raw = path.read_bytes()
+        normalized = raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+        if normalized != raw:
+            path.write_bytes(normalized)
+            changed += 1
+    print(f"eMule Next activation newline preflight: {changed} files normalized to LF")
 
 
 def has_next_multi_view() -> bool:
@@ -36,6 +63,8 @@ def has_dashboard_intelligence2() -> bool:
     text = DASHBOARD_HEADER.read_bytes().decode("latin-1", errors="ignore")
     return "EMULENEXT_DASHBOARD_INTELLIGENCE2" in text
 
+
+normalize_activation_sources()
 
 DASHBOARD_LEGACY_PATCHERS = {
     "activate-dashboard.py",
