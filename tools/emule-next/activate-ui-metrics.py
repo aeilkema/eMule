@@ -112,10 +112,9 @@ def patch_settings() -> None:
     if old in text:
         text = text.replace(old, new, 1)
         changed = True
-    elif "const int fieldMinWidth = CEmuleNextUiMetrics::Scale" not in text:
+    elif "CEmuleNextUiMetrics::Scale(m_hWnd, 18)" not in text or "CEmuleNextUiMetrics::Scale(m_hWnd, 250)" not in text:
         raise SystemExit("UI metrics: Settings layout anchor changed unexpectedly")
 
-    # Convert the most visible fixed control dimensions while preserving combo dropdown heights.
     settings_replacements = {
         "cx - margin * 2 > 200 ? cx - margin * 2 : 200":
             "cx - margin * 2 > CEmuleNextUiMetrics::Scale(m_hWnd, 200) ? cx - margin * 2 : CEmuleNextUiMetrics::Scale(m_hWnd, 200)",
@@ -127,6 +126,8 @@ def patch_settings() -> None:
             "m_schedulerBatch.MoveWindow(fieldLeft, y, CEmuleNextUiMetrics::Scale(m_hWnd, 120), CEmuleNextUiMetrics::Scale(m_hWnd, 220))",
         "m_a4afThreshold.MoveWindow(fieldLeft, y, 120, 220)":
             "m_a4afThreshold.MoveWindow(fieldLeft, y, CEmuleNextUiMetrics::Scale(m_hWnd, 120), CEmuleNextUiMetrics::Scale(m_hWnd, 220))",
+        "m_historyCapacity.MoveWindow(fieldLeft, y, 120, 220)":
+            "m_historyCapacity.MoveWindow(fieldLeft, y, CEmuleNextUiMetrics::Scale(m_hWnd, 120), CEmuleNextUiMetrics::Scale(m_hWnd, 220))",
         "m_telemetryCapacity.MoveWindow(fieldLeft, y, 120, 220)":
             "m_telemetryCapacity.MoveWindow(fieldLeft, y, CEmuleNextUiMetrics::Scale(m_hWnd, 120), CEmuleNextUiMetrics::Scale(m_hWnd, 220))",
     }
