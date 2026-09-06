@@ -4,8 +4,8 @@
 The audit protects repeated local builds: every helper must parse, top-level
 activation order must remain safe, Windows CRLF must be normalized before
 multiline patchers run, Dashboard 2.0 host integration must remain active while
-obsolete render patchers are skipped, and Smart Scheduler hooks must preserve
-semantics.
+obsolete render patchers are skipped, precursor activators must recognize their
+final superseding state, and Smart Scheduler hooks must preserve semantics.
 
 Verifier scripts are read-only by design. Cross-file coupling checks therefore
 inspect only helpers which can actually mutate/materialize source.
@@ -174,6 +174,22 @@ def main() -> int:
         ):
             if marker not in normalizer:
                 failures.append(f"stage newline normalizer lost {marker}")
+
+    # activate-file-intelligence-columns.py creates the intermediate 16..18
+    # file-intelligence form. activate-transfer-insights-2.py later replaces it
+    # with the canonical 16..22 shared implementation and removes the duplicate
+    # BuildNextFileSignals helper. The precursor must explicitly recognize that
+    # final state so a second activation pass is a strict no-op.
+    file_intelligence = read(HERE / "activate-file-intelligence-columns.py")
+    for marker in (
+        "def final_shared_intelligence2",
+        "legacy file intelligence superseded by shared Transfers Intelligence 2.0; skipping",
+        'InsertColumn(22,\\t_T("Scheduler")',
+        "nColumn >= 16 && nColumn <= 22",
+        "EmuleNextFileSignals BuildNextFileSignals(",
+    ):
+        if marker not in file_intelligence:
+            failures.append(f"file-intelligence precursor idempotence lost {marker}")
 
     scheduler_activator = read(HERE / "activate-smart-scheduler-runtime.py")
     expected_a4af = (
