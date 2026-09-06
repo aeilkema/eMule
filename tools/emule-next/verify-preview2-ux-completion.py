@@ -25,6 +25,8 @@ def main() -> int:
     main_cpp = read("EmuleDlg.cpp")
     search_h = read("SearchResultsWnd.h")
     search_cpp = read("SearchResultsWnd.cpp")
+    search2_h = read("Search2Wnd.h")
+    search2_cpp = read("Search2Wnd.cpp")
     settings_h = read("EmuleNextSettingsWnd.h")
     settings_cpp = read("EmuleNextSettingsWnd.cpp")
     dashboard_h = read("EmuleNextDashboardWnd.h")
@@ -38,11 +40,11 @@ def main() -> int:
         ('m_preview2MainNav.AddString(_T("Known Users"))', "Known Users primary navigation"),
         ('m_preview2MainNav.AddString(_T("Settings"))', "Settings primary navigation"),
         ('m_preview2MainNav.AddString(_T("Diagnostics"))', "Diagnostics primary navigation"),
+        ("ShowNextWorkspace(EMULENEXT_SEARCH2_VIEW_ID)", "modern Search 2 primary route"),
         ("ShowNextWorkspace(EMULENEXT_LIBRARY_VIEW_ID)", "Library direct route"),
         ("ShowNextWorkspace(EMULENEXT_KNOWN_USERS_VIEW_ID)", "Known Users direct route"),
         ("ShowNextWorkspace(EMULENEXT_SETTINGS_VIEW_ID)", "Settings direct route"),
         ("ShowNextWorkspace(EMULENEXT_DIAGNOSTICS_VIEW_ID)", "Diagnostics direct route"),
-        ("ShowLegacySearchWorkspace()", "legacy Search direct route"),
         ("UpdatePreview2HeaderStatus();", "live header refresh"),
         ("GetConnectionStateString()", "header connection status"),
         ("GetTransferRateString()", "header transfer status"),
@@ -56,6 +58,16 @@ def main() -> int:
     require(search_cpp, "ShowSearchSelector(false);", "direct Next workspace tab suppression")
     require(search_cpp, "ShowSearchSelector(true);", "legacy Search tab restoration")
     require(search_cpp, "m_nextNavigation.ShowWindow(SW_HIDE);", "internal sidebar suppression")
+
+    for marker, label in (
+        ("CButton m_networkSearch;", "Network search action control"),
+        ("Network search...", "Network search action label"),
+        ("OnNetworkSearchClicked", "Network search bridge handler"),
+        ("ShowLegacySearchWorkspace()", "legacy Search bridge"),
+        ("OpenParametersWnd()", "legacy Search parameter bridge"),
+        ("place Network search beside the knowledge search", "Search 2 responsive action placement"),
+    ):
+        require(search2_h if marker == "CButton m_networkSearch;" else search2_cpp, marker, label)
 
     require(settings_h, "CButton m_classicPreferences;", "classic Preferences bridge control")
     require(settings_cpp, "Classic eMule settings...", "classic Preferences bridge label")
