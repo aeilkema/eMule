@@ -4,8 +4,9 @@
 The audit protects repeated local builds: every helper must parse, top-level
 activation order must remain safe, Windows CRLF must be normalized before
 multiline patchers run, Dashboard 2.0 host integration must remain active while
-obsolete render patchers are skipped, precursor activators must recognize their
-final superseding state, and Smart Scheduler hooks must preserve semantics.
+obsolete render patchers are skipped, Known Users 2.0 must be fully materialized
+before its completion gate, precursor activators must recognize their final
+superseding state, and Smart Scheduler hooks must preserve semantics.
 """
 from __future__ import annotations
 
@@ -26,6 +27,8 @@ MUTATING_HELPER_PREFIXES = (
 )
 
 REQUIRED_ORDER = (
+    "activate-known-users2-runtime.py",
+    "activate-known-users2-hardening.py",
     "activate-next-views.py",
     "activate-search2-background-metadata.py",
     "activate-search2-background-actions.py",
@@ -47,6 +50,7 @@ REQUIRED_ORDER = (
     "verify-search2-background-metadata.py",
     "verify-search2-background-actions.py",
     "verify-ui-data-bounds.py",
+    "verify-known-users2.py",
     "verify-smart-scheduling.py",
     "verify-smart-scheduler-runtime.py",
     "verify-smart-scheduler-product.py",
@@ -134,6 +138,9 @@ def main() -> int:
         if "verify-intelligence-goal-complete.py" in ordered and "audit-activators.py" in ordered:
             if ordered.index("verify-intelligence-goal-complete.py") > ordered.index("audit-activators.py"):
                 failures.append("intelligence completion gate must run before the activator audit")
+        if "verify-known-users2.py" in ordered and "audit-activators.py" in ordered:
+            if ordered.index("verify-known-users2.py") > ordered.index("audit-activators.py"):
+                failures.append("Known Users 2.0 completion gate must run before the activator audit")
 
     hosts = assigned_string_set(source, "DASHBOARD_HOST_INTEGRATORS")
     render_patchers = assigned_string_set(source, "DASHBOARD_RENDER_PATCHERS")
@@ -173,6 +180,26 @@ def main() -> int:
         ):
             if marker not in normalizer:
                 failures.append(f"stage newline normalizer lost {marker}")
+
+    known_runtime = read(HERE / "activate-known-users2-runtime.py")
+    for marker in (
+        "QueuePeerShareRefresh", "QueuePeerManual", "OnUnsupported", "GetPeerShareState",
+    ):
+        if marker not in known_runtime:
+            failures.append(f"Known Users 2.0 runtime bridge lost {marker}")
+    known_hardening = read(HERE / "activate-known-users2-hardening.py")
+    for marker in (
+        "SaveViewState()", "%I64u", "GetClientSoftVer",
+    ):
+        if marker not in known_hardening:
+            failures.append(f"Known Users 2.0 hardening lost {marker}")
+    known_gate = read(HERE / "verify-known-users2.py")
+    for marker in (
+        "duplicate_username_sql_smoke", "endpoint match is required",
+        "DeleteHistoryWorker", "QueuePeerManual", "PRAGMA query_only=ON",
+    ):
+        if marker not in known_gate:
+            failures.append(f"Known Users 2.0 completion gate lost {marker}")
 
     # The 16..18 precursor and 16..22 consumer form an explicit contract. Raw
     # Python strings must not be used for C++ snippets containing \t/\" escapes,
