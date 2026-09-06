@@ -23,6 +23,19 @@ if (-not $ActivationOnly -and -not (Test-Path $MSBuild)) {
     throw "Visual Studio 2026 Build Tools MSBuild niet gevonden: $MSBuild"
 }
 
+# Repository-level preflight must run before creating the isolated activation
+# overlay. It is the correct place to verify build/release scripts and docs,
+# because those files are deliberately not copied into activation-stage.
+$ReleaseVerifier = Join-Path $RepoRoot "verify-preview2-release.ps1"
+if (-not (Test-Path -LiteralPath $ReleaseVerifier -PathType Leaf)) {
+    throw "Preview 2 repository preflight missing: $ReleaseVerifier"
+}
+Write-Host "Preflighting Preview 2 repository/release contract..."
+& $ReleaseVerifier
+if ($LASTEXITCODE -ne 0) {
+    throw "Preview 2 repository/release preflight failed."
+}
+
 function Remove-StageIfPresent([string]$Root) {
     if (Test-Path -LiteralPath $Root) {
         Remove-Item -LiteralPath $Root -Recurse -Force
@@ -256,6 +269,13 @@ Copy-Item $Exe $PreviewExe -Force
 Copy-Item $Exe $LatestExe -Force
 
 Get-FileHash $PreviewExe -Algorithm SHA256
+
+# Post-build repository verification validates the published executable in
+# addition to the same repo-level release contract checked before activation.
+& $ReleaseVerifier -RequireBuiltExe
+if ($LASTEXITCODE -ne 0) {
+    throw "Preview 2 post-build release verification failed."
+}
 
 if (-not $KeepActivationStage) {
     Remove-StageIfPresent $StageRoot
