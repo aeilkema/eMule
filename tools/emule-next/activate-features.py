@@ -99,6 +99,7 @@ for script_name in (
     "verify-scheduler-persistence.py",
     "verify-scheduler-schema-v2.py",
     "verify-scheduler-database-maintenance.py",
+    "verify-intelligence-goal-complete.py",
     "audit-activators.py",
     "verify-next-integration.py",
     "activate-branding.py",
