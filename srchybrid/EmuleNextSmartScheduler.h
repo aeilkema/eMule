@@ -12,6 +12,7 @@
 
 class CDownloadQueue;
 class CPartFile;
+struct EmuleNextTransferInsight;
 
 struct EmuleNextInterventionOutcome
 {
