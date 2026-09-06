@@ -56,6 +56,8 @@ for script_name in (
     "verify-smart-scheduling.py",
     "verify-smart-scheduler-runtime.py",
     "verify-smart-scheduler-product.py",
+    "verify-no-hotpath-sqlite.py",
+    "audit-activators.py",
     "verify-next-integration.py",
     "activate-branding.py",
     "fix-preview1-build.py",
