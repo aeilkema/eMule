@@ -77,7 +77,7 @@ void CEmuleNextModernUi::ApplyFont(CWnd* root, CFont& normal, CFont& title, CFon
     if (root == NULL || !::IsWindow(root->m_hWnd))
         return;
 
-    const int dpi = ::GetDpiForWindow(root->m_hWnd);
+    const int dpi = static_cast<int>(CEmuleNextUiMetrics::DpiForWindow(root->m_hWnd));
     const int normalHeight = -MulDiv(9, dpi, 72);
     const int titleHeight = -MulDiv(18, dpi, 72);
     const int sectionHeight = -MulDiv(11, dpi, 72);
