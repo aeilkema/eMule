@@ -8,6 +8,7 @@
 #include <winsqlite3.h>
 #include <algorithm>
 #include <chrono>
+#include <vector>
 
 #ifdef min
 #undef min
@@ -169,13 +170,28 @@ void CEmuleNextHistoryCache::QueuePersistLocked(const Key& key, const EmuleNextF
 
 void CEmuleNextHistoryCache::EnforceCapacityLocked()
 {
-    while (m_files.size() > m_capacity && !m_files.empty()) {
-        std::map<Key, EmuleNextFileHistory>::iterator oldest = m_files.begin();
-        for (std::map<Key, EmuleNextFileHistory>::iterator it = m_files.begin(); it != m_files.end(); ++it)
-            if (it->second.lastObserved < oldest->second.lastObserved)
-                oldest = it;
-        m_files.erase(oldest);
-    }
+    if (m_files.size() <= m_capacity)
+        return;
+
+    std::vector<Key> keys;
+    keys.reserve(m_files.size());
+    for (std::map<Key, EmuleNextFileHistory>::const_iterator it = m_files.begin(); it != m_files.end(); ++it)
+        keys.push_back(it->first);
+
+    std::sort(keys.begin(), keys.end(), [this](const Key& left, const Key& right) {
+        const std::map<Key, EmuleNextFileHistory>::const_iterator lhs = m_files.find(left);
+        const std::map<Key, EmuleNextFileHistory>::const_iterator rhs = m_files.find(right);
+        if (lhs == m_files.end())
+            return false;
+        if (rhs == m_files.end())
+            return true;
+        if (lhs->second.lastObserved != rhs->second.lastObserved)
+            return lhs->second.lastObserved > rhs->second.lastObserved;
+        return left < right;
+    });
+
+    for (size_t i = m_capacity; i < keys.size(); ++i)
+        m_files.erase(keys[i]);
 }
 
 double CEmuleNextHistoryCache::HistoricalBytesPerSecond(const unsigned char* fileHash) const
@@ -253,12 +269,15 @@ void CEmuleNextHistoryCache::PersistenceMain()
         ready = sqlite3_exec(db, schema, NULL, NULL, NULL) == SQLITE_OK;
     }
 
+    // Read SQLite rows into a worker-local buffer first. The scheduler/cache
+    // mutex is acquired only for the short merge, never while sqlite3_step runs.
     if (ready) {
+        std::vector<std::pair<Key, EmuleNextFileHistory> > loaded;
+        loaded.reserve(4096);
         sqlite3_stmt* stmt = NULL;
         if (sqlite3_prepare_v2(db,
             "SELECT file_hash,ewma_bps,samples,last_observed FROM scheduler_file_history ORDER BY last_observed DESC LIMIT 16384",
             -1, &stmt, NULL) == SQLITE_OK) {
-            std::lock_guard<std::mutex> lock(m_mutex);
             while (sqlite3_step(stmt) == SQLITE_ROW) {
                 const unsigned char* hash = static_cast<const unsigned char*>(sqlite3_column_blob(stmt, 0));
                 const int bytes = sqlite3_column_bytes(stmt, 0);
@@ -269,15 +288,22 @@ void CEmuleNextHistoryCache::PersistenceMain()
                 persisted.ewmaBytesPerSecond = sqlite3_column_double(stmt, 1);
                 persisted.samples = static_cast<uint32>(sqlite3_column_int64(stmt, 2));
                 persisted.lastObserved = static_cast<uint64>(sqlite3_column_int64(stmt, 3));
-                std::map<Key, EmuleNextFileHistory>::iterator existing = m_files.find(key);
-                if (existing == m_files.end() || persisted.lastObserved > existing->second.lastObserved)
-                    m_files[key] = persisted;
+                loaded.push_back(std::make_pair(key, persisted));
+            }
+        }
+        if (stmt != NULL)
+            sqlite3_finalize(stmt);
+
+        if (!loaded.empty()) {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            for (size_t i = 0; i < loaded.size(); ++i) {
+                std::map<Key, EmuleNextFileHistory>::iterator existing = m_files.find(loaded[i].first);
+                if (existing == m_files.end() || loaded[i].second.lastObserved > existing->second.lastObserved)
+                    m_files[loaded[i].first] = loaded[i].second;
             }
             EnforceCapacityLocked();
             ++m_generation;
         }
-        if (stmt != NULL)
-            sqlite3_finalize(stmt);
     }
 
     {
