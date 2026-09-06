@@ -44,6 +44,8 @@ EmuleNextSchedulerRuntimeStatus::EmuleNextSchedulerRuntimeStatus()
     , trackedFiles(0)
     , historyFiles(0)
     , historyGeneration(0)
+    , historyPendingWrites(0)
+    , historyDroppedWrites(0)
     , decisions(0)
     , appliedInterventions(0)
     , telemetryPendingWrites(0)
@@ -239,7 +241,7 @@ void CEmuleNextSmartScheduler::EvaluateFile(CDownloadQueue* queue, CPartFile* fi
     }
 }
 
-void CEmuleNextSmartScheduler::MarkApplied(const unsigned char* fileHash)
+void CEmuleNextSmartScheduler::MarkApplied(const unsigned char* fileHash, const CString& fileName)
 {
     Key key;
     if (!MakeKey(fileHash, key))
@@ -255,7 +257,7 @@ void CEmuleNextSmartScheduler::MarkApplied(const unsigned char* fileHash)
         }
     }
     if (changed && theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetry"), 1) != 0)
-        m_telemetry.MarkAppliedIntervention();
+        m_telemetry.MarkAppliedIntervention(fileName);
 }
 
 uint16 CEmuleNextSmartScheduler::AdjustPartRank(const CPartFile* file, UINT part, UINT frequency, uint16 legacyRank)
@@ -278,7 +280,7 @@ uint16 CEmuleNextSmartScheduler::AdjustPartRank(const CPartFile* file, UINT part
     const uint32 bonus = frequency <= 1 ? 1600u : (frequency == 2 ? 900u : 350u);
     const uint16 adjusted = static_cast<uint16>(legacyRank > bonus ? legacyRank - bonus : 0);
     if (adjusted != legacyRank)
-        MarkApplied(file->GetFileHash());
+        MarkApplied(file->GetFileHash(), file->GetFileName());
     return adjusted;
 }
 
@@ -307,7 +309,7 @@ bool CEmuleNextSmartScheduler::PreferA4AFCandidate(const CPartFile* currentFile,
     if (!legacyPreference
         && candidate.decision.a4afScore >= currentScore + 80
         && candidate.decision.attention >= currentAttention) {
-        MarkApplied(candidateFile->GetFileHash());
+        MarkApplied(candidateFile->GetFileHash(), candidateFile->GetFileName());
         return true;
     }
     return legacyPreference;
@@ -341,6 +343,8 @@ void CEmuleNextSmartScheduler::GetRuntimeStatus(EmuleNextSchedulerRuntimeStatus&
     status.historyPersistenceReady = m_history.PersistenceReady();
     status.historyFiles = static_cast<uint32>(m_history.Size());
     status.historyGeneration = m_history.Generation();
+    status.historyPendingWrites = m_history.PendingPersistenceWrites();
+    status.historyDroppedWrites = m_history.DroppedPersistenceWrites();
     status.telemetryEnabled = theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetry"), 1) != 0;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -360,10 +364,11 @@ CString CEmuleNextSmartScheduler::GetRuntimeStatusText() const
     EmuleNextSchedulerRuntimeStatus status;
     GetRuntimeStatus(status);
     CString text;
-    text.Format(_T("%s / %s | scan %u | cooldown %us | tracked %u | history %u%s | telemetry %s q:%u drop:%llu | decisions %llu | applied %llu"),
+    text.Format(_T("%s / %s | scan %u | cooldown %us | tracked %u | history %u%s q:%u drop:%llu gen:%llu | telemetry %s q:%u drop:%llu | decisions %llu | applied %llu"),
         (LPCTSTR)CDownloadIntelligence::SchedulingModeText(status.mode),
         (LPCTSTR)ProfileText(status.profile), status.maxFilesPerRound, status.cooldownSeconds,
         status.trackedFiles, status.historyFiles, status.historyPersistenceReady ? _T(" persistent") : _T(" memory"),
+        static_cast<unsigned int>(status.historyPendingWrites), status.historyDroppedWrites, status.historyGeneration,
         status.telemetryPersistenceReady ? _T("persistent") : _T("memory"),
         static_cast<unsigned int>(status.telemetryPendingWrites), status.telemetryDroppedWrites,
         status.decisions, status.appliedInterventions);
