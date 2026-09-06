@@ -1,12 +1,8 @@
 # eMule Next 0.2.0 Preview 2
 
-Preview 2 is a productization and usability release built on the existing eMule v0.72a protocol core. The release does **not** replace the legacy eD2K/Kad implementation; it adds bounded intelligence, persistent knowledge, recovery tooling and a modernized eMule Next workspace layer around that core.
+Preview 2 is the productization/usability release around the existing eMule v0.72a protocol core. It does **not** replace eD2K/Kad/search/download/upload/hashing; it adds bounded intelligence, persistent knowledge, recovery tooling and a modern Windows workspace layer around that core.
 
-## Main changes
-
-### One primary Preview 2 shell
-
-The modern Preview 2 shell is now the primary product chrome rather than an extra layer behind the classic toolbar.
+## Primary shell
 
 Primary navigation:
 
@@ -24,60 +20,24 @@ Primary navigation:
 - Diagnostics
 - IRC
 
-The classic toolbar and upstream dialogs remain available for compatibility, but Library, Known Users, Settings and Diagnostics no longer require users to navigate through an internal Search sidebar.
+The classic toolbar/dialogs remain available where required for compatibility, but the Preview 2 sidebar/header is the primary product chrome. Header connection/rate status reuses existing eMule refresh paths.
 
-The header includes the active section, Connect/Disconnect and live connection/transfer status using the existing eMule refresh paths rather than a second polling loop.
+## Search
 
-### Modern Search with preserved legacy network search
+Search opens Search 2 as the normal workspace. Search 2 is an intelligence/history presentation layer and does not implement a second network engine.
 
-**Search** now opens Search 2 as the normal Preview 2 search workspace.
+**Network search...** opens the existing legacy eD2K/Kad search parameters/result tabs. Server/global/Kad routing therefore remains upstream-authoritative.
 
-Search 2 remains an intelligence/history layer. It does not implement a second eD2K/Kad network engine. A visible **Network search...** action switches to the existing `CSearchDlg`, restores the legacy Search result selector/tabs and opens the existing Search parameters. Server/global/Kad network routing therefore remains upstream-authoritative.
+## Settings
 
-The late Search bridge also has an explicit compile-order contract so it does not depend on accidental precompiled-header side effects.
+The modern Settings shell has four eMule Next categories:
 
-### Modern Preview 2 workspace styling
+- Appearance
+- Peer knowledge
+- Intelligence
+- Advanced
 
-- Shared `EmuleNextModernUi` design layer for DPI-aware spacing, surfaces, cards, fonts and list styling.
-- Segoe UI Variable is used when available, with Segoe UI fallback.
-- Search, Library, Known Users, Dashboard and Transfers use the same modern list/header theming while keeping their existing product logic.
-- Dark/light/System appearance continues to use the existing theme service.
-- Every legacy primary workspace is re-themed whenever it becomes active.
-- The complete original Preferences tree receives the active Preview 2 theme after its pages are initialized.
-- Messages/Chat has additional explicit dark/light handling for Friends, tabs, input controls and existing/new RichEdit chat logs so Dark mode does not leave the conversation surface system-white.
-
-### Dashboard progressive complexity
-
-Dashboard remains the daily transfer overview but no longer presents every specialist action as a permanent button.
-
-Primary filters:
-
-- All
-- Attention
-- Stalled
-- No sources
-- Active
-
-Primary actions:
-
-- Open Transfers
-- Open Sources
-- Pause/Resume
-- Refresh
-- More...
-
-`More...` keeps Rare parts, Low health, Intervention, A4AF, priority changes, forced analysis and intelligence reset available without dominating the normal workflow. The summary line is reduced to daily state: downloads, active items, attention count, transfer rate, uploads and scheduler state.
-
-### Complete Settings entry point
-
-Preview 2 keeps its four native categories directly editable in the modern Settings workspace:
-
-- **Appearance** — System/Light/Dark and Smart ETA/Health display.
-- **Peer knowledge** — automatic shared-file knowledge collection and bounded concurrency.
-- **Intelligence** — Analysis / Assist / Automatic mode, scheduler profile and capability toggles.
-- **Advanced** — optional explicit scheduler tuning.
-
-The same Settings navigation now also represents **all 15 production upstream eMule Preferences pages**:
+It also exposes all 15 production upstream Preferences pages:
 
 - General
 - Display
@@ -95,89 +55,132 @@ The same Settings navigation now also represents **all 15 production upstream eM
 - Web Server
 - Tweaks
 
-For those original pages, Preview 2 deliberately does not duplicate hundreds of values into a second settings database or UI model. Selecting a category exposes a targeted **Open … settings...** action which opens that exact original property page through the existing `CemuleDlg::ShowPreferences(pageId)` path. The original validation, Apply/OK behavior and `thePrefs` storage therefore remain authoritative.
+Original pages remain authoritative and are opened through the existing page-ID/`ShowPreferences` path; Preview 2 does not duplicate hundreds of legacy preference values into another storage model.
 
-The resource ID for each original page is derived from its existing `PPg*.h` declaration during clean activation. The Settings navigation is scrollable for smaller windows/high DPI. Applying a theme refreshes the complete application window tree rather than only the Settings host.
+## Theme / UI
 
-History-cache and scheduler-telemetry capacities remain bounded internal product defaults. Runtime counters, integrity status, backups and stress actions belong in Diagnostics rather than normal Settings.
+- Shared DPI-aware ModernUi layer.
+- Segoe UI Variable with Segoe UI fallback.
+- System / Light / Dark centrally controlled.
+- Primary legacy workspaces are re-themed when activated.
+- Theme Apply refreshes the main window tree.
+- Messages/Chat has explicit Friends/tab/input/RichEdit theme handling to prevent a system-white conversation surface in Dark mode.
+- Settings navigation is scrollable for smaller windows/high DPI.
 
-### Diagnostics and runtime validation
+## Dashboard
 
-Diagnostics is now a status dashboard with cards for:
+Primary filters:
 
-- database health and schema;
+- All
+- Attention
+- Stalled
+- No sources
+- Active
+
+Primary actions:
+
+- Open Transfers
+- Open Sources
+- Pause/Resume
+- Refresh
+- More...
+
+`More...` keeps rare-parts, low-health, intervention, A4AF, priority, forced-analysis and history-reset actions available without a permanent button wall.
+
+## Search 2 / Library 2 / Known Users 2
+
+Preview 2 includes the current bounded/background Search 2, Library 2 and Known Users 2 functionality. Library and Known Users are promoted into primary navigation. User identity remains the 16-byte userhash; file identity remains eD2K hash + size.
+
+## Diagnostics / recovery / performance
+
+Diagnostics includes:
+
+- database health/schema;
 - async writer queue;
 - Smart Scheduler runtime;
-- performance self-test.
+- integrity/backup/restore/prune/checkpoint;
+- performance stress self-test;
+- report export and privacy-bounded support tooling.
 
-Maintenance actions remain background operations. The existing backup/integrity/recovery/WAL/pruning functionality is preserved.
+Stress targets:
 
-A persistent runtime-validation matrix is included for real-world tests that cannot honestly be proven by static source gates alone, including:
+- ClientIndex: 10,000
+- DownloadIndex: 5,000
+- temporary async DB writer: 10,000 events
 
-- eD2K server/download;
-- Kad network/search;
-- upload to legacy peers;
-- manual View Shared Files;
-- pause/resume/restart;
-- Scheduler modes;
-- A4AF;
-- rare-part selection;
-- hashing/recovery;
-- Preview 2 DPI/UX.
+PASS requires queued=0, processed=expected, dropped=0 and errors=0.
 
-Tests can be marked PASS/FAIL/reset in Diagnostics and exported together with the current database/writer/scheduler snapshot.
+## Zero-warning Release x64 contract
 
-### Performance and recovery foundation
+The Release x64 FullRebuild is now a zero-warning build:
 
-Preview 2 includes the previously implemented hardening blocks:
+- compiler warnings are errors;
+- linker warnings are errors;
+- LTCG is explicit;
+- x64 pointer/handle truncations exposed by the full rebuild were corrected;
+- eMule Next `CWnd::Create` hiding is systematically hardened;
+- MFC C4191 handling is scoped only around real active message-map macro tables;
+- commented-out MFC macro text is never materialized as active code;
+- Microsoft/MFC vendor-header warning handling is locally scoped rather than globally disabled.
 
-- bounded ClientIndex / DownloadIndex lookups;
-- deterministic index stress test;
-- disposable 10,000-event async writer-queue stress test;
-- database schema v3;
-- online SQLite backup;
-- pre-migration backup;
-- integrity and quick checks;
-- safe restore with pre-restore archive;
-- WAL checkpoint;
-- bounded telemetry pruning;
-- writer queue counters and recovery-required state.
+The user-confirmed FullRebuild on `7a8844a7d329fc5a8bd787f62b209763f73fe9a6` completed with **0 compilerwarnings, 0 linkerwarnings and 0 errors**.
 
-### Search 2 / Library 2 / Known Users 2
+## Build-bound runtime acceptance
 
-Preview 2 includes the current Search 2, Library 2 and Known Users 2 product tranches, including bounded/background reads, persistence, modern workspace integration and their existing completion gates. Library and Known Users are promoted into primary navigation. Real peer/network behavior still requires the runtime validation matrix before being called fully release-proven.
+Preview 2 now includes `preview2-runtime-acceptance.ps1`.
 
-## Clean build and materialization
+It writes `artifacts/preview2-runtime-acceptance.json` containing:
 
-`build-local.ps1` builds from a clean activation overlay. The base runtime/UI chain runs first, followed by `activate-preview2.py` exactly once as the explicit final product layer. The Preview 2 orchestrator parses all late scripts before applying them and then runs dedicated activation-chain, Settings/theme, UX and product final-state gates.
+- Git HEAD;
+- SHA256 of the exact tested executable;
+- PASS/FAIL/NOT_TESTED for each acceptance item;
+- notes/timestamps.
 
-This prevents a successful Preview 2 build from accidentally depending on stale generated source from a previous local build.
+A record from another HEAD or executable hash is rejected.
 
-## Packaging and support
+Core acceptance includes:
 
-The repository provides:
+- startup/shell and all primary routes;
+- Search 2 → Network search bridge;
+- all 19 Settings categories/page routing;
+- live header and Dashboard actions;
+- Dark/Light/System + DPI/resize;
+- Diagnostics stress/DB maintenance;
+- real eD2K and Kad behavior;
+- upload/queue/intelligence;
+- Known Users and Library;
+- restart persistence and recovery;
+- support report/bundle privacy.
 
-- `build-local.ps1` -> `artifacts/eMule-Next-0.2.0-Preview2-x64.exe`
-- `package-preview2.ps1` -> portable Preview 2 ZIP + SHA-256 manifest
-- `build-preview2-installer.ps1` -> x64 MSI through WiX CLI
-- `installer/preview2/Product.wxs` -> MajorUpgrade-capable MSI definition
-- `create-preview2-support-bundle.ps1` -> privacy-bounded support ZIP from an exported Diagnostics report
-- `finalize-preview2-rc.ps1` -> release verification, portable package, optional MSI and final SHA-256 RC manifest
+`finalize-preview2-rc.ps1` refuses to create the RC artifact set until `preview2-runtime-acceptance.ps1 -VerifyCore` passes for the exact current build.
 
-The portable ZIP contains no user configuration, intelligence database or download state. The MSI installs only application binaries and shortcuts; normal uninstall/upgrade therefore does not intentionally remove user data.
+After artifact creation, package checks cover portable start and MSI install/upgrade/uninstall. `preview2-runtime-acceptance.ps1 -VerifyAll` is the final package-ready gate.
 
-The support bundle explicitly excludes the intelligence SQLite database, Preferences/config files, peer history/`known.met` and incomplete `.part/.part.met` downloads.
+## Packaging
+
+Repository tooling:
+
+- `build-local.ps1` → `artifacts/eMule-Next-0.2.0-Preview2-x64.exe`
+- `package-preview2.ps1` → portable ZIP + SHA256 manifest
+- `build-preview2-installer.ps1` → x64 WiX MSI
+- `create-preview2-support-bundle.ps1` → privacy-bounded support ZIP
+- `preview2-runtime-acceptance.ps1` → exact-build acceptance evidence
+- `finalize-preview2-rc.ps1` → acceptance gate, release verification, portable, optional MSI and RC hash manifest
+
+The portable package contains release/test documentation, the support helper and acceptance harness, but no user configuration, intelligence database, peer history or download state.
+
+The MSI owns application binaries/shortcuts only. Normal install/upgrade/uninstall must not delete user configuration, intelligence DB or incomplete downloads.
+
+The RC manifest records Git HEAD plus SHA256 for the executable, portable ZIP, optional MSI and the acceptance record.
 
 ## Safety defaults
 
-- Smart Scheduling defaults to **Analysis only** unless an existing user profile explicitly selected another mode.
+- Smart Scheduling defaults to **Analysis only** unless an existing profile explicitly selected another mode.
 - Automatic intervention remains opt-in.
-- User identity remains the 16-byte userhash.
-- File identity remains eD2K hash + size.
-- No new aggressive peer scanning is introduced.
+- No aggressive peer scanning is introduced.
 - SQLite remains outside network/scheduler/GUI hot paths.
-- Intelligence/database failure is designed not to block the legacy eMule networking core.
+- Intelligence/database failure is designed not to block the legacy networking core.
 
-## Still requiring runtime proof
+## Runtime proof still required
 
-A successful Release x64 build proves compilation and static contracts, not live network compatibility or final theme coverage. Before a Preview 2 build is promoted as runtime-proven, complete the runtime matrix in `docs/EMULE_NEXT_RUNTIME_TEST_MATRIX.md` / Diagnostics and verify all 19 Settings categories plus Light/Dark/System across the primary workspaces on real runtime state.
+Build/static completion is now proven for the zero-warning Release tranche. Live eD2K/Kad, UI/theme/DPI, persistence/recovery and package behavior still require execution on the actual Windows runtime. Those results must be recorded through the build-bound acceptance harness before Preview 2 is called a Release Candidate/package-ready build.
