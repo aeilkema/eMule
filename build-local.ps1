@@ -116,7 +116,8 @@ function Sync-ActivatedOverlay([string]$SourceRoot, [string]$DestinationRoot) {
     $unchanged = 0
 
     Get-ChildItem -LiteralPath $sourcePath -Recurse -File | ForEach-Object {
-        $relative = $_.FullName.Substring($sourcePath.Length).TrimStart('\')
+        $sourceFile = $_
+        $relative = $sourceFile.FullName.Substring($sourcePath.Length).TrimStart('\')
         $destination = Join-Path $DestinationRoot $relative
         $destinationDirectory = Split-Path -Parent $destination
 
@@ -125,25 +126,25 @@ function Sync-ActivatedOverlay([string]$SourceRoot, [string]$DestinationRoot) {
         }
 
         if (-not (Test-Path -LiteralPath $destination -PathType Leaf)) {
-            Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
+            Copy-Item -LiteralPath $sourceFile.FullName -Destination $destination -Force
             ++$added
-            return
-        }
-
-        $same = $false
-        $destInfo = Get-Item -LiteralPath $destination
-        if ($_.Length -eq $destInfo.Length) {
-            $sourceHash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
-            $destinationHash = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash
-            $same = $sourceHash -eq $destinationHash
-        }
-
-        if ($same) {
-            ++$unchanged
         }
         else {
-            Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
-            ++$updated
+            $same = $false
+            $destInfo = Get-Item -LiteralPath $destination
+            if ($sourceFile.Length -eq $destInfo.Length) {
+                $sourceHash = (Get-FileHash -LiteralPath $sourceFile.FullName -Algorithm SHA256).Hash
+                $destinationHash = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash
+                $same = $sourceHash -eq $destinationHash
+            }
+
+            if ($same) {
+                ++$unchanged
+            }
+            else {
+                Copy-Item -LiteralPath $sourceFile.FullName -Destination $destination -Force
+                ++$updated
+            }
         }
     }
 
