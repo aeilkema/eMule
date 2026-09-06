@@ -228,6 +228,8 @@ void CEmuleNextSmartScheduler::EvaluateFile(CDownloadQueue* queue, CPartFile* fi
         EmuleNextSchedulerEvent event;
         event.timestamp = now;
         event.fileName = file->GetFileName();
+        event.fileHash = key;
+        event.fileHashValid = true;
         event.mode = settings.mode;
         event.action = decision.primaryAction;
         event.health = decision.health;
@@ -257,7 +259,7 @@ void CEmuleNextSmartScheduler::MarkApplied(const unsigned char* fileHash, const 
         }
     }
     if (changed && theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetry"), 1) != 0)
-        m_telemetry.MarkAppliedIntervention(fileName);
+        m_telemetry.MarkAppliedIntervention(fileHash, fileName);
 }
 
 uint16 CEmuleNextSmartScheduler::AdjustPartRank(const CPartFile* file, UINT part, UINT frequency, uint16 legacyRank)
