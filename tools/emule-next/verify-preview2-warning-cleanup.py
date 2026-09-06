@@ -7,6 +7,10 @@ import re
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SRC = ROOT / "srchybrid"
+ACTIVE_MAP = re.compile(
+    r"^[ \t]*BEGIN_MESSAGE_MAP\([^\n]*\)\n.*?^[ \t]*END_MESSAGE_MAP\(\)",
+    re.M | re.S,
+)
 
 
 def read(rel: str) -> str:
@@ -25,6 +29,8 @@ def main() -> int:
     search2_cpp = read("Search2Wnd.cpp")
     library_h = read("FileLibraryWnd.h")
     library_cpp = read("FileLibraryWnd.cpp")
+    settings_h = read("EmuleNextSettingsWnd.h")
+    settings_cpp = read("EmuleNextSettingsWnd.cpp")
     transfer = read("TransferWnd.cpp")
     results = read("SearchResultsWnd.cpp")
     search_list = read("SearchList.cpp")
@@ -44,6 +50,7 @@ def main() -> int:
         ("Download Intelligence header", intelligence_h),
         ("Search2 header", search2_h),
         ("Library header", library_h),
+        ("Settings header", settings_h),
     ):
         if "bool CreateView(CWnd* parent);" not in text or "bool Create(CWnd* parent);" in text:
             raise SystemExit(f"Warning cleanup verification: {label} still hides CWnd::Create")
@@ -55,6 +62,8 @@ def main() -> int:
         raise SystemExit("Warning cleanup verification: Search2 CreateView definition missing")
     if "CFileLibraryWnd::CreateView(CWnd* parent)" not in library_cpp or "CFileLibraryWnd::Create(CWnd* parent)" in library_cpp:
         raise SystemExit("Warning cleanup verification: Library CreateView definition missing")
+    if "CEmuleNextSettingsWnd::CreateView(CWnd* parent)" not in settings_cpp or "CEmuleNextSettingsWnd::Create(CWnd* parent)" in settings_cpp:
+        raise SystemExit("Warning cleanup verification: Settings CreateView definition missing")
     if "m_nextDashboard.CreateView(this)" not in transfer or "m_nextDashboard.Create(this)" in transfer:
         raise SystemExit("Warning cleanup verification: Dashboard host call not migrated to CreateView")
     if "m_downloadIntelligenceWnd.CreateView(this)" not in results or "m_downloadIntelligenceWnd.Create(this)" in results:
@@ -63,6 +72,8 @@ def main() -> int:
         raise SystemExit("Warning cleanup verification: Search2 host call still uses Create")
     if re.search(r"\b[A-Za-z_][A-Za-z0-9_]*library[A-Za-z0-9_]*\.Create\(", results, re.I):
         raise SystemExit("Warning cleanup verification: Library host call still uses Create")
+    if "m_nextSettingsWnd.Create(" in results or "m_nextSettingsWnd.CreateView(" not in results:
+        raise SystemExit("Warning cleanup verification: Settings host call not migrated to CreateView")
 
     if "LPCTSTR pvPropValue = va_arg(args, LPCTSTR);" in search_list:
         raise SystemExit("Warning cleanup verification: Kad varargs still transport integers through pointers")
@@ -94,6 +105,8 @@ def main() -> int:
         raise SystemExit("Warning cleanup verification: OScope child ID still truncates to HMENU")
     if "DWORD dwError = (DWORD)::ShellExecute" in preview or "const INT_PTR shellResult = reinterpret_cast<INT_PTR>(::ShellExecute" not in preview:
         raise SystemExit("Warning cleanup verification: ShellExecute result still truncates HINSTANCE")
+    if "#pragma warning(disable:4191)\n//BEGIN_MESSAGE_MAP" in preview:
+        raise SystemExit("Warning cleanup verification: commented Preview message map was modified")
     if "(HBRUSH)(crBackground + 1)" in smiley or "::GetSysColorBrush(nBackgroundColorIndex)" not in smiley:
         raise SystemExit("Warning cleanup verification: SmileySelector brush still uses integer-to-handle cast")
     if "nPos = (int)pvIndex;" in titled or "(void*)nPos" in titled:
@@ -103,20 +116,20 @@ def main() -> int:
     if "#pragma warning(disable:4266)\n#include <afxinet.h>\n#pragma warning(pop)" not in http_header:
         raise SystemExit("Warning cleanup verification: vendor afxinet C4266 scope missing")
 
-    # Every MFC message map in the complete source tree must have a local C4191
-    # guard.  C4191 remains enabled in ordinary project code.
+    # Every real MFC message map in the complete source tree must have a local
+    # C4191 guard. Commented-out macro text is not a message map.
     total_maps = 0
     for path in SRC.rglob("*.cpp"):
         text = path.read_bytes().decode("latin-1", errors="ignore").replace("\r\n", "\n").replace("\r", "\n")
-        maps = list(re.finditer(r"BEGIN_MESSAGE_MAP\(.*?END_MESSAGE_MAP\(\)", text, re.S))
+        maps = list(ACTIVE_MAP.finditer(text))
         total_maps += len(maps)
         for match in maps:
             prefix = text[max(0, match.start()-110):match.start()]
             suffix = text[match.end():match.end()+55]
             if "#pragma warning(disable:4191)" not in prefix or "#pragma warning(pop)" not in suffix:
-                raise SystemExit(f"Warning cleanup verification: unguarded MFC message map in {path.name}")
+                raise SystemExit(f"Warning cleanup verification: unguarded active MFC message map in {path.name}")
     if total_maps == 0:
-        raise SystemExit("Warning cleanup verification: no MFC message maps discovered")
+        raise SystemExit("Warning cleanup verification: no active MFC message maps discovered")
 
     release_start = project.find('<ItemDefinitionGroup Condition="\'$(Configuration)\'==\'Release\'">')
     release_end = project.find("</ItemDefinitionGroup>", release_start)
@@ -130,7 +143,7 @@ def main() -> int:
     if "<TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>" not in release:
         raise SystemExit("Warning cleanup verification: linker /WX zero-warning contract missing")
 
-    print(f"eMule Next Preview 2 zero-warning verification passed ({total_maps} MFC maps guarded)")
+    print(f"eMule Next Preview 2 zero-warning verification passed ({total_maps} active MFC maps guarded)")
     return 0
 
 
