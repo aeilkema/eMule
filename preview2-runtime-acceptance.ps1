@@ -17,6 +17,7 @@ $RepoRoot = $PSScriptRoot
 $Artifacts = Join-Path $RepoRoot 'artifacts'
 $Exe = Join-Path $Artifacts 'eMule-Next-0.2.0-Preview2-x64.exe'
 $Record = Join-Path $Artifacts 'preview2-runtime-acceptance.json'
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 $Checks = @(
     [pscustomobject]@{ id='UI-STARTUP'; group='core'; title='Startup shows the modern Preview 2 shell/sidebar/header' },
@@ -85,14 +86,16 @@ function Save-Record($record) {
         New-Item -ItemType Directory -Path $Artifacts | Out-Null
     }
     $record.updated = [DateTime]::Now.ToString('o')
-    $record | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $Record -Encoding UTF8
+    $json = $record | ConvertTo-Json -Depth 8
+    [System.IO.File]::WriteAllText($Record, $json, $Utf8NoBom)
 }
 
 function Load-Record {
     if (-not (Test-Path -LiteralPath $Record -PathType Leaf)) {
         throw "Acceptance record missing: $Record. Run with -Initialize first."
     }
-    $record = Get-Content -LiteralPath $Record -Raw | ConvertFrom-Json
+    $json = [System.IO.File]::ReadAllText($Record, [System.Text.Encoding]::UTF8)
+    $record = $json | ConvertFrom-Json
     $identity = Get-BuildIdentity
     if ($record.gitHead -ne $identity.head -or $record.exeSha256 -ne $identity.exeSha256) {
         throw "Acceptance record belongs to another build. Expected head/hash $($identity.head) / $($identity.exeSha256). Run -Initialize for this build."
