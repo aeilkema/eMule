@@ -19,7 +19,6 @@ Dit bestand is de operationele werklijst voor eMule Next.
 - Search 2.0, Library 2.0 en Known Users 2.0: implementatie + lokale builds bevestigd; runtimecases blijven open.
 - Smart Scheduler default: **Analysis only**.
 - Legacy eD2K/Kad/search/download/upload-protocolcode blijft autoritatief.
-- Huidige Preview2 UX-completionlaag is geïmplementeerd en statisch gehard, maar nog niet lokaal build/runtime bewezen.
 
 ## Statuslegenda
 
@@ -86,7 +85,6 @@ Dit bestand is de operationele werklijst voor eMule Next.
 
 - [~] Hoofdsidebar `Search` opent Search 2 als moderne standaardworkspace.
 - [~] Search 2 krijgt `Network search...` naast de zoekbalk; deze route opent de bestaande legacy eD2K/Kad Search-parameters/resulttabs en bouwt geen tweede netwerkengine.
-- [~] Search-bridge heeft expliciete compile-order (`SearchResultsWnd.h` vóór `SearchDlg.h`) en een final-state gate; geen afhankelijkheid van toevallige PCH-side effects.
 - [~] Library en Known Users rechtstreeks vanuit hoofdsidebar bereikbaar via Search-host router.
 - [~] Interne Next-sidebar niet langer nodig voor normale hoofdnav-route.
 - [x] Search 2/Library/Known Users gebruiken gedeelde ModernUi list/header styling.
@@ -124,16 +122,16 @@ Dit bestand is de operationele werklijst voor eMule Next.
 **Requirements:** CORE-01, CI-01, UI-05
 
 - [x] Clean activation-stage + final-state gates blijven basis.
-- [~] `activate-features.py` voert na alle bestaande feature/gates nu expliciet `activate-preview2.py` uit; een clean build kan de late productlaag niet meer overslaan.
-- [~] `verify-preview2-activation-chain.py` controleert build-local → activate-features → final Preview2-orchestrator en de relatieve late productvolgorde.
 - [~] `activate-preview2-ux-completion.py` toegevoegd na visible-main-shell materialization.
 - [~] `activate-preview2-search-ux.py` maakt Search 2 primair en bewaart legacy netwerksearch via een expliciete brug.
 - [~] `activate-preview2-header-status.py` toegevoegd zonder backendlogica te dupliceren.
 - [~] `activate-preview2-dashboard-ux.py` toegevoegd na bestaande Dashboard materialization; gebruikt alleen bestaande handlers/filters.
-- [~] `verify-preview2-ux-completion.py` controleert primaire routes, Search-bridge + include-order, live header, Dashboard progressive complexity, Settings/Diagnostics-scheiding en verbiedt backendlogica in shell.
-- [~] Preview2 orchestrator parseert eerst alle late scripts en voert daarna UX-completion + Search UX + Dashboard UX + live-header + build identity + chain/UX/productgates uit.
-- [~] Release-layoutgate controleert nu ook dat de schone buildroute de Preview2-orchestrator daadwerkelijk uitvoert.
+- [~] `verify-preview2-ux-completion.py` controleert primaire routes, Search-bridge, live header, Dashboard progressive complexity, Settings/Diagnostics-scheiding en verbiedt backendlogica in shell.
+- [~] Preview2 orchestrator voert UX-completion + Search UX + Dashboard UX + live-header + UX-gate als late productlaag uit.
 - [~] Release/support privacychecks zijn regelgebonden en vermijden brede multiline wildcard-false-positives.
+- [~] Activation-chain gate is context-aware: overlay-gates lezen alleen overlaybestanden; repo/releasefiles worden vóór activation-stage gecontroleerd.
+- [~] Activation-chain verificatie gebruikt Python AST-structuur in plaats van exacte variabelenamen/whitespace/source formatting.
+- [~] Repo-level release-preflight hergebruikt dezelfde structurele activation-chain gate en dupliceert die check niet met fragiele bronstrings.
 - [ ] Nieuwe head lokaal Release x64 bouwen.
 - [ ] Bij buildfout eerst volledige nieuwe Preview2-laag/gates als één foutgroep nalopen vóór nieuwe buildvraag.
 
@@ -213,5 +211,7 @@ Dit bestand is de operationele werklijst voor eMule Next.
 7. User identity blijft userhash; file identity blijft eD2K hash + size.
 8. Automatic scheduler blijft opt-in; Analysis only veilige default.
 9. Verifiers controleren eindcontracten, geen toevallige pixelwaarden of fragiele tekstvolgorde.
-10. Packaging/installer bezit of verwijdert geen user config, intelligence DB, peer history of incomplete downloads.
-11. Iedere door gebruiker bevestigde build/runtimebevinding wordt meteen hier als bewezen basis vastgelegd.
+10. Overlay-verifiers mogen alleen bestanden eisen die daadwerkelijk naar activation-stage worden gekopieerd; repo-level files horen in repo-preflight.
+11. Python chain/order-verifiers gebruiken AST/structurele inspectie, niet exacte variabelenamen of whitespace/source-formatting.
+12. Packaging/installer bezit of verwijdert geen user config, intelligence DB, peer history of incomplete downloads.
+13. Iedere door gebruiker bevestigde build/runtimebevinding wordt meteen hier als bewezen basis vastgelegd.
