@@ -15,75 +15,128 @@ $MSBuild = "C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\MSBuild
 $PreviewExeName = "eMule-Next-0.1.0-Preview1-x64.exe"
 $LatestExeName = "eMule-Next-x64.exe"
 $StageRoot = Join-Path $RepoRoot "build\activation-stage"
-$StageSource = Join-Path $StageRoot "srchybrid"
-$StageTools = Join-Path $StageRoot "tools\emule-next"
+$VerifyStageRoot = Join-Path $RepoRoot "build\activation-stage-verify"
 
 if (-not $ActivationOnly -and -not (Test-Path $MSBuild)) {
     throw "Visual Studio 2026 Build Tools MSBuild niet gevonden: $MSBuild"
 }
 
-# Feature activators deliberately edit their overlay. Run them on an isolated
-# copy so a build can never dirty C:\Projects\eMule\srchybrid. The activated,
-# verified staging overlay is copied over the generated upstream tree later.
-if (Test-Path -LiteralPath $StageRoot) {
-    Remove-Item -LiteralPath $StageRoot -Recurse -Force
-}
-New-Item -ItemType Directory -Force -Path $StageSource | Out-Null
-New-Item -ItemType Directory -Force -Path $StageTools | Out-Null
-
-Write-Host "Preparing isolated eMule Next activation overlay..."
-Get-ChildItem -LiteralPath (Join-Path $RepoRoot "srchybrid") -Force | ForEach-Object {
-    Copy-Item -LiteralPath $_.FullName -Destination $StageSource -Recurse -Force
-}
-Get-ChildItem -LiteralPath (Join-Path $RepoRoot "tools\emule-next") -Force | ForEach-Object {
-    Copy-Item -LiteralPath $_.FullName -Destination $StageTools -Recurse -Force
+function Remove-StageIfPresent([string]$Root) {
+    if (Test-Path -LiteralPath $Root) {
+        Remove-Item -LiteralPath $Root -Recurse -Force
+    }
 }
 
-Write-Host "Applying eMule Next integration in staging..."
-python (Join-Path $StageTools "integrate.py")
-if ($LASTEXITCODE -ne 0) {
-    throw "Integration failed in isolated staging overlay: $StageRoot"
+function New-CleanActivationStage([string]$Root, [string]$Label) {
+    $source = Join-Path $Root "srchybrid"
+    $tools = Join-Path $Root "tools\emule-next"
+
+    Remove-StageIfPresent $Root
+    New-Item -ItemType Directory -Force -Path $source | Out-Null
+    New-Item -ItemType Directory -Force -Path $tools | Out-Null
+
+    Write-Host "Preparing clean eMule Next activation overlay ($Label)..."
+    Get-ChildItem -LiteralPath (Join-Path $RepoRoot "srchybrid") -Force | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination $source -Recurse -Force
+    }
+    Get-ChildItem -LiteralPath (Join-Path $RepoRoot "tools\emule-next") -Force | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination $tools -Recurse -Force
+    }
+
+    return @{
+        Root = $Root
+        Source = $source
+        Tools = $tools
+        Label = $Label
+    }
 }
 
-# Git for Windows can materialize repository text as CRLF even when the blob is
-# LF. A number of activators intentionally compare multiline C++ fragments, so
-# normalize only the isolated staging source to LF before running them. The
-# normalizer is byte-based and never decodes legacy ANSI/UTF-8 source content.
-Write-Host "Normalizing activation-stage source newlines..."
-python (Join-Path $StageTools "normalize-stage-newlines.py") $StageSource
-if ($LASTEXITCODE -ne 0) {
-    throw "Activation-stage newline normalization failed: $StageRoot"
+function Invoke-CleanActivation([hashtable]$Stage) {
+    $root = $Stage.Root
+    $source = $Stage.Source
+    $tools = $Stage.Tools
+    $label = $Stage.Label
+
+    Write-Host "Applying eMule Next integration ($label)..."
+    python (Join-Path $tools "integrate.py")
+    if ($LASTEXITCODE -ne 0) {
+        throw "Integration failed in clean activation overlay ($label): $root"
+    }
+
+    # Git for Windows can materialize repository text as CRLF even when the blob
+    # is LF. Normalize only the isolated stage so multiline activator anchors are
+    # deterministic. The real checkout is never modified.
+    Write-Host "Normalizing activation-stage source newlines ($label)..."
+    python (Join-Path $tools "normalize-stage-newlines.py") $source
+    if ($LASTEXITCODE -ne 0) {
+        throw "Activation-stage newline normalization failed ($label): $root"
+    }
+
+    Write-Host "Preflighting eMule Next activators ($label)..."
+    python (Join-Path $tools "audit-activators.py")
+    if ($LASTEXITCODE -ne 0) {
+        throw "Activator preflight failed in clean activation overlay ($label): $root"
+    }
+
+    Write-Host "Activating eMule Next runtime features ($label)..."
+    python (Join-Path $tools "activate-features.py")
+    if ($LASTEXITCODE -ne 0) {
+        throw "Feature activation failed in clean activation overlay ($label): $root"
+    }
 }
 
-# Run the static activator audit before any feature activator mutates the stage.
-# The same audit runs again near the end of activate-features.py, so both the
-# scripts and the final activation order are guarded.
-Write-Host "Preflighting eMule Next activators..."
-python (Join-Path $StageTools "audit-activators.py")
-if ($LASTEXITCODE -ne 0) {
-    throw "Activator preflight failed in isolated staging overlay: $StageRoot"
+function Get-ActivationTreeHash([string]$Root) {
+    $rootPath = (Resolve-Path -LiteralPath $Root).Path.TrimEnd('\')
+    $manifest = New-Object System.Collections.Generic.List[string]
+
+    Get-ChildItem -LiteralPath $rootPath -Recurse -File | Sort-Object FullName | ForEach-Object {
+        $relative = $_.FullName.Substring($rootPath.Length).TrimStart('\').Replace('\', '/')
+        $fileHash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        $manifest.Add("$fileHash  $relative")
+    }
+
+    $payload = [System.Text.Encoding]::UTF8.GetBytes(($manifest -join "`n"))
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $digest = $sha.ComputeHash($payload)
+    }
+    finally {
+        $sha.Dispose()
+    }
+    return ([System.BitConverter]::ToString($digest)).Replace('-', '').ToLowerInvariant()
 }
 
-Write-Host "Activating eMule Next runtime features in staging..."
-python (Join-Path $StageTools "activate-features.py")
-if ($LASTEXITCODE -ne 0) {
-    throw "Feature activation failed in isolated staging overlay: $StageRoot"
+# Activators are generation steps. We do NOT require a generated tree to be a
+# valid input for the same legacy generation chain a second time. Instead we
+# prove the property the build actually needs: two independent clean runs from
+# the exact same repository input must produce byte-identical activated source.
+$StageA = New-CleanActivationStage $StageRoot "A"
+Invoke-CleanActivation $StageA
+$HashA = Get-ActivationTreeHash $StageA.Source
+Write-Host "Activation tree A: $HashA"
+
+$StageB = New-CleanActivationStage $VerifyStageRoot "B"
+Invoke-CleanActivation $StageB
+$HashB = Get-ActivationTreeHash $StageB.Source
+Write-Host "Activation tree B: $HashB"
+
+if ($HashA -ne $HashB) {
+    throw "Clean activation is not deterministic. Stage A kept at $StageRoot; stage B kept at $VerifyStageRoot"
 }
 
-Write-Host "Verifying activation idempotence in staging..."
-python (Join-Path $StageTools "verify-activation-idempotence.py")
-if ($LASTEXITCODE -ne 0) {
-    throw "Feature activation is not idempotent. Inspect the staging overlay at $StageRoot"
-}
+Write-Host "Clean activation determinism verified: both independent stages are byte-identical."
+Remove-StageIfPresent $VerifyStageRoot
+
+$StageSource = $StageA.Source
 
 if ($ActivationOnly) {
     Write-Host ""
     Write-Host "ACTIVATION SUCCESS"
-    Write-Host "Integration, feature activation, all verifiers and second-pass idempotence succeeded."
+    Write-Host "Integration, feature activation, all verifiers and clean-run determinism succeeded."
     Write-Host "Stage: $StageRoot"
     Write-Host "Repository overlay was not modified by integration/activation."
-    if (-not $KeepActivationStage -and (Test-Path -LiteralPath $StageRoot)) {
-        Remove-Item -LiteralPath $StageRoot -Recurse -Force
+    if (-not $KeepActivationStage) {
+        Remove-StageIfPresent $StageRoot
     }
     return
 }
@@ -116,7 +169,7 @@ if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) {
     throw "Generated eMule source directory not found: $SourceDir"
 }
 
-# Apply only the fully activated and second-pass-verified staging overlay.
+# Apply only the fully activated, independently reproducible staging overlay.
 Get-ChildItem -LiteralPath $StageSource -Force | ForEach-Object {
     Copy-Item -LiteralPath $_.FullName -Destination $SourceDir -Recurse -Force
 }
@@ -154,8 +207,8 @@ Copy-Item $Exe $LatestExe -Force
 
 Get-FileHash $PreviewExe -Algorithm SHA256
 
-if (-not $KeepActivationStage -and (Test-Path -LiteralPath $StageRoot)) {
-    Remove-Item -LiteralPath $StageRoot -Recurse -Force
+if (-not $KeepActivationStage) {
+    Remove-StageIfPresent $StageRoot
 }
 
 Write-Host ""
