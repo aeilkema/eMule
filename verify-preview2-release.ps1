@@ -12,6 +12,7 @@ $requiredFiles = @(
     "package-preview2.ps1",
     "build-preview2-installer.ps1",
     "finalize-preview2-rc.ps1",
+    "preview2-runtime-acceptance.ps1",
     "create-preview2-support-bundle.ps1",
     "installer\preview2\Product.wxs",
     "docs\EMULE_NEXT_PREVIEW2_RELEASE_NOTES.md",
@@ -113,6 +114,24 @@ foreach ($marker in @(
     }
 }
 
+$acceptance = Get-Content -LiteralPath (Join-Path $RepoRoot "preview2-runtime-acceptance.ps1") -Raw
+foreach ($marker in @(
+    "preview2-runtime-acceptance.json",
+    "gitHead",
+    "exeSha256",
+    "DIAG-STRESS",
+    "ED2K",
+    "KAD",
+    "PERSISTENCE",
+    "RECOVERY",
+    "Verify-Group 'core'",
+    "Verify-Group 'all'"
+)) {
+    if (-not $acceptance.Contains($marker)) {
+        throw "Preview 2 release verification: runtime acceptance harness missing '$marker'"
+    }
+}
+
 $wix = Get-Content -LiteralPath (Join-Path $RepoRoot "installer\preview2\Product.wxs") -Raw
 foreach ($marker in @(
     'Version="0.2.0"',
@@ -156,11 +175,15 @@ foreach ($privacyMarker in @(
 
 $finalizer = Get-Content -LiteralPath (Join-Path $RepoRoot "finalize-preview2-rc.ps1") -Raw
 foreach ($marker in @(
+    'preview2-runtime-acceptance.ps1',
+    '-VerifyCore',
     'verify-preview2-release.ps1',
     'package-preview2.ps1',
     'build-preview2-installer.ps1',
     'RC-MANIFEST',
-    'Runtime acceptance remains separate from artifact creation'
+    'Core runtime acceptance: PASS',
+    'preview2-runtime-acceptance.json',
+    '-VerifyAll'
 )) {
     if (-not $finalizer.Contains($marker)) {
         throw "Preview 2 release verification: RC finalizer missing '$marker'"
