@@ -134,6 +134,7 @@ for script_name in (
     "activate-ui-navigation-modernization2-layout.py",
     "activate-ui-navigation-modernization2-dashboard.py",
     "activate-database-recovery-diagnostics2.py",
+    "activate-database-recovery-diagnostics2-hardening.py",
     "verify-search2-background-metadata.py",
     "verify-search2-background-actions.py",
     "verify-search2-product.py",
