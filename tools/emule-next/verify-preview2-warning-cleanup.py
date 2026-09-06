@@ -75,7 +75,7 @@ def main() -> int:
         raise SystemExit("Warning cleanup verification: renamed Preview2 header status variable missing")
     if "(PChangeWindowMessageFilter)(::GetProcAddress" in main_cpp or "reinterpret_cast<PChangeWindowMessageFilter>" in main_cpp:
         raise SystemExit("Warning cleanup verification: FARPROC function-pointer cast remains")
-    if "changeWindowMessageFilterProc" not in main_cpp or "memcpy(&ChangeWindowMessageFilter" not in main_cpp:
+    if "changeWindowMessageFilterProc" not in main_cpp or "::CopyMemory(&ChangeWindowMessageFilter" not in main_cpp:
         raise SystemExit("Warning cleanup verification: x64-safe ChangeWindowMessageFilter resolution missing")
 
     mfc_files = (
