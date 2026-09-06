@@ -89,7 +89,7 @@ def main() -> int:
         "IDC_EN_SEARCH", "SortUserRows", 'ColumnWidth%d', '_T("SortColumn")',
         '_T("First seen")', '_T("Last seen")', '_T("Endpoint")',
         '_T("Browse status")', "ENPSS_DENIED", "ENPSS_TIMEOUT", "ENPSS_SHARED",
-        "ENPSS_UNSUPPORTED", "ENPSS_ERROR", "RemainingText(state.nextAllowed)",
+        "ENPSS_UNSUPPORTED", "ENPSS_ERROR", "RemainingText(state->nextAllowed)",
         "QueuePeerShareRefresh", "DeleteHistoryWorker", "AfxBeginThread(DeleteHistoryWorker",
         "SetPeerFavorite", "SetPeerAlias", "file.lastSeen + 5 >= state.lastCompleted",
         "FindClientByUserHash(user.userHash.bytes.data())", "EmuleNextUiMetrics::Scale",
