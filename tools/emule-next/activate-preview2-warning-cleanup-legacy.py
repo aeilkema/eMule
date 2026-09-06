@@ -38,8 +38,6 @@ def patch_library_create() -> None:
     replace_once(header, "    bool Create(CWnd* parent);", "    bool CreateView(CWnd* parent);", "Library Create declaration")
     replace_once(cpp, "bool CFileLibraryWnd::Create(CWnd* parent)", "bool CFileLibraryWnd::CreateView(CWnd* parent)", "Library Create definition")
 
-    # The Search host is materialized before this late cleanup.  Update whatever
-    # library member name is present without coupling this helper to one host type.
     for path in SRC.rglob("*.cpp"):
         text, nl = load(path)
         updated = re.sub(
@@ -50,6 +48,28 @@ def patch_library_create() -> None:
         )
         if updated != text:
             save(path, updated, nl)
+
+
+def patch_settings_create() -> None:
+    header = SRC / "EmuleNextSettingsWnd.h"
+    cpp = SRC / "EmuleNextSettingsWnd.cpp"
+    replace_once(header, "    bool Create(CWnd* parent);", "    bool CreateView(CWnd* parent);", "Settings Create declaration")
+    replace_once(cpp, "bool CEmuleNextSettingsWnd::Create(CWnd* parent)", "bool CEmuleNextSettingsWnd::CreateView(CWnd* parent)", "Settings Create definition")
+
+    # The permanent Settings view is materialized earlier in SearchResultsWnd.
+    # Patch the exact member rather than every object containing the word settings.
+    patched = False
+    for path in SRC.rglob("*.cpp"):
+        text, nl = load(path)
+        updated = text.replace("m_nextSettingsWnd.Create(", "m_nextSettingsWnd.CreateView(")
+        if updated != text:
+            save(path, updated, nl)
+            patched = True
+    # Idempotent reruns may already contain CreateView; verify the final host state.
+    host = SRC / "SearchResultsWnd.cpp"
+    host_text, _ = load(host)
+    if "m_nextSettingsWnd.CreateView(" not in host_text:
+        raise SystemExit("Legacy warning cleanup: Settings host CreateView call missing")
 
 
 def patch_oscope() -> None:
@@ -99,6 +119,7 @@ def patch_afxinet_vendor_warning() -> None:
 
 def main() -> int:
     patch_library_create()
+    patch_settings_create()
     patch_oscope()
     patch_smiley()
     patch_preview()
