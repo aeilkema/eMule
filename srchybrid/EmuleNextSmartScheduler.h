@@ -40,6 +40,8 @@ struct EmuleNextSchedulerRuntimeStatus
     uint32 trackedFiles;
     uint32 historyFiles;
     uint64 historyGeneration;
+    size_t historyPendingWrites;
+    uint64 historyDroppedWrites;
     uint64 decisions;
     uint64 appliedInterventions;
     size_t telemetryPendingWrites;
