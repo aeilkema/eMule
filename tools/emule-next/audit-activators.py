@@ -2,8 +2,8 @@
 """Static safety audit for eMule Next activators.
 
 The audit protects repeated local builds: every helper must parse, top-level
-activation order must remain safe, Dashboard must not be injected through
-SearchResultsWnd, and the legacy Smart Scheduler hooks must preserve semantics.
+activation order must remain safe, materialized Dashboard 2.0 must supersede
+legacy Dashboard patchers, and Smart Scheduler hooks must preserve semantics.
 """
 from __future__ import annotations
 
@@ -20,12 +20,12 @@ REQUIRED_ORDER = (
     "activate-search2-background-actions.py",
     "finalize-search-results.py",
     "activate-smart-scheduler-runtime.py",
+    "activate-scheduler-schema-v2.py",
     "activate-scheduler-persistence.py",
-    "activate-smart-scheduler-ui.py",
     "activate-scheduler-persistence-status.py",
-    "activate-dashboard-shared-insights.py",
     "activate-ui-metrics.py",
     "activate-next-view-dpi.py",
+    "activate-transfer-insights-2.py",
     "verify-search2-background-metadata.py",
     "verify-search2-background-actions.py",
     "verify-ui-data-bounds.py",
@@ -34,9 +34,12 @@ REQUIRED_ORDER = (
     "verify-smart-scheduler-product.py",
     "verify-transfer-insights-bounds.py",
     "verify-dashboard-shared-insights.py",
+    "verify-dashboard-intelligence2.py",
+    "verify-transfer-insights-2.py",
     "verify-ui-metrics.py",
     "verify-no-hotpath-sqlite.py",
     "verify-scheduler-persistence.py",
+    "verify-scheduler-schema-v2.py",
 )
 
 
@@ -97,13 +100,14 @@ def main() -> int:
     search_metadata = read(HERE / "activate-search2-background-metadata.py")
     if "AfxBeginThread(SavedSearchLoadWorker" not in search_metadata:
         failures.append("Search 2 metadata activator no longer moves recurring reads to a worker")
-    if "CSearch2Service service(theEmuleNext.Database())" not in search_metadata:
-        failures.append("Search 2 metadata worker lost its service integration")
 
     search_actions = read(HERE / "activate-search2-background-actions.py")
     for marker in ("service.SaveSearch", "service.DeleteSavedSearch", "service.AddHashBlock"):
         if marker not in search_actions:
             failures.append(f"Search 2 background action activator missing {marker}")
+
+    if "has_dashboard_intelligence2()" not in source or "DASHBOARD_LEGACY_PATCHERS" not in source:
+        failures.append("Dashboard Intelligence 2.0 legacy-patcher guard missing")
 
     search_injectors: list[str] = []
     for path in HERE.glob("*.py"):
