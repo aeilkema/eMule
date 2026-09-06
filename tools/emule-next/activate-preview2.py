@@ -19,6 +19,7 @@ PREVIEW2_STEPS = (
     "activate-preview2-navigation.py",
     "activate-preview2-main-shell.py",
     "activate-preview2-ux-completion.py",
+    "activate-preview2-header-status.py",
     "activate-preview2-build-identity.py",
     "verify-preview2-ux-completion.py",
     "verify-preview2-product.py",
