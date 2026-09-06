@@ -52,6 +52,11 @@ def main() -> int:
         if anchor not in block:
             raise SystemExit("Main warning cleanup: Release linker optimization anchor missing")
         block = block.replace(anchor, anchor + f"      {ltcg}\n", 1)
+    if "<TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>" not in block:
+        link_anchor = "    <Link>\n"
+        if link_anchor not in block:
+            raise SystemExit("Main warning cleanup: Release linker group missing")
+        block = block.replace(link_anchor, link_anchor + "      <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>\n", 1)
     if "<TreatWarningAsError>true</TreatWarningAsError>" not in block:
         compile_anchor = "    <ClCompile>\n"
         if compile_anchor not in block:
@@ -60,7 +65,7 @@ def main() -> int:
     text = text[:start] + block + text[end:]
     save(project, text, nl)
 
-    print("Preview 2 main/linker zero-warning policy materialized")
+    print("Preview 2 compiler/linker zero-warning policy materialized")
     return 0
 
 
