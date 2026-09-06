@@ -37,6 +37,7 @@ public:
     bool PersistenceReady() const;
     size_t PendingPersistenceWrites() const;
     uint64 DroppedPersistenceWrites() const;
+    bool Remove(const unsigned char* fileHash);
     void Clear();
 
 private:
