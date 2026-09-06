@@ -22,6 +22,12 @@ def require(text: str, markers: tuple[str, ...], label: str, failures: list[str]
             failures.append(f"{label}: missing {marker!r}")
 
 
+def forbid(text: str, markers: tuple[str, ...], label: str, failures: list[str]) -> None:
+    for marker in markers:
+        if marker in text:
+            failures.append(f"{label}: forbidden stale marker present {marker!r}")
+
+
 def duplicate_username_sql_smoke(failures: list[str]) -> None:
     """Prove storage/query identity does not collapse equal display names."""
     db = sqlite3.connect(":memory:")
@@ -76,7 +82,7 @@ def main() -> int:
         "ENKUM_CURRENT", "ENKUM_HISTORY", "ENKUM_FAVORITES", "ENKUM_RECENT",
         "OnSearchChanged", "OnRefreshPeerClicked", "OnFavoriteClicked",
         "OnAliasClicked", "OnDeleteHistoryClicked", "OnUserColumnClick",
-        "using CWnd::Create;", "void SaveViewState();",
+        "void SaveViewState();", "using CWnd::Create;",
     ), "view contract", failures)
     require(wnd, (
         '_T("Current")', '_T("History")', '_T("Favorites")', '_T("Recent 7d")',
@@ -87,15 +93,19 @@ def main() -> int:
         "QueuePeerShareRefresh", "DeleteHistoryWorker", "AfxBeginThread(DeleteHistoryWorker",
         "SetPeerFavorite", "SetPeerAlias", "file.lastSeen + 5 >= state.lastCompleted",
         "FindClientByUserHash(user.userHash.bytes.data())", "EmuleNextUiMetrics::Scale",
-        '#include "resource.h"', '#include "InputBox.h"',
-        "void CKnownUsersWnd::SaveViewState()", '_T("%I64ud")',
+        "void CKnownUsersWnd::SaveViewState()\n",
+        'if (seconds >= 3600) value.Format(_T("%I64uh %02I64um"), seconds / 3600, (seconds % 3600) / 60);',
+        'else if (seconds >= 60) value.Format(_T("%I64um %02I64us"), seconds / 60, seconds % 60);',
+        'else value.Format(_T("%I64us"), seconds);',
+        '#include "resource.h"\n#include "InputBox.h"',
     ), "Known Users 2.0 UI", failures)
-    if wnd.find('#include "resource.h"') > wnd.find('#include "InputBox.h"'):
-        failures.append("Known Users InputBox resource header is included too late")
+    forbid(wnd, (
+        "void CKnownUsersWnd::SaveViewState() const\n",
+        '_T("%lluh %02llum")', '_T("%llum %02llus")', '_T("%llus")',
+        '#include "InputBox.h"\n#include "resource.h"',
+    ), "Known Users 2.0 compile compatibility", failures)
     if "sqlite3_" in wnd:
         failures.append("Known Users window performs SQLite work directly")
-    if "void CKnownUsersWnd::SaveViewState() const" in wnd:
-        failures.append("Known Users view-state writer kept an invalid const implementation")
 
     require(scanner_h, ("QueuePeerManual",), "manual scanner API", failures)
     require(scanner, (
