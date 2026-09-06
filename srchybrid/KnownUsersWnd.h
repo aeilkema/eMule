@@ -61,7 +61,7 @@ private:
     void UpdateSelectedStatus();
     void UpdateActionButtons();
     void LoadViewState();
-    void SaveViewState() const;
+    void SaveViewState();
     void ApplyUserColumnWidths();
     void SortUserRows();
     int SelectedUserIndex() const;
