@@ -15,12 +15,14 @@ SRC = ROOT / "srchybrid"
 
 CPP_FILES = (
     "EmuleNextSchedulerTelemetry.cpp",
+    "EmuleNextSchedulerTelemetryReader.cpp",
     "EmuleNextTransferInsights.cpp",
     "EmuleNextHistoryCache.cpp",
     "EmuleNextSmartScheduler.cpp",
 )
 HEADER_FILES = (
     "EmuleNextSchedulerTelemetry.h",
+    "EmuleNextSchedulerTelemetryReader.h",
     "EmuleNextTransferInsights.h",
     "EmuleNextHistoryCache.h",
     "EmuleNextSmartScheduler.h",
