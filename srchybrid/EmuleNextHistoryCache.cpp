@@ -29,6 +29,7 @@ CEmuleNextHistoryCache::CEmuleNextHistoryCache()
     , m_stopPersistence(false)
     , m_persistenceReady(false)
     , m_persistenceStarting(false)
+    , m_lastPersistenceAttempt(0)
     , m_droppedPersistWrites(0)
 {
 }
@@ -59,15 +60,22 @@ void CEmuleNextHistoryCache::SetCapacity(size_t capacity)
 
 void CEmuleNextHistoryCache::SetDatabasePath(const CStringW& databasePath)
 {
-    bool reuse = false;
+    const uint64 now = static_cast<uint64>(time(NULL));
     {
         std::lock_guard<std::mutex> lock(m_persistMutex);
-        reuse = databasePath == m_databasePath
+        if (databasePath == m_databasePath
             && m_persistThread.joinable()
-            && (m_persistenceReady || m_persistenceStarting);
+            && (m_persistenceReady || m_persistenceStarting))
+            return;
+        if (!databasePath.IsEmpty()
+            && databasePath == m_lastAttemptPath
+            && !m_persistenceReady
+            && !m_persistenceStarting
+            && m_lastPersistenceAttempt != 0
+            && now >= m_lastPersistenceAttempt
+            && now - m_lastPersistenceAttempt < 30)
+            return;
     }
-    if (reuse)
-        return;
 
     StopPersistence();
     if (databasePath.IsEmpty())
@@ -76,6 +84,8 @@ void CEmuleNextHistoryCache::SetDatabasePath(const CStringW& databasePath)
     {
         std::lock_guard<std::mutex> lock(m_persistMutex);
         m_databasePath = databasePath;
+        m_lastAttemptPath = databasePath;
+        m_lastPersistenceAttempt = now;
         m_stopPersistence = false;
         m_persistenceReady = false;
         m_persistenceStarting = true;
