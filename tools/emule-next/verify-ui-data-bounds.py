@@ -30,10 +30,11 @@ def main() -> int:
     dashboard = load("EmuleNextDashboardWnd.cpp")
     reader = load("EmuleNextSchedulerTelemetryReader.cpp")
 
-    require(known, "kMaximumKnownUsers = 5000", "Known Users row cap")
-    require(known, "kMaximumKnownFilesPerUser = 5000", "Known User file row cap")
-    require(known, "LIMIT ?1", "parameterized Known Users limit")
+    require(known, "kMaximumKnownUsers = 2000", "Known Users row cap")
+    require(known, "kMaximumKnownFilesPerUser = 2000", "Known User file row cap")
+    require(known, "LIMIT ?3", "parameterized Known Users limit")
     require(known, "LIMIT ?2", "parameterized Known User files limit")
+    require(known, "PRAGMA query_only=ON", "Known Users query-only read connection")
 
     require(search_service, "request.maximumResults", "Search 2 result cap")
     require(search_service, "request.pageSize", "Search 2 paging")
