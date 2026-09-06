@@ -76,7 +76,7 @@ private:
     uint32 LoadMaxFilesPerRound() const;
     void EvaluateFile(CDownloadQueue* queue, CPartFile* file, const EmuleNextSchedulingSettings& settings, uint64 now,
         bool historyEnabled, bool telemetryEnabled);
-    void MarkApplied(const unsigned char* fileHash);
+    void MarkApplied(const unsigned char* fileHash, const CString& fileName);
 
     mutable std::mutex m_mutex;
     std::map<Key, EmuleNextSchedulerSnapshot> m_snapshots;
