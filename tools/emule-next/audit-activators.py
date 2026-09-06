@@ -5,6 +5,10 @@ The audit protects repeated local builds: every helper must parse, top-level
 activation order must remain safe, Windows CRLF must be normalized before
 multiline patchers run, materialized Dashboard 2.0 must supersede legacy
 Dashboard patchers, and Smart Scheduler hooks must preserve semantics.
+
+Important: verifier scripts are read-only by design. Cross-file coupling checks
+therefore inspect only helpers which can actually mutate/materialize source.
+Mentioning two source filenames in a verifier is not an integration dependency.
 """
 from __future__ import annotations
 
@@ -15,6 +19,17 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 HERE = pathlib.Path(__file__).resolve().parent
 ENTRY = HERE / "activate-features.py"
 NORMALIZER = HERE / "normalize-stage-newlines.py"
+
+# Only these helper families are permitted to materialize/patch the source tree.
+# `verify-*` and `audit-*` are intentionally excluded from mutation/coupling
+# scans because they merely name the files they inspect.
+MUTATING_HELPER_PREFIXES = (
+    "activate-",
+    "finalize-",
+    "prepare-",
+    "fix-",
+    "integrate",
+)
 
 REQUIRED_ORDER = (
     "activate-next-views.py",
@@ -64,6 +79,13 @@ def script_order(source: str) -> list[str]:
             if "activate-smart-scheduler-runtime.py" in values:
                 return values
     return []
+
+
+def is_mutating_helper(path: pathlib.Path) -> bool:
+    name = path.name
+    if name in {"activate-features.py", "audit-activators.py"}:
+        return False
+    return name.startswith(MUTATING_HELPER_PREFIXES)
 
 
 def main() -> int:
@@ -174,15 +196,27 @@ def main() -> int:
         if legacy not in source:
             failures.append(f"Dashboard legacy-patcher guard lost {legacy}")
 
+    # This guard is specifically about scripts capable of *injecting* Dashboard
+    # source into SearchResults. Read-only verifiers necessarily mention both
+    # filenames when checking separation and must never be classified as an
+    # injector simply because those string literals coexist in the verifier.
     search_injectors: list[str] = []
     for path in HERE.glob("*.py"):
-        if path.name in {"audit-activators.py", "activate-features.py"}:
+        if not is_mutating_helper(path):
             continue
         body = read(path)
         if "EmuleNextDashboardWnd" in body and "SearchResultsWnd" in body:
             search_injectors.append(path.name)
     if search_injectors:
-        failures.append("Dashboard/SearchResults coupling found in: " + ", ".join(sorted(search_injectors)))
+        failures.append("Dashboard/SearchResults coupling found in mutating helper(s): " + ", ".join(sorted(search_injectors)))
+
+    # Regression guard for the false-positive class which previously blocked
+    # activation: the hot-path verifier legitimately inspects both source files.
+    verifier = HERE / "verify-no-hotpath-sqlite.py"
+    if verifier.exists():
+        verifier_body = read(verifier)
+        if "EmuleNextDashboardWnd" in verifier_body and "SearchResultsWnd" in verifier_body and is_mutating_helper(verifier):
+            failures.append("read-only verifier incorrectly classified as source mutator")
 
     if "has_next_multi_view()" not in source:
         failures.append("multi-view idempotence guard missing from activate-features.py")
