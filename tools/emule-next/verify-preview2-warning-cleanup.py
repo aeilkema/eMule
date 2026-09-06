@@ -21,15 +21,17 @@ def main() -> int:
     dashboard_cpp = read("EmuleNextDashboardWnd.cpp")
     intelligence_h = read("DownloadIntelligenceWnd.h")
     intelligence_cpp = read("DownloadIntelligenceWnd.cpp")
+    transfer = read("TransferWnd.cpp")
+    results = read("SearchResultsWnd.cpp")
     search_list = read("SearchList.cpp")
     kad_search = read("kademlia/kademlia/Search.cpp")
     shared = read("SharedFilesCtrl.cpp")
     main_cpp = read("EmuleDlg.cpp")
     project = read("emule.vcxproj")
 
-    for label, text, cls in (
-        ("Dashboard header", dashboard_h, "CEmuleNextDashboardWnd"),
-        ("Download Intelligence header", intelligence_h, "CDownloadIntelligenceWnd"),
+    for label, text in (
+        ("Dashboard header", dashboard_h),
+        ("Download Intelligence header", intelligence_h),
     ):
         if "bool CreateView(CWnd* parent);" not in text or "bool Create(CWnd* parent);" in text:
             raise SystemExit(f"Warning cleanup verification: {label} still hides CWnd::Create")
@@ -37,6 +39,10 @@ def main() -> int:
         raise SystemExit("Warning cleanup verification: Dashboard CreateView definition missing")
     if "CDownloadIntelligenceWnd::CreateView(CWnd* parent)" not in intelligence_cpp:
         raise SystemExit("Warning cleanup verification: Download Intelligence CreateView definition missing")
+    if "m_nextDashboard.CreateView(this)" not in transfer or "m_nextDashboard.Create(this)" in transfer:
+        raise SystemExit("Warning cleanup verification: Dashboard host call not migrated to CreateView")
+    if "m_downloadIntelligenceWnd.CreateView(this)" not in results or "m_downloadIntelligenceWnd.Create(this)" in results:
+        raise SystemExit("Warning cleanup verification: Download Intelligence host call not migrated to CreateView")
 
     if "LPCTSTR pvPropValue = va_arg(args, LPCTSTR);" in search_list:
         raise SystemExit("Warning cleanup verification: Kad varargs still transport integers through pointers")
