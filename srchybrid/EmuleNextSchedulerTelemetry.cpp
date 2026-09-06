@@ -114,7 +114,7 @@ bool CEmuleNextSchedulerTelemetry::PersistenceReady() const
 size_t CEmuleNextSchedulerTelemetry::PendingPersistenceEvents() const
 {
     std::lock_guard<std::mutex> lock(m_persistMutex);
-    return m_persistQueue.size();
+    return m_persistQueue.size() + m_persistAppliedQueue.size();
 }
 
 uint64 CEmuleNextSchedulerTelemetry::DroppedPersistenceEvents() const
@@ -135,6 +135,7 @@ void CEmuleNextSchedulerTelemetry::StopPersistence()
     {
         std::lock_guard<std::mutex> lock(m_persistMutex);
         m_persistQueue.clear();
+        m_persistAppliedQueue.clear();
         m_databasePath.Empty();
         m_persistenceReady = false;
         m_persistenceStarting = false;
@@ -149,11 +150,34 @@ void CEmuleNextSchedulerTelemetry::QueuePersist(const EmuleNextSchedulerEvent& e
         ++m_droppedPersistEvents;
         return;
     }
-    if (m_persistQueue.size() >= 8192) {
-        m_persistQueue.pop_front();
+    if (m_persistQueue.size() + m_persistAppliedQueue.size() >= 8192) {
+        if (!m_persistQueue.empty())
+            m_persistQueue.pop_front();
+        else if (!m_persistAppliedQueue.empty())
+            m_persistAppliedQueue.pop_front();
         ++m_droppedPersistEvents;
     }
     m_persistQueue.push_back(event);
+    m_persistCondition.notify_one();
+}
+
+void CEmuleNextSchedulerTelemetry::QueueAppliedPersist(const CString& fileName)
+{
+    if (fileName.IsEmpty())
+        return;
+    std::lock_guard<std::mutex> lock(m_persistMutex);
+    if (!m_persistThread.joinable() || (!m_persistenceReady && !m_persistenceStarting)) {
+        ++m_droppedPersistEvents;
+        return;
+    }
+    if (m_persistQueue.size() + m_persistAppliedQueue.size() >= 8192) {
+        if (!m_persistQueue.empty())
+            m_persistQueue.pop_front();
+        else if (!m_persistAppliedQueue.empty())
+            m_persistAppliedQueue.pop_front();
+        ++m_droppedPersistEvents;
+    }
+    m_persistAppliedQueue.push_back(fileName);
     m_persistCondition.notify_one();
 }
 
@@ -178,10 +202,23 @@ void CEmuleNextSchedulerTelemetry::Record(const EmuleNextSchedulerEvent& event)
     QueuePersist(event);
 }
 
-void CEmuleNextSchedulerTelemetry::MarkAppliedIntervention()
+void CEmuleNextSchedulerTelemetry::MarkAppliedIntervention(const CString& fileName)
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    ++m_interventions;
+    bool changed = false;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (std::deque<EmuleNextSchedulerEvent>::reverse_iterator it = m_events.rbegin(); it != m_events.rend(); ++it) {
+            if (!it->applied && it->fileName.CompareNoCase(fileName) == 0) {
+                it->applied = true;
+                changed = true;
+                break;
+            }
+        }
+        if (changed)
+            ++m_interventions;
+    }
+    if (changed)
+        QueueAppliedPersist(fileName);
 }
 
 void CEmuleNextSchedulerTelemetry::Snapshot(std::deque<EmuleNextSchedulerEvent>& events) const
@@ -205,7 +242,7 @@ void CEmuleNextSchedulerTelemetry::Summary(EmuleNextSchedulerTelemetrySummary& s
     {
         std::lock_guard<std::mutex> lock(m_persistMutex);
         summary.droppedPersistenceEvents = m_droppedPersistEvents;
-        summary.pendingPersistenceEvents = m_persistQueue.size();
+        summary.pendingPersistenceEvents = m_persistQueue.size() + m_persistAppliedQueue.size();
         summary.persistenceReady = m_persistenceReady;
     }
 }
@@ -252,7 +289,8 @@ void CEmuleNextSchedulerTelemetry::PersistenceMain()
             "mode INTEGER NOT NULL,action INTEGER NOT NULL,health INTEGER NOT NULL,attention INTEGER NOT NULL,"
             "discovery_budget INTEGER NOT NULL,a4af_score INTEGER NOT NULL,rare_part_index INTEGER,"
             "applied INTEGER NOT NULL,reason TEXT);"
-            "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_ts ON scheduler_decisions(ts DESC);";
+            "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_ts ON scheduler_decisions(ts DESC);"
+            "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_file_applied ON scheduler_decisions(file_name,applied,id DESC);";
         ready = sqlite3_exec(db, schema, NULL, NULL, NULL) == SQLITE_OK;
     }
 
@@ -265,10 +303,11 @@ void CEmuleNextSchedulerTelemetry::PersistenceMain()
     uint32 pruneCounter = 0;
     while (ready) {
         std::deque<EmuleNextSchedulerEvent> batch;
+        std::deque<CString> appliedBatch;
         {
             std::unique_lock<std::mutex> lock(m_persistMutex);
             m_persistCondition.wait_for(lock, std::chrono::milliseconds(500), [this]() {
-                return m_stopPersistence || !m_persistQueue.empty();
+                return m_stopPersistence || !m_persistQueue.empty() || !m_persistAppliedQueue.empty();
             });
             size_t count = m_persistQueue.size();
             if (count > 256)
@@ -277,51 +316,80 @@ void CEmuleNextSchedulerTelemetry::PersistenceMain()
                 batch.push_back(m_persistQueue.front());
                 m_persistQueue.pop_front();
             }
-            if (m_stopPersistence && batch.empty() && m_persistQueue.empty())
+            count = m_persistAppliedQueue.size();
+            if (count > 256)
+                count = 256;
+            for (size_t i = 0; i < count; ++i) {
+                appliedBatch.push_back(m_persistAppliedQueue.front());
+                m_persistAppliedQueue.pop_front();
+            }
+            if (m_stopPersistence && batch.empty() && appliedBatch.empty()
+                && m_persistQueue.empty() && m_persistAppliedQueue.empty())
                 break;
         }
-        if (batch.empty())
+        if (batch.empty() && appliedBatch.empty())
             continue;
 
         if (sqlite3_exec(db, "BEGIN IMMEDIATE", NULL, NULL, NULL) != SQLITE_OK) {
             std::lock_guard<std::mutex> lock(m_persistMutex);
-            m_droppedPersistEvents += static_cast<uint64>(batch.size());
+            m_droppedPersistEvents += static_cast<uint64>(batch.size() + appliedBatch.size());
             continue;
         }
 
         bool batchOk = true;
-        sqlite3_stmt* stmt = NULL;
-        const char* sql =
+        sqlite3_stmt* insertStmt = NULL;
+        const char* insertSql =
             "INSERT INTO scheduler_decisions(ts,file_name,mode,action,health,attention,discovery_budget,a4af_score,rare_part_index,applied,reason) "
             "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)";
-        if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK) {
+        if (!batch.empty() && sqlite3_prepare_v2(db, insertSql, -1, &insertStmt, NULL) != SQLITE_OK)
+            batchOk = false;
+        if (batchOk && insertStmt != NULL) {
             for (std::deque<EmuleNextSchedulerEvent>::const_iterator it = batch.begin(); it != batch.end(); ++it) {
-                sqlite3_reset(stmt);
-                sqlite3_clear_bindings(stmt);
-                sqlite3_bind_int64(stmt, 1, static_cast<sqlite3_int64>(it->timestamp));
-                sqlite3_bind_text16(stmt, 2, it->fileName.GetString(), -1, SQLITE_TRANSIENT);
-                sqlite3_bind_int(stmt, 3, static_cast<int>(it->mode));
-                sqlite3_bind_int(stmt, 4, static_cast<int>(it->action));
-                sqlite3_bind_int64(stmt, 5, static_cast<sqlite3_int64>(it->health));
-                sqlite3_bind_int64(stmt, 6, static_cast<sqlite3_int64>(it->attention));
-                sqlite3_bind_int64(stmt, 7, static_cast<sqlite3_int64>(it->discoveryBudget));
-                sqlite3_bind_int64(stmt, 8, static_cast<sqlite3_int64>(it->a4afScore));
+                sqlite3_reset(insertStmt);
+                sqlite3_clear_bindings(insertStmt);
+                sqlite3_bind_int64(insertStmt, 1, static_cast<sqlite3_int64>(it->timestamp));
+                sqlite3_bind_text16(insertStmt, 2, it->fileName.GetString(), -1, SQLITE_TRANSIENT);
+                sqlite3_bind_int(insertStmt, 3, static_cast<int>(it->mode));
+                sqlite3_bind_int(insertStmt, 4, static_cast<int>(it->action));
+                sqlite3_bind_int64(insertStmt, 5, static_cast<sqlite3_int64>(it->health));
+                sqlite3_bind_int64(insertStmt, 6, static_cast<sqlite3_int64>(it->attention));
+                sqlite3_bind_int64(insertStmt, 7, static_cast<sqlite3_int64>(it->discoveryBudget));
+                sqlite3_bind_int64(insertStmt, 8, static_cast<sqlite3_int64>(it->a4afScore));
                 if (it->rarePartIndex == static_cast<uint32>(-1))
-                    sqlite3_bind_null(stmt, 9);
+                    sqlite3_bind_null(insertStmt, 9);
                 else
-                    sqlite3_bind_int64(stmt, 9, static_cast<sqlite3_int64>(it->rarePartIndex));
-                sqlite3_bind_int(stmt, 10, it->applied ? 1 : 0);
-                sqlite3_bind_text16(stmt, 11, it->reason.GetString(), -1, SQLITE_TRANSIENT);
-                if (sqlite3_step(stmt) != SQLITE_DONE) {
+                    sqlite3_bind_int64(insertStmt, 9, static_cast<sqlite3_int64>(it->rarePartIndex));
+                sqlite3_bind_int(insertStmt, 10, it->applied ? 1 : 0);
+                sqlite3_bind_text16(insertStmt, 11, it->reason.GetString(), -1, SQLITE_TRANSIENT);
+                if (sqlite3_step(insertStmt) != SQLITE_DONE) {
                     batchOk = false;
                     break;
                 }
             }
-        } else {
-            batchOk = false;
         }
-        if (stmt != NULL)
-            sqlite3_finalize(stmt);
+        if (insertStmt != NULL)
+            sqlite3_finalize(insertStmt);
+
+        sqlite3_stmt* appliedStmt = NULL;
+        const char* appliedSql =
+            "UPDATE scheduler_decisions SET applied=1 WHERE id=("
+            "SELECT id FROM scheduler_decisions WHERE file_name=?1 AND applied=0 ORDER BY id DESC LIMIT 1)";
+        if (batchOk && !appliedBatch.empty()
+            && sqlite3_prepare_v2(db, appliedSql, -1, &appliedStmt, NULL) != SQLITE_OK)
+            batchOk = false;
+        if (batchOk && appliedStmt != NULL) {
+            for (std::deque<CString>::const_iterator it = appliedBatch.begin(); it != appliedBatch.end(); ++it) {
+                sqlite3_reset(appliedStmt);
+                sqlite3_clear_bindings(appliedStmt);
+                sqlite3_bind_text16(appliedStmt, 1, it->GetString(), -1, SQLITE_TRANSIENT);
+                if (sqlite3_step(appliedStmt) != SQLITE_DONE) {
+                    batchOk = false;
+                    break;
+                }
+            }
+        }
+        if (appliedStmt != NULL)
+            sqlite3_finalize(appliedStmt);
 
         if (batchOk) {
             if (sqlite3_exec(db, "COMMIT", NULL, NULL, NULL) != SQLITE_OK)
@@ -332,7 +400,7 @@ void CEmuleNextSchedulerTelemetry::PersistenceMain()
         if (!batchOk) {
             sqlite3_exec(db, "ROLLBACK", NULL, NULL, NULL);
             std::lock_guard<std::mutex> lock(m_persistMutex);
-            m_droppedPersistEvents += static_cast<uint64>(batch.size());
+            m_droppedPersistEvents += static_cast<uint64>(batch.size() + appliedBatch.size());
         }
 
         if (++pruneCounter >= 20) {
