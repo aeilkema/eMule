@@ -35,7 +35,8 @@ def main() -> int:
 
     require(dashboard, '#include "EmuleNextUiMetrics.h"', "Dashboard metrics include")
     require(dashboard, "const int margin = CEmuleNextUiMetrics::Scale(m_hWnd, 8);", "Dashboard scaled margin")
-    require(dashboard, "CEmuleNextUiMetrics::Scale(m_hWnd, 290)", "Dashboard scaled columns")
+    require(dashboard, "CEmuleNextUiMetrics::Scale(m_hWnd, widths[i])", "Dashboard scaled columns")
+    require(dashboard, "const int filterHeight = CEmuleNextUiMetrics::Scale", "Dashboard scaled filters")
     require(settings, '#include "EmuleNextUiMetrics.h"', "Settings metrics include")
     require(settings, "const int fieldMin = CEmuleNextUiMetrics::Scale(m_hWnd, 150);", "Settings scaled minimum field geometry")
     require(settings, "const int fieldMax = CEmuleNextUiMetrics::Scale(m_hWnd, 290);", "Settings scaled maximum field geometry")
