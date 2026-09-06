@@ -3,7 +3,8 @@
 
 SQLite is allowed only in dedicated persistence/database implementations.
 Scheduler decisions, A4AF/part ranking hooks, queue processing and UI refresh
-code must stay memory-only.
+code must stay memory-only. Persistence workers must also avoid holding the
+scheduler-facing cache mutex while stepping SQLite statements.
 """
 from __future__ import annotations
 
@@ -66,10 +67,25 @@ def main() -> int:
         failures.append("history persistence is not isolated behind its worker queue")
     if "No SQLite work runs on the scheduler/core thread" not in history:
         failures.append("history persistence hot-path invariant marker missing")
+    if "std::vector<std::pair<Key, EmuleNextFileHistory> > loaded" not in history:
+        failures.append("history startup rows are not staged in a worker-local buffer")
+    if "never while sqlite3_step runs" not in history:
+        failures.append("history startup lock-isolation invariant marker missing")
+
+    # Guard against the old pattern where the cache mutex surrounded the SQLite
+    # stepping loop and could indirectly stall scheduler reads.
+    old_locked_load = re.compile(
+        r"std::lock_guard<std::mutex>\s+lock\(m_mutex\);\s*while\s*\(sqlite3_step\(stmt\)",
+        re.S,
+    )
+    if old_locked_load.search(history):
+        failures.append("history cache mutex is held while stepping SQLite startup rows")
 
     telemetry = text(ROOT / "srchybrid/EmuleNextSchedulerTelemetry.cpp")
     if "PersistenceMain" not in telemetry or "m_persistQueue" not in telemetry:
         failures.append("telemetry persistence is not isolated behind its worker queue")
+    if "m_persistAppliedQueue" not in telemetry:
+        failures.append("telemetry delayed applied-state persistence queue missing")
     if "BEGIN IMMEDIATE" not in telemetry:
         failures.append("telemetry worker transaction boundary missing")
 
