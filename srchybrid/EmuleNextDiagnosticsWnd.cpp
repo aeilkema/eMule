@@ -34,6 +34,8 @@ namespace
         case ENMA_STRESS: {
             EmuleNextStressDiagnosticsResult stress;
             result->ok = CEmuleNextStressDiagnostics::RunIndexStress(10000, 5000, stress);
+            if (result->ok)
+                result->ok = CEmuleNextStressDiagnostics::RunWriterQueueStress(10000, stress);
             result->message = stress.details;
             theEmuleNext.LoadDatabaseDiagnostics(result->snapshot);
             break;
@@ -72,7 +74,7 @@ int CEmuleNextDiagnosticsWnd::OnCreate(LPCREATESTRUCT createStruct)
     if (CWnd::OnCreate(createStruct) == -1) return -1;
     m_darkBrush.CreateSolidBrush(CEmuleNextTheme::BackgroundColor()); CRect empty(0, 0, 0, 0);
     if (!m_title.Create(_T("Database, Performance & Recovery"), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
-        || !m_subtitle.Create(_T("Integrity, backups, writer queues and deterministic in-memory index stress diagnostics."), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
+        || !m_subtitle.Create(_T("Integrity, backups, writer queues and bounded deterministic stress diagnostics."), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
         || !m_health.Create(_T("Status: loading..."), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
         || !m_details.Create(_T(""), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)
         || !m_refresh.Create(_T("Refresh"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, empty, this, IDC_EN_DIAG_REFRESH)
@@ -82,7 +84,7 @@ int CEmuleNextDiagnosticsWnd::OnCreate(LPCREATESTRUCT createStruct)
         || !m_prune.Create(_T("Prune old telemetry"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, empty, this, IDC_EN_DIAG_PRUNE)
         || !m_checkpoint.Create(_T("Checkpoint WAL"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, empty, this, IDC_EN_DIAG_CHECKPOINT)
         || !m_openBackups.Create(_T("Open backup folder"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, empty, this, IDC_EN_DIAG_OPEN)
-        || !m_stress.Create(_T("Run index stress test"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, empty, this, IDC_EN_DIAG_STRESS)
+        || !m_stress.Create(_T("Run stress self-test"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, empty, this, IDC_EN_DIAG_STRESS)
         || !m_actionStatus.Create(_T("Maintenance and stress actions run outside the GUI thread."), WS_CHILD | WS_VISIBLE | SS_LEFT, empty, this)) return -1;
     CFont* font = CFont::FromHandle(static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT)));
     CWnd* controls[] = { &m_title, &m_subtitle, &m_health, &m_details, &m_refresh, &m_check, &m_backup, &m_restore, &m_prune, &m_checkpoint, &m_openBackups, &m_stress, &m_actionStatus };
@@ -104,7 +106,7 @@ void CEmuleNextDiagnosticsWnd::ApplySnapshot(const EmuleNextDatabaseDiagnostics&
 {
     m_snapshot = s; CString health; health.Format(_T("Status: %s%s"), static_cast<LPCTSTR>(CString(s.status)), s.recoveryRequired ? _T(" - manual recovery required") : _T("")); m_health.SetWindowText(health);
     CString details;
-    details.Format(_T("Database: %s\r\nSchema: v%d   DB: %s   WAL: %s\r\nBackups: %u   latest: %s\r\nRows - peers %I64u, files %I64u, library %I64u, transfers %I64u, scheduler decisions %I64u, outcomes %I64u\r\nWriter queue - queued %I64u, peak %I64u, processed %I64u, dropped %I64u, errors %I64u\r\nLast integrity check: %s   result: %s\r\nBackup folder: %s\r\nPerformance self-test: use 'Run index stress test' for 10,000 ClientIndex + 5,000 DownloadIndex entries."),
+    details.Format(_T("Database: %s\r\nSchema: v%d   DB: %s   WAL: %s\r\nBackups: %u   latest: %s\r\nRows - peers %I64u, files %I64u, library %I64u, transfers %I64u, scheduler decisions %I64u, outcomes %I64u\r\nWriter queue - queued %I64u, peak %I64u, processed %I64u, dropped %I64u, errors %I64u\r\nLast integrity check: %s   result: %s\r\nBackup folder: %s\r\nStress self-test: 10,000 ClientIndex + 5,000 DownloadIndex entries and 10,000 events through a temporary async writer database."),
         static_cast<LPCTSTR>(CString(s.databasePath)), s.schemaVersion, static_cast<LPCTSTR>(SizeText(s.databaseBytes)), static_cast<LPCTSTR>(SizeText(s.walBytes)), s.backupCount, static_cast<LPCTSTR>(TimeText(s.lastBackupAt)),
         s.peerCount, s.fileCount, s.libraryCount, s.transferCount, s.schedulerDecisionCount, s.schedulerOutcomeCount,
         s.queue.queued, s.queue.peakQueued, s.queue.processed, s.queue.dropped, s.queue.errors,
