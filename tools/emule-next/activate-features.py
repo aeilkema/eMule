@@ -73,6 +73,7 @@ for script_name in (
     "activate-download-intelligence-view.py",
     "activate-transfer-history-direction.py",
     "activate-smart-scheduler-runtime.py",
+    "activate-scheduler-action-stability.py",
     "activate-scheduler-schema-v2.py",
     "activate-scheduler-persistence.py",
     "activate-smart-scheduler-ui.py",
