@@ -20,6 +20,47 @@ def require(text: str, marker: str, label: str) -> None:
         raise SystemExit(f"Preview2 UX verification: {label} missing")
 
 
+def function_body(text: str, signature: str) -> str:
+    """Return one C++ function body using brace balancing.
+
+    The main eMule source contains a large amount of authoritative legacy logic.
+    Preview 2 backend-isolation checks must therefore inspect only methods owned
+    by the new shell instead of grepping the complete legacy translation unit.
+    """
+    start = text.find(signature)
+    if start < 0:
+        raise SystemExit(f"Preview2 UX verification: shell method missing: {signature}")
+    brace = text.find("{", start + len(signature))
+    if brace < 0:
+        raise SystemExit(f"Preview2 UX verification: shell method body missing: {signature}")
+
+    depth = 0
+    i = brace
+    in_string = False
+    in_char = False
+    escaped = False
+    while i < len(text):
+        ch = text[i]
+        if escaped:
+            escaped = False
+        elif ch == "\\" and (in_string or in_char):
+            escaped = True
+        elif ch == '"' and not in_char:
+            in_string = not in_string
+        elif ch == "'" and not in_string:
+            in_char = not in_char
+        elif not in_string and not in_char:
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start:i + 1]
+        i += 1
+
+    raise SystemExit(f"Preview2 UX verification: unterminated shell method: {signature}")
+
+
 def main() -> int:
     main_h = read("EmuleDlg.h")
     main_cpp = read("EmuleDlg.cpp")
@@ -90,16 +131,24 @@ def main() -> int:
         require(dashboard_h if marker == "CButton m_more;" else dashboard_cpp, marker, label)
 
     # Settings remains product configuration only. Diagnostics/runtime controls
-    # are intentionally forbidden here.
+    # are intentionally forbidden here because this is a Preview2-owned file.
     for forbidden in ("Run stress self-test", "Checkpoint WAL", "Restore backup", "sqlite3_"):
         if forbidden in settings_cpp:
             raise SystemExit(f"Preview2 UX verification: Diagnostics concern leaked into Settings: {forbidden}")
 
-    # Main shell must remain a router over the authoritative legacy child views,
-    # not a second protocol implementation.
-    for forbidden in ("sqlite3_", "CSearchManager::", "AddFileLinkToDownload("):
-        if forbidden in main_cpp:
-            raise SystemExit(f"Preview2 UX verification: main shell owns forbidden backend logic: {forbidden}")
+    # EmuleDlg.cpp is a large legacy translation unit and legitimately contains
+    # authoritative download/search/network code. Only inspect the methods owned
+    # by the Preview 2 shell; whole-file grep would create false positives for
+    # pre-existing eMule core calls such as AddFileLinkToDownload().
+    shell_methods = "\n".join((
+        function_body(main_cpp, "void CemuleDlg::UpdatePreview2HeaderStatus()"),
+        function_body(main_cpp, "void CemuleDlg::UpdatePreview2MainSection(int selection)"),
+        function_body(main_cpp, "void CemuleDlg::OnPreview2Connect()"),
+        function_body(main_cpp, "void CemuleDlg::OnPreview2MainNavChanged()"),
+    ))
+    for forbidden in ("sqlite3_", "CSearchManager::", "AddFileLinkToDownload(", "SendPacket(", "SendUDPPacket("):
+        if forbidden in shell_methods:
+            raise SystemExit(f"Preview2 UX verification: shell-owned method contains forbidden backend logic: {forbidden}")
 
     print("eMule Next Preview 2 UX completion verification passed")
     return 0
