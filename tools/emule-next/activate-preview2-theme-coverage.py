@@ -8,6 +8,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 SRC = ROOT / "srchybrid"
 H = SRC / "ChatWnd.h"
 CPP = SRC / "ChatWnd.cpp"
+SEL_H = SRC / "ChatSelector.h"
 SEL = SRC / "ChatSelector.cpp"
 
 
@@ -28,6 +29,7 @@ def save(path: pathlib.Path, text: str, newline: str) -> None:
 def main() -> int:
     h, hn = load(H)
     cpp, cn = load(CPP)
+    sel_h, shn = load(SEL_H)
     sel, sn = load(SEL)
 
     if "CBrush m_preview2ThemeBrush;" not in h:
@@ -40,6 +42,12 @@ def main() -> int:
         if anchor not in h:
             raise SystemExit("Preview2 theme coverage: ChatWnd helper anchor missing")
         h = h.replace(anchor, anchor + "\tvoid ApplyPreview2Theme();\n", 1)
+
+    if "void ApplyPreview2Theme();" not in sel_h:
+        anchor = "\tvoid\t\tUpdateFonts(CFont *pFont);\n"
+        if anchor not in sel_h:
+            raise SystemExit("Preview2 theme coverage: ChatSelector public helper anchor missing")
+        sel_h = sel_h.replace(anchor, anchor + "\tvoid\t\tApplyPreview2Theme();\n", 1)
 
     for inc in ('#include "EmuleNextTheme.h"', '#include "EmuleNextModernUi.h"'):
         if inc not in cpp:
@@ -71,6 +79,7 @@ def main() -> int:
 	CEmuleNextModernUi::SetExplorerTheme(m_wndSend.m_hWnd);
 	CEmuleNextModernUi::SetExplorerTheme(m_wndClose.m_hWnd);
 	CEmuleNextModernUi::SetExplorerTheme(m_wndFormat.m_hWnd);
+	chatselector.ApplyPreview2Theme();
 	Invalidate(TRUE);
 }
 
@@ -125,7 +134,34 @@ def main() -> int:
                 raise SystemExit("Preview2 theme coverage: ChatSelector include anchor missing")
             sel = sel.replace(anchor, anchor + inc + "\n", 1)
 
-    if "SetDfltForegroundColor(CEmuleNextTheme::TextColor())" not in sel:
+    if "void CChatSelector::ApplyPreview2Theme()" not in sel:
+        anchor = "void CChatSelector::UpdateFonts(CFont *pFont)\n"
+        pos = sel.find(anchor)
+        if pos < 0:
+            raise SystemExit("Preview2 theme coverage: ChatSelector method boundary missing")
+        method = r'''void CChatSelector::ApplyPreview2Theme()
+{
+	CEmuleNextModernUi::SetExplorerTheme(m_hWnd);
+	TCITEM ti = {};
+	ti.mask = TCIF_PARAM;
+	for (int i = 0; i < GetItemCount(); ++i) {
+		if (!GetItem(i, &ti) || ti.lParam == NULL)
+			continue;
+		CChatItem* item = reinterpret_cast<CChatItem*>(ti.lParam);
+		if (item->log == NULL || !::IsWindow(item->log->m_hWnd))
+			continue;
+		item->log->SetDfltForegroundColor(CEmuleNextTheme::TextColor());
+		item->log->SetDfltBackgroundColor(CEmuleNextTheme::SurfaceColor());
+		item->log->SetBackgroundColor(FALSE, CEmuleNextTheme::SurfaceColor());
+		CEmuleNextModernUi::SetExplorerTheme(item->log->m_hWnd);
+		item->log->Invalidate(TRUE);
+	}
+}
+
+'''
+        sel = sel[:pos] + method + sel[pos:]
+
+    if "SetDfltForegroundColor(CEmuleNextTheme::TextColor())" not in sel[sel.find("CChatSelector::StartSession"):]:
         anchor = "\tchatitem->log->ApplySkin();\n"
         if anchor not in sel:
             raise SystemExit("Preview2 theme coverage: chat log skin anchor missing")
@@ -138,6 +174,7 @@ def main() -> int:
 
     save(H, h, hn)
     save(CPP, cpp, cn)
+    save(SEL_H, sel_h, shn)
     save(SEL, sel, sn)
     print("eMule Next Preview 2 Messages/Chat theme coverage materialized")
     return 0
