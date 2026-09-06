@@ -17,6 +17,7 @@ PREVIEW2_STEPS = (
     "activate-preview2-polish-dashboard.py",
     "activate-preview2-polish-transfers.py",
     "activate-preview2-navigation.py",
+    "activate-preview2-main-shell.py",
     "activate-preview2-build-identity.py",
     "verify-preview2-product.py",
 )
