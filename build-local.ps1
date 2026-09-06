@@ -2,7 +2,9 @@
 param(
     [switch]$RebuildDependencies,
     [switch]$KeepActivationStage,
-    [switch]$ActivationOnly
+    [switch]$ActivationOnly,
+    [switch]$VerifyDeterminism,
+    [switch]$FullRebuild
 )
 
 $ErrorActionPreference = 'Stop'
@@ -63,9 +65,6 @@ function Invoke-CleanActivation([hashtable]$Stage) {
         throw "Integration failed in clean activation overlay ($label): $root"
     }
 
-    # Git for Windows can materialize repository text as CRLF even when the blob
-    # is LF. Normalize only the isolated stage so multiline activator anchors are
-    # deterministic. The real checkout is never modified.
     Write-Host "Normalizing activation-stage source newlines ($label)..."
     python (Join-Path $tools "normalize-stage-newlines.py") $source
     if ($LASTEXITCODE -ne 0) {
@@ -106,33 +105,85 @@ function Get-ActivationTreeHash([string]$Root) {
     return ([System.BitConverter]::ToString($digest)).Replace('-', '').ToLowerInvariant()
 }
 
-# Activators are generation steps. We do NOT require a generated tree to be a
-# valid input for the same legacy generation chain a second time. Instead we
-# prove the property the build actually needs: two independent clean runs from
-# the exact same repository input must produce byte-identical activated source.
-$StageA = New-CleanActivationStage $StageRoot "A"
-Invoke-CleanActivation $StageA
-$HashA = Get-ActivationTreeHash $StageA.Source
-Write-Host "Activation tree A: $HashA"
+function Sync-ActivatedOverlay([string]$SourceRoot, [string]$DestinationRoot) {
+    $sourcePath = (Resolve-Path -LiteralPath $SourceRoot).Path.TrimEnd('\')
+    if (-not (Test-Path -LiteralPath $DestinationRoot -PathType Container)) {
+        throw "Generated eMule source directory not found: $DestinationRoot"
+    }
 
-$StageB = New-CleanActivationStage $VerifyStageRoot "B"
-Invoke-CleanActivation $StageB
-$HashB = Get-ActivationTreeHash $StageB.Source
-Write-Host "Activation tree B: $HashB"
+    $added = 0
+    $updated = 0
+    $unchanged = 0
 
-if ($HashA -ne $HashB) {
-    throw "Clean activation is not deterministic. Stage A kept at $StageRoot; stage B kept at $VerifyStageRoot"
+    Get-ChildItem -LiteralPath $sourcePath -Recurse -File | ForEach-Object {
+        $relative = $_.FullName.Substring($sourcePath.Length).TrimStart('\')
+        $destination = Join-Path $DestinationRoot $relative
+        $destinationDirectory = Split-Path -Parent $destination
+
+        if (-not (Test-Path -LiteralPath $destinationDirectory -PathType Container)) {
+            New-Item -ItemType Directory -Force -Path $destinationDirectory | Out-Null
+        }
+
+        if (-not (Test-Path -LiteralPath $destination -PathType Leaf)) {
+            Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
+            ++$added
+            return
+        }
+
+        $same = $false
+        $destInfo = Get-Item -LiteralPath $destination
+        if ($_.Length -eq $destInfo.Length) {
+            $sourceHash = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
+            $destinationHash = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash
+            $same = $sourceHash -eq $destinationHash
+        }
+
+        if ($same) {
+            ++$unchanged
+        }
+        else {
+            Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
+            ++$updated
+        }
+    }
+
+    Write-Host "Incremental overlay sync: $added added, $updated changed, $unchanged unchanged."
 }
 
-Write-Host "Clean activation determinism verified: both independent stages are byte-identical."
-Remove-StageIfPresent $VerifyStageRoot
-
+# Normal development builds perform one clean activation. The optional
+# -VerifyDeterminism mode performs a second independent clean activation and
+# compares the resulting trees byte-for-byte. This keeps the strong generator
+# check available without paying for it on every compile/fix cycle.
+$StageA = New-CleanActivationStage $StageRoot "A"
+Invoke-CleanActivation $StageA
 $StageSource = $StageA.Source
+
+if ($VerifyDeterminism) {
+    $HashA = Get-ActivationTreeHash $StageA.Source
+    Write-Host "Activation tree A: $HashA"
+
+    $StageB = New-CleanActivationStage $VerifyStageRoot "B"
+    Invoke-CleanActivation $StageB
+    $HashB = Get-ActivationTreeHash $StageB.Source
+    Write-Host "Activation tree B: $HashB"
+
+    if ($HashA -ne $HashB) {
+        throw "Clean activation is not deterministic. Stage A kept at $StageRoot; stage B kept at $VerifyStageRoot"
+    }
+
+    Write-Host "Clean activation determinism verified: both independent stages are byte-identical."
+    Remove-StageIfPresent $VerifyStageRoot
+}
 
 if ($ActivationOnly) {
     Write-Host ""
     Write-Host "ACTIVATION SUCCESS"
-    Write-Host "Integration, feature activation, all verifiers and clean-run determinism succeeded."
+    if ($VerifyDeterminism) {
+        Write-Host "Integration, feature activation, all verifiers and clean-run determinism succeeded."
+    }
+    else {
+        Write-Host "Integration, feature activation and all verifiers succeeded."
+    }
     Write-Host "Stage: $StageRoot"
     Write-Host "Repository overlay was not modified by integration/activation."
     if (-not $KeepActivationStage) {
@@ -169,17 +220,23 @@ if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) {
     throw "Generated eMule source directory not found: $SourceDir"
 }
 
-# Apply only the fully activated, independently reproducible staging overlay.
-Get-ChildItem -LiteralPath $StageSource -Force | ForEach-Object {
-    Copy-Item -LiteralPath $_.FullName -Destination $SourceDir -Recurse -Force
-}
+# Content-aware copy is essential for real incremental C++ builds. Rewriting
+# every source file would update timestamps and force MSBuild to rebuild nearly
+# the whole application even when only one eMule Next file changed.
+Sync-ActivatedOverlay $StageSource $SourceDir
 
-Write-Host "Building eMule Next Preview 1 x64..."
+$BuildTarget = if ($FullRebuild) { "Rebuild" } else { "Build" }
+if ($FullRebuild) {
+    Write-Host "Building eMule Next Preview 1 x64 (full rebuild)..."
+}
+else {
+    Write-Host "Building eMule Next Preview 1 x64 (incremental)..."
+}
 
 & $MSBuild `
     "$SourceDir\emule.vcxproj" `
     /m `
-    /t:Build `
+    /t:$BuildTarget `
     /p:BuildProjectReferences=false `
     /p:Configuration=Release `
     /p:Platform=x64 `
