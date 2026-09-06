@@ -57,7 +57,7 @@ CHECKS = {
         "theEmuleNext.Database()",
     ),
     "emule.vcxproj": (
-        "Condition=\"'$(Platform)'=='x64'\">WINVER=0x0A00;_WIN32_WINNT=0x0A00;%(PreprocessorDefinitions)",
+        "Condition=\"'$(Platform)'=='x64'\">WINVER=0x0A00;_WIN32_WINNT=0x0A00;NTDDI_VERSION=0x0A000001;%(PreprocessorDefinitions)",
         "Condition=\"'$(Platform)'=='Win32'\">XP_BUILD;%(PreprocessorDefinitions)",
         "winsqlite3.lib",
     ),
@@ -72,6 +72,7 @@ FORBIDDEN = {
     ),
     "emule.vcxproj": (
         "Condition=\"'$(Platform)'!='ARM64'\">XP_BUILD",
+        "Condition=\"'$(Platform)'=='x64'\">WINVER=0x0A00;_WIN32_WINNT=0x0A00;%(PreprocessorDefinitions)",
     ),
 }
 
