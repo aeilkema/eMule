@@ -27,6 +27,8 @@ def main() -> int:
     svc_cpp = read("LibraryBrowserService.cpp")
     wnd_h = read("FileLibraryWnd.h")
     wnd_cpp = read("FileLibraryWnd.cpp")
+    runtime_h = read("EmuleNextRuntime.h")
+    download_cpp = read("DownloadQueue.cpp")
 
     for marker, label in (
         ("RemoveDownloadLater(const EmuleNextHash16& fileHash, uint64 fileSize)", "Download Later removal queue API"),
@@ -92,8 +94,8 @@ def main() -> int:
         ("CFileLibraryWnd::SelectedIndices(size_t limit)", "bulk selection implementation"),
         ("indices.size() < limit", "bounded bulk selection implementation"),
         ("RemoveDownloadLater(row.fileHash, row.fileSize)", "Download Later toggle removal"),
-        ("AddFileLinkToDownload(link)", "legacy authoritative download route"),
-        ("IsFileExisting(row.fileHash.bytes.data(), false)", "duplicate download guard"),
+        ("theEmuleNext.AddLibraryDownload(name, row.fileSize, hash)", "Library runtime download bridge"),
+        ("theEmuleNext.IsDownloadQueued(row.fileHash.bytes.data())", "Library runtime duplicate guard"),
         ("CKnownFile candidate", "legacy ED2K hashing implementation"),
         ("candidate.CreateFromFile(directory, name, NULL)", "background relink hashing"),
         ("memcmp(candidate.GetFileHash(), context->hash.bytes.data(), 16) == 0", "ED2K hash match"),
@@ -111,12 +113,27 @@ def main() -> int:
     ):
         require(wnd_cpp, marker, label)
 
+    for marker, label in (
+        ("bool AddLibraryDownload(LPCTSTR fileName, uint64 fileSize, LPCTSTR ed2kHash);", "runtime download bridge declaration"),
+        ("bool IsDownloadQueued(const unsigned char* fileHash) const;", "runtime duplicate bridge declaration"),
+    ):
+        require(runtime_h, marker, label)
+
+    for marker, label in (
+        ("CED2KFileLink link(fileName, size, ed2kHash, params, NULL);", "legacy ED2K link construction"),
+        ("theApp.downloadqueue->AddFileLinkToDownload(link);", "legacy authoritative download route"),
+        ("theApp.downloadqueue->IsFileExisting(link.GetHashKey(), false)", "legacy post-add duplicate check"),
+    ):
+        require(download_cpp, marker, label)
+
     if "LVS_SINGLESEL" in wnd_cpp:
         raise SystemExit("Library 2 verifier: result list is still single-select")
     if "sqlite3_" in wnd_cpp or "winsqlite3" in wnd_cpp.lower():
         raise SystemExit("Library 2 verifier: direct SQLite remains in Library GUI")
     if "GetFileAttributesW" in wnd_cpp:
         raise SystemExit("Library 2 verifier: filesystem existence checks remain in Library GUI")
+    if '#include "DownloadQueue.h"' in wnd_cpp or "theApp.downloadqueue->" in wnd_cpp:
+        raise SystemExit("Library 2 verifier: Library UI bypasses runtime download bridge")
 
     worker_start = wnd_cpp.find("UINT AFX_CDECL RelinkWorker")
     worker_end = wnd_cpp.find("int CompareUInt64", worker_start)
