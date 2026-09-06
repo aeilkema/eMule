@@ -32,11 +32,12 @@ def main() -> int:
     text = text[:block.start()] + replacement + text[block.end():]
 
     old = '''\t\t\ttypedef BOOL(WINAPI *PChangeWindowMessageFilter)(UINT message, DWORD dwFlag);\n\t\t\tPChangeWindowMessageFilter ChangeWindowMessageFilter\n\t\t\t\t= (PChangeWindowMessageFilter)(::GetProcAddress(::GetModuleHandle(_T("user32.dll")), "ChangeWindowMessageFilter"));'''
-    new = '''\t\t\ttypedef BOOL(WINAPI *PChangeWindowMessageFilter)(UINT message, DWORD dwFlag);\n\t\t\tPChangeWindowMessageFilter ChangeWindowMessageFilter = NULL;\n\t\t\tFARPROC changeWindowMessageFilterProc = ::GetProcAddress(::GetModuleHandle(_T("user32.dll")), "ChangeWindowMessageFilter");\n\t\t\tstatic_assert(sizeof(changeWindowMessageFilterProc) == sizeof(ChangeWindowMessageFilter), "function pointer size mismatch");\n\t\t\tmemcpy(&ChangeWindowMessageFilter, &changeWindowMessageFilterProc, sizeof(ChangeWindowMessageFilter));'''
+    new = '''\t\t\ttypedef BOOL(WINAPI *PChangeWindowMessageFilter)(UINT message, DWORD dwFlag);\n\t\t\tPChangeWindowMessageFilter ChangeWindowMessageFilter = NULL;\n\t\t\tFARPROC changeWindowMessageFilterProc = ::GetProcAddress(::GetModuleHandle(_T("user32.dll")), "ChangeWindowMessageFilter");\n\t\t\tstatic_assert(sizeof(changeWindowMessageFilterProc) == sizeof(ChangeWindowMessageFilter), "function pointer size mismatch");\n\t\t\t::CopyMemory(&ChangeWindowMessageFilter, &changeWindowMessageFilterProc, sizeof(ChangeWindowMessageFilter));'''
     if old in text:
         text = text.replace(old, new, 1)
     elif "changeWindowMessageFilterProc" not in text:
         raise SystemExit("Main warning cleanup: ChangeWindowMessageFilter cast anchor missing")
+    text = text.replace("memcpy(&ChangeWindowMessageFilter, &changeWindowMessageFilterProc, sizeof(ChangeWindowMessageFilter));", "::CopyMemory(&ChangeWindowMessageFilter, &changeWindowMessageFilterProc, sizeof(ChangeWindowMessageFilter));")
     save(path, text, nl)
 
     project = SRC / "emule.vcxproj"
