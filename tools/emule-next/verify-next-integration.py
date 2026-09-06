@@ -8,17 +8,21 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 SRC = ROOT / "srchybrid"
 
 CHECKS = {
+    "EmuleNextDashboardWnd.h": (
+        "EMULENEXT_DASHBOARD_INTELLIGENCE2",
+        "void UpdateActionButtons();",
+        "afx_msg void OnForceAnalysis();",
+        "afx_msg void OnDownloadColumnClick",
+    ),
     "EmuleNextDashboardWnd.cpp": (
         "void CEmuleNextDashboardWnd::OnOpenTransfers()",
         "void CEmuleNextDashboardWnd::OnPauseResume()",
-        "BuildLiveSourceProfile(CPartFile* file)",
-        "Live sources: %u tracked",
+        "CEmuleNextTransferInsights::Build(file, row.historicalBytesPerSecond)",
+        "theEmuleNextScheduler.ForceAnalyze",
+        "theEmuleNextScheduler.ResetFileIntelligence",
         "JumpToTransfers(true)",
-    ),
-    "EmuleNextDashboardWnd.h": (
-        "CButton m_openTransfers;",
-        "void UpdateActionButtons();",
-        "afx_msg void OnPriorityHigh();",
+        "Source profile",
+        "Last intervention",
     ),
     "DownloadListCtrl.h": (
         "SelectFile(CPartFile *file, bool expand = false)",
@@ -27,6 +31,10 @@ CHECKS = {
         "bool CDownloadListCtrl::SelectFile(CPartFile *file, bool expand)",
         "Live quality",
         "Smart ETA",
+        "Hist. speed",
+        "Source quality",
+        "Source profile",
+        "CEmuleNextTransferInsights::Build(file, historical)",
     ),
     "TransferWnd.cpp": (
         "EMULENEXT_DASHBOARD_VIEW",
