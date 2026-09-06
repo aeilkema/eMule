@@ -99,6 +99,7 @@ for script_name in (
     "activate-library2-database.py",
     "activate-library-filter-debounce.py",
     "activate-library2-product.py",
+    "activate-library2-availability-hardening.py",
     "finalize-search-results.py",
     "activate-transfers-next.py",
     "activate-peer-alias-editor.py",
