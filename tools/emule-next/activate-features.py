@@ -86,6 +86,7 @@ for script_name in (
     "activate-winsqlite-compat.py",
     "finalize-peer-share-processing.py",
     "activate-known-users2-runtime.py",
+    "activate-known-users2-hardening.py",
     "activate-theme.py",
     "activate-next-settings.py",
     "activate-next-views.py",
