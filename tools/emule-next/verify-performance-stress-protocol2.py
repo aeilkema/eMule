@@ -8,6 +8,7 @@ import pathlib
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SRC = ROOT / "srchybrid"
 HERE = pathlib.Path(__file__).resolve().parent
+MATRIX = ROOT / "docs" / "EMULE_NEXT_RUNTIME_TEST_MATRIX.md"
 
 
 def read(name: str) -> str:
@@ -69,18 +70,35 @@ def main() -> int:
         "ValidateSize",
     ):
         require(stress_cpp, marker, "deterministic index stress")
-    require(stress_h, "Pure in-memory deterministic stress test", "stress safety contract")
-    for forbidden in ("sqlite3_", "AfxBeginThread", "SendPacket", "SendUDPPacket", "theApp."):
+    require(stress_h, "Pure in-memory deterministic index stress", "index stress safety contract")
+
+    for marker in (
+        "RunWriterQueueStress",
+        "eventCount > 25000",
+        "GetTempFileNameW",
+        "CEmuleNextDatabase database",
+        "database.RecordFileSeen",
+        "database.Stop()",
+        "GetQueueDiagnostics",
+        "diagnostics.processed != eventCount",
+        "diagnostics.dropped != 0",
+        "diagnostics.errors != 0",
+        "DeleteTemporaryDatabase",
+    ):
+        require(stress_cpp, marker, "temporary writer queue stress")
+    require(stress_h, "temporary disposable SQLite file", "writer stress isolation contract")
+    for forbidden in ("SendPacket", "SendUDPPacket", "theApp.", "theEmuleNextScheduler"):
         if forbidden in stress_cpp:
-            raise SystemExit(f"Perf2 verification: stress test leaked side-effect token {forbidden}")
+            raise SystemExit(f"Perf2 verification: stress test leaked runtime side-effect token {forbidden}")
 
     require(diag_h, "OnStressClicked", "Diagnostics stress action")
     for marker in (
         '#include "EmuleNextStressDiagnostics.h"',
         "ENMA_STRESS",
         "RunIndexStress(10000, 5000",
+        "RunWriterQueueStress(10000",
         "AfxBeginThread(MaintenanceWorker",
-        "Run index stress test",
+        "Run stress self-test",
     ):
         require(diag_cpp, marker, "Diagnostics stress wiring")
     require(project, '<ClCompile Include="EmuleNextStressDiagnostics.cpp" />', "stress project source")
@@ -109,6 +127,12 @@ def main() -> int:
     ):
         for marker in markers:
             require(source, marker, label)
+
+    if not MATRIX.exists():
+        raise SystemExit("Perf2 verification: runtime test matrix missing")
+    matrix = MATRIX.read_text(encoding="utf-8")
+    for marker in ("ED2K-01", "KAD-01", "UP-01", "SCHED-01", "HASH-01", "Static gates prove architecture and compile contracts only"):
+        require(matrix, marker, "runtime test matrix")
 
     order = activation_order()
     if not order:
