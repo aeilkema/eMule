@@ -14,7 +14,8 @@ public:
     static int ControlGap(HWND window) { return Scale(window, 8); }
     static int ControlHeight(HWND window) { return Scale(window, 34); }
     static int CompactHeight(HWND window) { return Scale(window, 30); }
-    static int NavigationWidth(HWND window) { return Scale(window, 184); }
+    static int NavigationWidth(HWND window) { return Scale(window, 196); }
+    static int HeaderHeight(HWND window) { return Scale(window, 64); }
     static int CardRadius(HWND window) { return Scale(window, 10); }
 
     static COLORREF WindowColor();
@@ -51,4 +52,18 @@ private:
     CString m_value;
     CString m_detail;
     COLORREF m_accent;
+};
+
+class CEmuleNextNavList : public CListBox
+{
+public:
+    CEmuleNextNavList();
+    void RefreshPalette();
+
+protected:
+    virtual void DrawItem(LPDRAWITEMSTRUCT drawItemStruct);
+    virtual void MeasureItem(LPMEASUREITEMSTRUCT measureItemStruct);
+    afx_msg BOOL OnEraseBkgnd(CDC* dc);
+
+    DECLARE_MESSAGE_MAP()
 };
