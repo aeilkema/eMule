@@ -7,6 +7,7 @@
 #include "EmuleNextUiMetrics.h"
 
 #include <commctrl.h>
+#include <uxtheme.h>
 
 int CEmuleNextModernUi::Scale(HWND window, int value)
 {
