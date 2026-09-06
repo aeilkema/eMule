@@ -9,6 +9,9 @@
 
 namespace
 {
+    const int kMaximumKnownUsers = 5000;
+    const int kMaximumKnownFilesPerUser = 5000;
+
     CStringW ColumnText(sqlite3_stmt* statement, int column)
     {
         const wchar_t* value = static_cast<const wchar_t*>(sqlite3_column_text16(statement, column));
@@ -52,18 +55,22 @@ bool CKnownUsersService::ListUsers(std::vector<EmuleNextKnownUserRecord>& users)
     if (database == NULL)
         return false;
 
+    // Collapse source_kind duplicates before aggregation. This avoids two
+    // correlated subqueries for every peer and keeps one file counted/summed
+    // once even when it was learned through multiple discovery paths.
     static const char sql[] =
         "SELECT p.user_hash,COALESCE(p.username,''),p.first_seen,p.last_seen,"
-        "(SELECT COUNT(DISTINCT pf.file_id) FROM peer_files pf WHERE pf.peer_id=p.id),"
-        "(SELECT COALESCE(SUM(f.size),0) FROM files f WHERE f.id IN "
-        " (SELECT pf.file_id FROM peer_files pf WHERE pf.peer_id=p.id)) "
+        "COUNT(pf.file_id),COALESCE(SUM(f.size),0) "
         "FROM peers p "
-        "WHERE EXISTS(SELECT 1 FROM peer_files pf WHERE pf.peer_id=p.id) "
-        "ORDER BY p.last_seen DESC LIMIT 5000";
+        "JOIN (SELECT peer_id,file_id FROM peer_files GROUP BY peer_id,file_id) pf ON pf.peer_id=p.id "
+        "JOIN files f ON f.id=pf.file_id "
+        "GROUP BY p.id "
+        "ORDER BY p.last_seen DESC LIMIT ?1";
 
     sqlite3_stmt* statement = NULL;
     bool ok = sqlite3_prepare_v2(database, sql, -1, &statement, NULL) == SQLITE_OK;
     if (ok) {
+        sqlite3_bind_int(statement, 1, kMaximumKnownUsers);
         while (sqlite3_step(statement) == SQLITE_ROW) {
             EmuleNextKnownUserRecord item;
             item.userHash = ColumnHash(statement, 0);
@@ -103,12 +110,14 @@ bool CKnownUsersService::ListFiles(const EmuleNextHash16& peerHash,
         "JOIN files f ON f.id=pf.file_id "
         "WHERE p.user_hash=?1 "
         "GROUP BY f.id "
-        "ORDER BY MAX(pf.last_seen) DESC,f.canonical_name COLLATE NOCASE";
+        "ORDER BY MAX(pf.last_seen) DESC,f.canonical_name COLLATE NOCASE "
+        "LIMIT ?2";
 
     sqlite3_stmt* statement = NULL;
     bool ok = sqlite3_prepare_v2(database, sql, -1, &statement, NULL) == SQLITE_OK;
     if (ok) {
         sqlite3_bind_blob(statement, 1, peerHash.bytes.data(), 16, SQLITE_TRANSIENT);
+        sqlite3_bind_int(statement, 2, kMaximumKnownFilesPerUser);
         while (sqlite3_step(statement) == SQLITE_ROW) {
             EmuleNextKnownFileRecord item;
             item.fileHash = ColumnHash(statement, 0);
