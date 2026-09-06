@@ -81,10 +81,16 @@ def main() -> int:
         "PRAGMA query_only=ON", "FROM scheduler_decisions WHERE file_hash=?1",
         "FROM scheduler_outcomes WHERE file_hash=?1",
     ), "telemetry reader")
+
+    # The database has advanced to schema v3 for maintenance/recovery, while
+    # the scheduler persistence contract remains the additive DATA-01 v2 layer.
+    # Verify both: current overall schema version and preservation of the v2
+    # scheduler migration/table/index semantics.
     require(database, (
-        "VALUES('schema_version','2')", "eMule Next schema v2 additive scheduler migration",
+        "VALUES('schema_version','3')", "eMule Next schema v2 additive scheduler migration",
         "scheduler_file_history", "scheduler_decisions", "scheduler_outcomes",
         "ALTER TABLE scheduler_decisions ADD COLUMN file_hash BLOB",
+        "idx_scheduler_decisions_hash_applied", "idx_scheduler_outcomes_hash_ts",
     ), "DATA-01 schema")
 
     # These translation units are referenced by the completed Dashboard/Scheduler
