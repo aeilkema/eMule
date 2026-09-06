@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""Repair compile regressions introduced while materializing Preview 1 UI.
+"""Repair legacy compatibility regressions, then materialize Preview 2.
 
-This patcher is intentionally small and idempotent. It runs after the feature
-activators so local builds, clean CI builds and the generated develop overlay
-all receive the same compatibility fixes.
+This helper remains the last base-activation step so all historic product gates
+have already passed before Preview 2 replaces Settings/Diagnostics and applies
+its final visual/product layer.
 """
 from __future__ import annotations
 
 import pathlib
+import runpy
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SRC = ROOT / "srchybrid"
+HERE = pathlib.Path(__file__).resolve().parent
 
 
 def load(path: pathlib.Path) -> tuple[str, str]:
@@ -149,7 +151,16 @@ def main() -> int:
     patch_client_list_cpp()
     patch_settings()
     patch_theme()
-    print("eMule Next Preview 1 compile compatibility fixes active")
+    print("eMule Next legacy compile compatibility fixes active")
+
+    # Preview 2 intentionally runs after every pre-existing completion gate and
+    # after the legacy compile-compatibility patch above. Its own orchestrator
+    # performs a final-state gate after materialization.
+    try:
+        runpy.run_path(str(HERE / "activate-preview2.py"), run_name="__main__")
+    except SystemExit as exc:
+        if exc.code not in (None, 0):
+            raise
     return 0
 
 
