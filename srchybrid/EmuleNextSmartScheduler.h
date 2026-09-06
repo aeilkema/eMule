@@ -36,11 +36,14 @@ struct EmuleNextSchedulerRuntimeStatus
     bool historyEnabled;
     bool historyPersistenceReady;
     bool telemetryEnabled;
+    bool telemetryPersistenceReady;
     uint32 trackedFiles;
     uint32 historyFiles;
     uint64 historyGeneration;
     uint64 decisions;
     uint64 appliedInterventions;
+    size_t telemetryPendingWrites;
+    uint64 telemetryDroppedWrites;
 
     EmuleNextSchedulerRuntimeStatus();
 };
