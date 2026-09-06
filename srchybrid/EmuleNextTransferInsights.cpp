@@ -14,15 +14,14 @@ namespace
     const UINT kMaxPartChecksPerSource = 256;
     const uint32 kUsefulPartsSaturation = 8;
 
-    uint32 BuildBoundedBestSourceQuality(const CPartFile* file)
+    void BuildBoundedSourceProfile(const CPartFile* file, EmuleNextTransferInsight& insight)
     {
         if (file == NULL)
-            return 0;
+            return;
 
-        uint32 sampled = 0;
-        uint32 best = 0;
+        uint64 qualityTotal = 0;
         POSITION pos = file->srclist.GetHeadPosition();
-        while (pos != NULL && sampled < kMaxSourceQualitySamples) {
+        while (pos != NULL && insight.sampledSources < kMaxSourceQualitySamples) {
             CUpDownClient* client = file->srclist.GetNext(pos);
             if (client == NULL)
                 continue;
@@ -33,6 +32,8 @@ namespace
             const EDownloadState state = client->GetDownloadState();
             source.connected = state == DS_CONNECTED || state == DS_DOWNLOADING || state == DS_REQHASHSET;
             source.currentlyTransferring = state == DS_DOWNLOADING;
+            source.secureIdentified = client->Credits() != NULL
+                && client->Credits()->GetCurrentIdentState(client->GetIP()) == IS_IDENTIFIED;
 
             const UINT clientParts = client->GetPartCount();
             const UINT maxPartChecks = clientParts < kMaxPartChecksPerSource ? clientParts : kMaxPartChecksPerSource;
@@ -42,11 +43,24 @@ namespace
             }
 
             const uint32 quality = CDownloadIntelligence::SourceQuality(source);
-            if (quality > best)
-                best = quality;
-            ++sampled;
+            insight.bestSourceQuality = std::max<uint32>(insight.bestSourceQuality, quality);
+            qualityTotal += quality;
+            ++insight.sampledSources;
+
+            if (state == DS_DOWNLOADING)
+                ++insight.transferringSources;
+            if (state == DS_ERROR || state == DS_TOOMANYCONNS || state == DS_TOOMANYCONNSKAD)
+                ++insight.failedSources;
+            else if (quality >= 700)
+                ++insight.strongSources;
+            else if (quality >= 400)
+                ++insight.normalSources;
+            else
+                ++insight.weakSources;
         }
-        return best;
+
+        if (insight.sampledSources > 0)
+            insight.averageSourceQuality = static_cast<uint32>(qualityTotal / insight.sampledSources);
     }
 }
 
@@ -55,6 +69,13 @@ EmuleNextTransferInsight::EmuleNextTransferInsight()
     , health(0)
     , attention(0)
     , bestSourceQuality(0)
+    , averageSourceQuality(0)
+    , sampledSources(0)
+    , strongSources(0)
+    , normalSources(0)
+    , weakSources(0)
+    , failedSources(0)
+    , transferringSources(0)
     , bytesRemaining(0)
 {
 }
@@ -83,7 +104,7 @@ EmuleNextTransferInsight CEmuleNextTransferInsights::Build(const CPartFile* file
         || file->GetDownPriority() == PR_VERYHIGH;
     insight.file.kadResultsLastCycle = 1;
 
-    insight.bestSourceQuality = BuildBoundedBestSourceQuality(file);
+    BuildBoundedSourceProfile(file, insight);
 
     const UINT partCount = file->GetPartCount();
     insight.parts.resize(partCount);
