@@ -43,6 +43,7 @@ REQUIRED_ORDER = (
     "verify-scheduler-persistence.py",
     "verify-scheduler-schema-v2.py",
     "verify-scheduler-database-maintenance.py",
+    "verify-intelligence-goal-complete.py",
 )
 
 
@@ -92,6 +93,10 @@ def main() -> int:
         if indexes and indexes != sorted(indexes):
             failures.append("eMule Next activation/verification order is unsafe")
 
+        if "verify-intelligence-goal-complete.py" in ordered and "audit-activators.py" in ordered:
+            if ordered.index("verify-intelligence-goal-complete.py") > ordered.index("audit-activators.py"):
+                failures.append("intelligence completion gate must run before the activator audit")
+
     scheduler_activator = read(HERE / "activate-smart-scheduler-runtime.py")
     expected_a4af = (
         "PreferA4AFCandidate(SwapTo, cur_file, "
@@ -104,6 +109,17 @@ def main() -> int:
     for marker in ("previousActionAt", "candidate.lastA4AFAt", "Preserve an active measurement window"):
         if marker not in stability:
             failures.append(f"scheduler action stability lost {marker}")
+
+    goal_gate = read(HERE / "verify-intelligence-goal-complete.py")
+    for marker in (
+        "DashboardColumnWidth%d",
+        "DASHBOARD_MAX_FILES = 1000",
+        "scheduler_outcomes",
+        "ResetFileIntelligence",
+        "CEmuleNextSchedulerTelemetryReader",
+    ):
+        if marker not in goal_gate:
+            failures.append(f"intelligence completion gate lost {marker}")
 
     search_metadata = read(HERE / "activate-search2-background-metadata.py")
     if "AfxBeginThread(SavedSearchLoadWorker" not in search_metadata:
