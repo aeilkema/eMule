@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ensure Dashboard and Smart Scheduler consume the same transfer insight builder."""
+"""Ensure Dashboard list and detail paths share Smart Scheduler transfer insight logic."""
 from __future__ import annotations
 
 import pathlib
@@ -15,20 +15,29 @@ def main() -> int:
 
     required = (
         '#include "EmuleNextTransferInsights.h"',
+        '#include "EmuleNextSmartScheduler.h"',
         "CEmuleNextTransferInsights::Build(file, historicalBytesPerSecond)",
         "row.signals = sharedInsight.file;",
         "row.stall = sharedInsight.stall;",
         "row.health = sharedInsight.health;",
         "row.eta = sharedInsight.eta;",
         "row.attention = sharedInsight.attention;",
+        "theEmuleNextScheduler.History().GetHistory(file->GetFileHash(), sharedHistory)",
     )
     for marker in required:
         if marker not in text:
             raise SystemExit(f"Dashboard insights: missing {marker}")
 
+    if text.count("CEmuleNextTransferInsights::Build(file, historicalBytesPerSecond)") < 2:
+        raise SystemExit("Dashboard insights: both Refresh and UpdateDetails must use shared builder")
+    if text.count("theEmuleNextScheduler.History().GetHistory(file->GetFileHash(), sharedHistory)") < 2:
+        raise SystemExit("Dashboard insights: both Dashboard paths must use shared history")
+
     forbidden = (
         "EmuleNextFileSignals BuildSignals(",
         "uint32 AttentionScore(",
+        "BuildSignals(file)",
+        "AttentionScore(file,",
     )
     for marker in forbidden:
         if marker in text:
