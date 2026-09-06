@@ -4,6 +4,10 @@
 Search queries were already asynchronous, but opening/refreshing Search 2 still
 loaded saved-search rows synchronously on the MFC UI thread. This activator
 keeps the same service/API while moving that recurring metadata read off-thread.
+
+The activator is intentionally tolerant of both the original Search2Wnd source
+shape and the newer materialized view shape. Repeated activation must be a
+no-op once the worker contract is present.
 """
 from __future__ import annotations
 
@@ -103,11 +107,20 @@ def patch_cpp() -> None:
     }
 '''
     if "struct SavedSearchLoadContext" not in text:
-        anchor = "    struct SearchResult\n"
-        pos = text.find(anchor)
+        # Search2Wnd has existed in two source shapes. Older activators used
+        # SearchResult as their insertion point; the materialized view groups
+        # SearchContext first. Accept either while keeping deterministic output.
+        anchors = (
+            "    struct SearchContext\n",
+            "    struct SearchResult\n",
+        )
+        pos = -1
+        for anchor in anchors:
+            pos = text.find(anchor)
+            if pos >= 0:
+                break
         if pos < 0:
-            raise SystemExit("Search 2 metadata: worker struct anchor missing")
-        # Insert before the existing SearchResult so both workers remain grouped.
+            raise SystemExit("Search 2 metadata: worker insertion anchor missing")
         text = text[:pos] + structs + "\n" + text[pos:]
         changed = True
 
@@ -202,7 +215,12 @@ void CSearch2Wnd::PopulateSavedSearches(const CString& previous)
     if old_reload in text:
         text = text.replace(old_reload, new_reload, 1)
         changed = True
-    elif "OnSavedSearchesLoaded" not in text or "SavedSearchLoadWorker" not in text:
+    elif not all(marker in text for marker in (
+        "OnSavedSearchesLoaded",
+        "SavedSearchLoadWorker",
+        "PopulateSavedSearches",
+        "m_savedSearchesLoading",
+    )):
         raise SystemExit("Search 2 metadata: ReloadSavedSearches implementation changed unexpectedly")
 
     if changed:
