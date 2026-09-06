@@ -146,8 +146,6 @@ void CEmuleNextHistoryCache::Observe(const CPartFile* file)
         EnforceCapacityLocked();
     }
 
-    // Persistence is deliberately outside the cache lock and only enqueues a
-    // small value object. No SQLite work runs on the scheduler/core thread.
     QueuePersistLocked(key, snapshot);
 }
 
@@ -244,6 +242,25 @@ uint64 CEmuleNextHistoryCache::DroppedPersistenceWrites() const
     return m_droppedPersistWrites;
 }
 
+bool CEmuleNextHistoryCache::Remove(const unsigned char* fileHash)
+{
+    Key key;
+    if (!MakeKey(fileHash, key))
+        return false;
+    bool removed = false;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        removed = m_files.erase(key) != 0;
+        ++m_generation;
+    }
+
+    // samples==0 is a delete tombstone understood only by the worker. This
+    // keeps persistent reset asynchronous and out of scheduler/UI hot paths.
+    EmuleNextFileHistory tombstone;
+    QueuePersistLocked(key, tombstone);
+    return removed;
+}
+
 void CEmuleNextHistoryCache::Clear()
 {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -270,8 +287,6 @@ void CEmuleNextHistoryCache::PersistenceMain()
         ready = sqlite3_exec(db, schema, NULL, NULL, NULL) == SQLITE_OK;
     }
 
-    // Read SQLite rows into a worker-local buffer first. The scheduler/cache
-    // mutex is acquired only for the short merge, never while sqlite3_step runs.
     if (ready) {
         std::vector<std::pair<Key, EmuleNextFileHistory> > loaded;
         loaded.reserve(4096);
@@ -289,7 +304,8 @@ void CEmuleNextHistoryCache::PersistenceMain()
                 persisted.ewmaBytesPerSecond = sqlite3_column_double(stmt, 1);
                 persisted.samples = static_cast<uint32>(sqlite3_column_int64(stmt, 2));
                 persisted.lastObserved = static_cast<uint64>(sqlite3_column_int64(stmt, 3));
-                loaded.push_back(std::make_pair(key, persisted));
+                if (persisted.samples > 0)
+                    loaded.push_back(std::make_pair(key, persisted));
             }
         }
         if (stmt != NULL)
@@ -340,29 +356,46 @@ void CEmuleNextHistoryCache::PersistenceMain()
         }
 
         bool batchOk = true;
-        sqlite3_stmt* stmt = NULL;
-        const char* sql =
+        sqlite3_stmt* upsertStmt = NULL;
+        sqlite3_stmt* deleteStmt = NULL;
+        const char* upsertSql =
             "INSERT INTO scheduler_file_history(file_hash,ewma_bps,samples,last_observed) VALUES(?1,?2,?3,?4) "
             "ON CONFLICT(file_hash) DO UPDATE SET ewma_bps=excluded.ewma_bps,samples=excluded.samples,last_observed=excluded.last_observed "
             "WHERE excluded.last_observed>=scheduler_file_history.last_observed";
-        if (sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK) {
+        if (sqlite3_prepare_v2(db, upsertSql, -1, &upsertStmt, NULL) != SQLITE_OK
+            || sqlite3_prepare_v2(db, "DELETE FROM scheduler_file_history WHERE file_hash=?1", -1, &deleteStmt, NULL) != SQLITE_OK) {
+            batchOk = false;
+        }
+
+        if (batchOk) {
             for (std::deque<PersistItem>::const_iterator it = batch.begin(); it != batch.end(); ++it) {
-                sqlite3_reset(stmt);
-                sqlite3_clear_bindings(stmt);
-                sqlite3_bind_blob(stmt, 1, it->key.data(), 16, SQLITE_TRANSIENT);
-                sqlite3_bind_double(stmt, 2, it->history.ewmaBytesPerSecond);
-                sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(it->history.samples));
-                sqlite3_bind_int64(stmt, 4, static_cast<sqlite3_int64>(it->history.lastObserved));
-                if (sqlite3_step(stmt) != SQLITE_DONE) {
+                if (it->history.samples == 0) {
+                    sqlite3_reset(deleteStmt);
+                    sqlite3_clear_bindings(deleteStmt);
+                    sqlite3_bind_blob(deleteStmt, 1, it->key.data(), 16, SQLITE_TRANSIENT);
+                    if (sqlite3_step(deleteStmt) != SQLITE_DONE) {
+                        batchOk = false;
+                        break;
+                    }
+                    continue;
+                }
+
+                sqlite3_reset(upsertStmt);
+                sqlite3_clear_bindings(upsertStmt);
+                sqlite3_bind_blob(upsertStmt, 1, it->key.data(), 16, SQLITE_TRANSIENT);
+                sqlite3_bind_double(upsertStmt, 2, it->history.ewmaBytesPerSecond);
+                sqlite3_bind_int64(upsertStmt, 3, static_cast<sqlite3_int64>(it->history.samples));
+                sqlite3_bind_int64(upsertStmt, 4, static_cast<sqlite3_int64>(it->history.lastObserved));
+                if (sqlite3_step(upsertStmt) != SQLITE_DONE) {
                     batchOk = false;
                     break;
                 }
             }
-        } else {
-            batchOk = false;
         }
-        if (stmt != NULL)
-            sqlite3_finalize(stmt);
+        if (upsertStmt != NULL)
+            sqlite3_finalize(upsertStmt);
+        if (deleteStmt != NULL)
+            sqlite3_finalize(deleteStmt);
 
         if (batchOk) {
             if (sqlite3_exec(db, "COMMIT", NULL, NULL, NULL) != SQLITE_OK)
