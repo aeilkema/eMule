@@ -23,6 +23,8 @@ def main() -> int:
     intelligence_cpp = read("DownloadIntelligenceWnd.cpp")
     search2_h = read("Search2Wnd.h")
     search2_cpp = read("Search2Wnd.cpp")
+    library_h = read("FileLibraryWnd.h")
+    library_cpp = read("FileLibraryWnd.cpp")
     transfer = read("TransferWnd.cpp")
     results = read("SearchResultsWnd.cpp")
     search_list = read("SearchList.cpp")
@@ -31,11 +33,17 @@ def main() -> int:
     shared_dirs = read("SharedDirsTreeCtrl.cpp")
     main_cpp = read("EmuleDlg.cpp")
     project = read("emule.vcxproj")
+    oscope = read("OScopeCtrl.cpp")
+    preview = read("Preview.cpp")
+    smiley = read("SmileySelector.cpp")
+    titled = read("TitledMenu.cpp")
+    http_header = read("HttpDownloadDlg.h")
 
     for label, text in (
         ("Dashboard header", dashboard_h),
         ("Download Intelligence header", intelligence_h),
         ("Search2 header", search2_h),
+        ("Library header", library_h),
     ):
         if "bool CreateView(CWnd* parent);" not in text or "bool Create(CWnd* parent);" in text:
             raise SystemExit(f"Warning cleanup verification: {label} still hides CWnd::Create")
@@ -45,12 +53,16 @@ def main() -> int:
         raise SystemExit("Warning cleanup verification: Download Intelligence CreateView definition missing")
     if "CSearch2Wnd::CreateView(CWnd* parent)" not in search2_cpp or "CSearch2Wnd::Create(CWnd* parent)" in search2_cpp:
         raise SystemExit("Warning cleanup verification: Search2 CreateView definition missing")
+    if "CFileLibraryWnd::CreateView(CWnd* parent)" not in library_cpp or "CFileLibraryWnd::Create(CWnd* parent)" in library_cpp:
+        raise SystemExit("Warning cleanup verification: Library CreateView definition missing")
     if "m_nextDashboard.CreateView(this)" not in transfer or "m_nextDashboard.Create(this)" in transfer:
         raise SystemExit("Warning cleanup verification: Dashboard host call not migrated to CreateView")
     if "m_downloadIntelligenceWnd.CreateView(this)" not in results or "m_downloadIntelligenceWnd.Create(this)" in results:
         raise SystemExit("Warning cleanup verification: Download Intelligence host call not migrated to CreateView")
     if re.search(r"\b[A-Za-z_][A-Za-z0-9_]*search2[A-Za-z0-9_]*\.Create\(", results, re.I):
         raise SystemExit("Warning cleanup verification: Search2 host call still uses Create")
+    if re.search(r"\b[A-Za-z_][A-Za-z0-9_]*library[A-Za-z0-9_]*\.Create\(", results, re.I):
+        raise SystemExit("Warning cleanup verification: Library host call still uses Create")
 
     if "LPCTSTR pvPropValue = va_arg(args, LPCTSTR);" in search_list:
         raise SystemExit("Warning cleanup verification: Kad varargs still transport integers through pointers")
@@ -78,21 +90,33 @@ def main() -> int:
     if "changeWindowMessageFilterProc" not in main_cpp or "::CopyMemory(&ChangeWindowMessageFilter" not in main_cpp:
         raise SystemExit("Warning cleanup verification: x64-safe ChangeWindowMessageFilter resolution missing")
 
-    mfc_files = (
-        "ChatSelector.cpp", "ChatWnd.cpp", "ClientListCtrl.cpp", "CollectionCreateDialog.cpp",
-        "CollectionViewDialog.cpp", "DownloadClientsCtrl.cpp", "DownloadListCtrl.cpp", "EmuleDlg.cpp",
-        "FriendListCtrl.cpp", "SearchResultsWnd.cpp", "SharedFilesCtrl.cpp",
-    )
-    for name in mfc_files:
-        text = read(name)
+    if "(HMENU)nID" in oscope or "static_cast<UINT_PTR>(nID)" not in oscope:
+        raise SystemExit("Warning cleanup verification: OScope child ID still truncates to HMENU")
+    if "DWORD dwError = (DWORD)::ShellExecute" in preview or "const INT_PTR shellResult = reinterpret_cast<INT_PTR>(::ShellExecute" not in preview:
+        raise SystemExit("Warning cleanup verification: ShellExecute result still truncates HINSTANCE")
+    if "(HBRUSH)(crBackground + 1)" in smiley or "::GetSysColorBrush(nBackgroundColorIndex)" not in smiley:
+        raise SystemExit("Warning cleanup verification: SmileySelector brush still uses integer-to-handle cast")
+    if "nPos = (int)pvIndex;" in titled or "(void*)nPos" in titled:
+        raise SystemExit("Warning cleanup verification: TitledMenu pointer/int truncation remains")
+    if "PtrToInt(pvIndex)" not in titled or "IntToPtr(nPos)" not in titled:
+        raise SystemExit("Warning cleanup verification: TitledMenu pointer-width helpers missing")
+    if "#pragma warning(disable:4266)\n#include <afxinet.h>\n#pragma warning(pop)" not in http_header:
+        raise SystemExit("Warning cleanup verification: vendor afxinet C4266 scope missing")
+
+    # Every MFC message map in the complete source tree must have a local C4191
+    # guard.  C4191 remains enabled in ordinary project code.
+    total_maps = 0
+    for path in SRC.rglob("*.cpp"):
+        text = path.read_bytes().decode("latin-1", errors="ignore").replace("\r\n", "\n").replace("\r", "\n")
         maps = list(re.finditer(r"BEGIN_MESSAGE_MAP\(.*?END_MESSAGE_MAP\(\)", text, re.S))
-        if not maps:
-            raise SystemExit(f"Warning cleanup verification: message map missing in {name}")
+        total_maps += len(maps)
         for match in maps:
-            prefix = text[max(0, match.start()-90):match.start()]
-            suffix = text[match.end():match.end()+45]
+            prefix = text[max(0, match.start()-110):match.start()]
+            suffix = text[match.end():match.end()+55]
             if "#pragma warning(disable:4191)" not in prefix or "#pragma warning(pop)" not in suffix:
-                raise SystemExit(f"Warning cleanup verification: unguarded MFC message map in {name}")
+                raise SystemExit(f"Warning cleanup verification: unguarded MFC message map in {path.name}")
+    if total_maps == 0:
+        raise SystemExit("Warning cleanup verification: no MFC message maps discovered")
 
     release_start = project.find('<ItemDefinitionGroup Condition="\'$(Configuration)\'==\'Release\'">')
     release_end = project.find("</ItemDefinitionGroup>", release_start)
@@ -106,7 +130,7 @@ def main() -> int:
     if "<TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>" not in release:
         raise SystemExit("Warning cleanup verification: linker /WX zero-warning contract missing")
 
-    print("eMule Next Preview 2 zero-warning verification passed")
+    print(f"eMule Next Preview 2 zero-warning verification passed ({total_maps} MFC maps guarded)")
     return 0
 
 
