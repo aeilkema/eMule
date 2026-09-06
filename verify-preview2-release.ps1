@@ -22,8 +22,10 @@ $requiredFiles = @(
     "tools\emule-next\activate-preview2.py",
     "tools\emule-next\activate-preview2-ux-completion.py",
     "tools\emule-next\activate-preview2-settings-complete.py",
+    "tools\emule-next\activate-preview2-settings-complete-hardening.py",
     "tools\emule-next\activate-preview2-search-ux.py",
     "tools\emule-next\activate-preview2-header-status.py",
+    "tools\emule-next\activate-preview2-legacy-theme-routing.py",
     "tools\emule-next\activate-preview2-theme-coverage.py",
     "tools\emule-next\activate-preview2-dashboard-ux.py",
     "tools\emule-next\activate-preview2-dashboard-compile-hardening.py",
@@ -61,7 +63,6 @@ if ($preflightPos -lt 0 -or $stagePos -lt 0 -or $preflightPos -gt $stagePos) {
     throw "Preview 2 release verification: repository preflight must run before activation-stage creation"
 }
 
-# The Python gate validates the activation chain structurally through ASTs.
 $activationGatePath = Join-Path $RepoRoot "tools\emule-next\verify-preview2-activation-chain.py"
 python $activationGatePath
 if ($LASTEXITCODE -ne 0) {
@@ -73,8 +74,10 @@ foreach ($marker in @(
     'activate-preview2-main-shell.py',
     'activate-preview2-ux-completion.py',
     'activate-preview2-settings-complete.py',
+    'activate-preview2-settings-complete-hardening.py',
     'activate-preview2-search-ux.py',
     'activate-preview2-header-status.py',
+    'activate-preview2-legacy-theme-routing.py',
     'activate-preview2-theme-coverage.py',
     'activate-preview2-dashboard-ux.py',
     'activate-preview2-dashboard-compile-hardening.py',
