@@ -14,15 +14,24 @@ CHECKS = {
         "PreferA4AFCandidate",
         "CEmuleNextSchedulerTelemetry",
         "CEmuleNextHistoryCache",
+        "LoadMaxFilesPerRound",
     ),
     "EmuleNextSmartScheduler.cpp": (
-        "maxPerRound = 8",
+        "LoadMaxFilesPerRound()",
+        "SmartSchedulerMaxFilesPerRound",
         "SmartSchedulerProfile",
         "SmartSchedulerCooldown",
+        "SmartHistoryCacheCapacity",
+        "SmartTelemetryCapacity",
         "SendLocalSrcRequest(file)",
         "PreferA4AFCandidate",
+        "event.fileHash = key;",
+        "m_history.SetDatabasePath(database.GetDatabasePath());",
+        "m_telemetry.SetDatabasePath(database.GetDatabasePath());",
     ),
     "EmuleNextTransferInsights.cpp": (
+        "kMaxSourceQualitySamples",
+        "kMaxPartChecksPerSource",
         "insight.parts.resize(partCount)",
         "GetPartSourceFrequency(part)",
         "historicalBytesPerSecond",
@@ -30,10 +39,14 @@ CHECKS = {
     "EmuleNextSchedulerTelemetry.cpp": (
         "m_capacity(256)",
         "m_interventions",
+        "m_persistAppliedQueue",
+        "file_hash BLOB",
     ),
     "EmuleNextHistoryCache.cpp": (
         "ewmaBytesPerSecond * 0.82",
-        "m_files.size() > 4096",
+        "m_capacity(4096)",
+        "EnforceCapacityLocked()",
+        "std::vector<std::pair<Key, EmuleNextFileHistory> > loaded",
     ),
     "DownloadQueue.cpp": (
         "theEmuleNextScheduler.Tick(this)",
@@ -49,6 +62,10 @@ CHECKS = {
         'ClCompile Include="EmuleNextTransferInsights.cpp"',
         'ClCompile Include="EmuleNextHistoryCache.cpp"',
         'ClCompile Include="EmuleNextSchedulerTelemetry.cpp"',
+        'ClInclude Include="EmuleNextSmartScheduler.h"',
+        'ClInclude Include="EmuleNextTransferInsights.h"',
+        'ClInclude Include="EmuleNextHistoryCache.h"',
+        'ClInclude Include="EmuleNextSchedulerTelemetry.h"',
     ),
 }
 
