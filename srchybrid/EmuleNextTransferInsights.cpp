@@ -8,11 +8,53 @@
 
 #include <algorithm>
 
+namespace
+{
+    const uint32 kMaxSourceQualitySamples = 32;
+    const UINT kMaxPartChecksPerSource = 256;
+    const uint32 kUsefulPartsSaturation = 8;
+
+    uint32 BuildBoundedBestSourceQuality(const CPartFile* file)
+    {
+        if (file == NULL)
+            return 0;
+
+        uint32 sampled = 0;
+        uint32 best = 0;
+        POSITION pos = file->srclist.GetHeadPosition();
+        while (pos != NULL && sampled < kMaxSourceQualitySamples) {
+            CUpDownClient* client = file->srclist.GetNext(pos);
+            if (client == NULL)
+                continue;
+
+            EmuleNextSourceSignals source;
+            source.currentBytesPerSecond = static_cast<double>(client->GetDownloadDatarate());
+            source.remoteQueueRank = client->GetRemoteQueueRank();
+            const EDownloadState state = client->GetDownloadState();
+            source.connected = state == DS_CONNECTED || state == DS_DOWNLOADING || state == DS_REQHASHSET;
+            source.currentlyTransferring = state == DS_DOWNLOADING;
+
+            const UINT clientParts = client->GetPartCount();
+            const UINT maxPartChecks = clientParts < kMaxPartChecksPerSource ? clientParts : kMaxPartChecksPerSource;
+            for (UINT part = 0; part < maxPartChecks && source.usefulPartCount < kUsefulPartsSaturation; ++part) {
+                if (!file->IsComplete(part) && client->IsPartAvailable(part))
+                    ++source.usefulPartCount;
+            }
+
+            const uint32 quality = CDownloadIntelligence::SourceQuality(source);
+            if (quality > best)
+                best = quality;
+            ++sampled;
+        }
+        return best;
+    }
+}
+
 EmuleNextTransferInsight::EmuleNextTransferInsight()
     : stall(ENSR_NONE)
     , health(0)
     , attention(0)
-    , bestSourceQuality(500)
+    , bestSourceQuality(0)
     , bytesRemaining(0)
 {
 }
@@ -41,6 +83,8 @@ EmuleNextTransferInsight CEmuleNextTransferInsights::Build(const CPartFile* file
         || file->GetDownPriority() == PR_VERYHIGH;
     insight.file.kadResultsLastCycle = 1;
 
+    insight.bestSourceQuality = BuildBoundedBestSourceQuality(file);
+
     const UINT partCount = file->GetPartCount();
     insight.parts.resize(partCount);
     for (UINT part = 0; part < partCount; ++part) {
@@ -55,7 +99,7 @@ EmuleNextTransferInsight CEmuleNextTransferInsights::Build(const CPartFile* file
         }
         p.independentSources = file->GetPartSourceFrequency(part);
         p.reliableSources = p.independentSources;
-        p.bestSourceQuality = 500.0;
+        p.bestSourceQuality = static_cast<double>(insight.bestSourceQuality);
         p.completionImpact = partCount > 0 ? 1.0 / static_cast<double>(partCount) : 0.0;
         ++insight.file.neededParts;
         if (p.independentSources <= 2)
