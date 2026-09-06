@@ -29,11 +29,10 @@ VERSION_TEXT = '''//this file is part of eMule Next
 
 
 def find_repo_head() -> str:
-    # In a build activation stage the real checkout is normally four parents
-    # above this script. Failure is harmless; product identity still remains
-    # deterministic and the UI reports 'unknown'.
-    candidates = [HERE, *HERE.parents]
-    for candidate in candidates:
+    # In a build activation stage the real checkout is normally somewhere
+    # above this script. Failure is harmless; identity remains deterministic
+    # and Diagnostics reports 'unknown'.
+    for candidate in [HERE, *HERE.parents]:
         if not (candidate / ".git").exists():
             continue
         try:
@@ -46,24 +45,61 @@ def find_repo_head() -> str:
     return "unknown"
 
 
+def insert_project_entry(text: str, entry: str, anchors: tuple[str, ...], label: str) -> str:
+    if entry in text:
+        return text
+    for anchor in anchors:
+        if anchor in text:
+            return text.replace(anchor, anchor + entry, 1)
+    raise SystemExit(f"Preview2: {label} project anchor missing")
+
+
 def patch_project() -> None:
     path = SRC / "emule.vcxproj"
     text = path.read_text(encoding="utf-8-sig", errors="ignore")
-    compile_anchor = '    <ClCompile Include="EmuleNextDatabaseMaintenance.cpp" />\n'
-    include_anchor = '    <ClInclude Include="EmuleNextDatabaseMaintenance.h" />\n'
-    if '<ClCompile Include="EmuleNextModernUi.cpp" />' not in text:
-        if compile_anchor not in text:
-            raise SystemExit("Preview2: modern UI compile anchor missing")
-        text = text.replace(compile_anchor, compile_anchor + '    <ClCompile Include="EmuleNextModernUi.cpp" />\n', 1)
-    if '<ClInclude Include="EmuleNextModernUi.h" />' not in text:
-        if include_anchor not in text:
-            raise SystemExit("Preview2: modern UI header anchor missing")
-        text = text.replace(include_anchor, include_anchor + '    <ClInclude Include="EmuleNextModernUi.h" />\n    <ClInclude Include="EmuleNextBuildIdentity.h" />\n', 1)
+
+    # Prefer stable eMule Next core entries which already exist in the base
+    # repository. DB2 maintenance entries are accepted as fallbacks, but the
+    # Preview2 product layer no longer depends on their exact placement.
+    text = insert_project_entry(
+        text,
+        '    <ClCompile Include="EmuleNextModernUi.cpp" />\n',
+        (
+            '    <ClCompile Include="EmuleNextDatabase.cpp" />\n',
+            '    <ClCompile Include="EmuleNextDatabaseMaintenance.cpp" />\n',
+            '    <ClCompile Include="EmuleNextRuntime.cpp" />\n',
+        ),
+        "modern UI compile",
+    )
+    text = insert_project_entry(
+        text,
+        '    <ClInclude Include="EmuleNextModernUi.h" />\n',
+        (
+            '    <ClInclude Include="EmuleNextDatabase.h" />\n',
+            '    <ClInclude Include="EmuleNextDatabaseMaintenance.h" />\n',
+            '    <ClInclude Include="EmuleNextRuntime.h" />\n',
+        ),
+        "modern UI header",
+    )
+    text = insert_project_entry(
+        text,
+        '    <ClInclude Include="EmuleNextBuildIdentity.h" />\n',
+        (
+            '    <ClInclude Include="EmuleNextModernUi.h" />\n',
+            '    <ClInclude Include="EmuleNextDatabase.h" />\n',
+        ),
+        "build identity header",
+    )
     path.write_text(text, encoding="utf-8")
 
 
 def main() -> int:
-    for name in ("EmuleNextSettingsWnd.h", "EmuleNextSettingsWnd.cpp", "EmuleNextDiagnosticsWnd.h", "EmuleNextDiagnosticsWnd.cpp"):
+    for name in (
+        "EmuleNextSettingsWnd.h",
+        "EmuleNextSettingsWnd.cpp",
+        "EmuleNextDiagnosticsWnd.h",
+        "EmuleNextDiagnosticsWnd.cpp",
+    ):
         source = TEMPLATES / name
         if not source.exists():
             raise SystemExit(f"Preview2: missing template {name}")
