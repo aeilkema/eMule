@@ -21,10 +21,14 @@ $requiredFiles = @(
     "tools\emule-next\activate-features.py",
     "tools\emule-next\activate-preview2.py",
     "tools\emule-next\activate-preview2-ux-completion.py",
+    "tools\emule-next\activate-preview2-settings-complete.py",
     "tools\emule-next\activate-preview2-search-ux.py",
     "tools\emule-next\activate-preview2-header-status.py",
+    "tools\emule-next\activate-preview2-theme-coverage.py",
     "tools\emule-next\activate-preview2-dashboard-ux.py",
+    "tools\emule-next\activate-preview2-dashboard-compile-hardening.py",
     "tools\emule-next\verify-preview2-activation-chain.py",
+    "tools\emule-next\verify-preview2-settings-theme.py",
     "tools\emule-next\verify-preview2-ux-completion.py",
     "tools\emule-next\verify-preview2-product.py"
 )
@@ -58,7 +62,6 @@ if ($preflightPos -lt 0 -or $stagePos -lt 0 -or $preflightPos -gt $stagePos) {
 }
 
 # The Python gate validates the activation chain structurally through ASTs.
-# Do not duplicate that contract here with fragile variable-name/source-format checks.
 $activationGatePath = Join-Path $RepoRoot "tools\emule-next\verify-preview2-activation-chain.py"
 python $activationGatePath
 if ($LASTEXITCODE -ne 0) {
@@ -69,10 +72,14 @@ $orchestrator = Get-Content -LiteralPath (Join-Path $RepoRoot "tools\emule-next\
 foreach ($marker in @(
     'activate-preview2-main-shell.py',
     'activate-preview2-ux-completion.py',
+    'activate-preview2-settings-complete.py',
     'activate-preview2-search-ux.py',
     'activate-preview2-header-status.py',
+    'activate-preview2-theme-coverage.py',
     'activate-preview2-dashboard-ux.py',
+    'activate-preview2-dashboard-compile-hardening.py',
     'verify-preview2-activation-chain.py',
+    'verify-preview2-settings-theme.py',
     'verify-preview2-ux-completion.py',
     'verify-preview2-product.py'
 )) {
