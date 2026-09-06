@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Final compile/runtime hardening for the materialized Known Users 2.0 view."""
+"""Final compile/runtime hardening for the materialized Known Users 2.0 view.
+
+This is deliberately strict: every compatibility rewrite is performed against
+an exact complete source line, never a substring. A fully materialized tree is
+a no-op. A partially matching/unknown tree fails before compilation.
+"""
 from __future__ import annotations
 
 import pathlib
@@ -22,23 +27,71 @@ def save(path: pathlib.Path, text: str, newline: str) -> None:
     path.write_bytes(text.encode("latin-1"))
 
 
+FINAL_MARKERS = (
+    "void CKnownUsersWnd::SaveViewState()\n",
+    'if (seconds >= 3600) value.Format(_T("%I64uh %02I64um"), seconds / 3600, (seconds % 3600) / 60);',
+    'else if (seconds >= 60) value.Format(_T("%I64um %02I64us"), seconds / 60, seconds % 60);',
+    'else value.Format(_T("%I64us"), seconds);',
+    '#include "resource.h"\n#include "InputBox.h"',
+)
+
+LEGACY_MARKERS = (
+    "void CKnownUsersWnd::SaveViewState() const\n",
+    'if (seconds >= 3600) value.Format(_T("%lluh %02llum"), seconds / 3600, (seconds % 3600) / 60);',
+    'else if (seconds >= 60) value.Format(_T("%llum %02llus"), seconds / 60, seconds % 60);',
+    'else value.Format(_T("%llus"), seconds);',
+)
+
+
+def final_window_state(text: str) -> bool:
+    return all(marker in text for marker in FINAL_MARKERS) and not any(marker in text for marker in LEGACY_MARKERS)
+
+
+def replace_exact_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count != 1:
+        raise RuntimeError(f"Known Users 2 hardening expected exactly one {label} anchor, found {count}")
+    return text.replace(old, new, 1)
+
+
 def patch_window() -> None:
     path = SRC / "KnownUsersWnd.cpp"
     text, newline = load(path)
-    text = text.replace("void CKnownUsersWnd::SaveViewState() const", "void CKnownUsersWnd::SaveViewState()")
-    text = text.replace('_T("%llud")', '_T("%I64ud")')
-    text = text.replace('_T("%lluh")', '_T("%I64uh")')
-    text = text.replace('_T("%llum")', '_T("%I64um")')
-    text = text.replace('_T("%llus")', '_T("%I64us")')
-    required = (
-        "void CKnownUsersWnd::SaveViewState()",
-        '_T("%I64ud")',
-        "QueuePeerShareRefresh(hash)",
-        "DeleteHistoryWorker",
+
+    if final_window_state(text):
+        print("eMule Next Known Users 2.0 window hardening already materialized")
+        return
+
+    text = replace_exact_once(
+        text,
+        "void CKnownUsersWnd::SaveViewState() const\n",
+        "void CKnownUsersWnd::SaveViewState()\n",
+        "SaveViewState signature",
     )
-    for marker in required:
-        if marker not in text:
-            raise RuntimeError(f"Known Users 2 window hardening lost {marker}")
+    text = replace_exact_once(
+        text,
+        'if (seconds >= 3600) value.Format(_T("%lluh %02llum"), seconds / 3600, (seconds % 3600) / 60);',
+        'if (seconds >= 3600) value.Format(_T("%I64uh %02I64um"), seconds / 3600, (seconds % 3600) / 60);',
+        "hours/minutes format",
+    )
+    text = replace_exact_once(
+        text,
+        'else if (seconds >= 60) value.Format(_T("%llum %02llus"), seconds / 60, seconds % 60);',
+        'else if (seconds >= 60) value.Format(_T("%I64um %02I64us"), seconds / 60, seconds % 60);',
+        "minutes/seconds format",
+    )
+    text = replace_exact_once(
+        text,
+        'else value.Format(_T("%llus"), seconds);',
+        'else value.Format(_T("%I64us"), seconds);',
+        "seconds format",
+    )
+
+    if not final_window_state(text):
+        missing = [marker for marker in FINAL_MARKERS if marker not in text]
+        stale = [marker for marker in LEGACY_MARKERS if marker in text]
+        raise RuntimeError(f"Known Users 2 final window contract incomplete; missing={missing!r}; stale={stale!r}")
+
     save(path, text, newline)
 
 
@@ -53,10 +106,9 @@ def patch_live_peer_metadata() -> None:
         "\t\ttheEmuleNext.RecordPeerSeen(toadd->GetUserHash(), toadd->GetUserName(), toadd->GetClientSoftVer(), CString(),\n"
         "\t\t\ttoadd->GetConnectIP(), toadd->GetUserPort(), toadd->GetUDPPort(), toadd->GetKadPort());"
     )
-    if new not in text:
-        if old not in text:
-            raise RuntimeError("Known Users 2 live peer metadata anchor missing")
-        text = text.replace(old, new, 1)
+    if new in text:
+        return
+    text = replace_exact_once(text, old, new, "live peer metadata")
     save(path, text, newline)
 
 
