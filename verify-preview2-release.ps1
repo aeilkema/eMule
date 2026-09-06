@@ -27,9 +27,11 @@ $requiredFiles = @(
     "tools\emule-next\activate-preview2-header-status.py",
     "tools\emule-next\activate-preview2-legacy-theme-routing.py",
     "tools\emule-next\activate-preview2-theme-coverage.py",
+    "tools\emule-next\activate-preview2-warning-cleanup.py",
     "tools\emule-next\activate-preview2-dashboard-ux.py",
     "tools\emule-next\activate-preview2-dashboard-compile-hardening.py",
     "tools\emule-next\verify-preview2-activation-chain.py",
+    "tools\emule-next\verify-preview2-warning-cleanup.py",
     "tools\emule-next\verify-preview2-settings-theme.py",
     "tools\emule-next\verify-preview2-ux-completion.py",
     "tools\emule-next\verify-preview2-product.py"
@@ -79,9 +81,11 @@ foreach ($marker in @(
     'activate-preview2-header-status.py',
     'activate-preview2-legacy-theme-routing.py',
     'activate-preview2-theme-coverage.py',
+    'activate-preview2-warning-cleanup.py',
     'activate-preview2-dashboard-ux.py',
     'activate-preview2-dashboard-compile-hardening.py',
     'verify-preview2-activation-chain.py',
+    'verify-preview2-warning-cleanup.py',
     'verify-preview2-settings-theme.py',
     'verify-preview2-ux-completion.py',
     'verify-preview2-product.py'
