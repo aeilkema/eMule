@@ -22,8 +22,8 @@ def require(text: str, marker: str, label: str) -> None:
         raise SystemExit(f"Preview2 verification: {label} missing {marker}")
 
 
-def activation_order() -> list[str]:
-    tree = ast.parse((HERE / "activate-features.py").read_text(encoding="utf-8-sig"))
+def preview2_order() -> list[str]:
+    tree = ast.parse((HERE / "activate-preview2.py").read_text(encoding="utf-8-sig"))
     for node in ast.walk(tree):
         if isinstance(node, (ast.Tuple, ast.List)):
             values = [item.value for item in node.elts if isinstance(item, ast.Constant) and isinstance(item.value, str) and item.value.endswith(".py")]
@@ -75,9 +75,6 @@ def main() -> int:
     ):
         require(modern_cpp, marker, "modern UI implementation")
 
-    # Settings is user preference configuration only. Runtime counters,
-    # maintenance actions and exposed history/telemetry capacity controls do not
-    # belong in this form anymore.
     for marker in (
         "CATEGORY_APPEARANCE",
         "CATEGORY_PEERS",
@@ -159,12 +156,10 @@ def main() -> int:
     require(project, '<ClInclude Include="EmuleNextModernUi.h" />', "modern UI project header")
     require(project, '<ClInclude Include="EmuleNextBuildIdentity.h" />', "build identity project header")
 
-    order = activation_order()
+    order = preview2_order()
     if not order:
-        raise SystemExit("Preview2 verification: activation order unavailable")
+        raise SystemExit("Preview2 verification: Preview 2 orchestrator order unavailable")
     required = (
-        "verify-performance-stress-protocol2.py",
-        "verify-intelligence-goal-complete.py",
         "activate-preview2-core.py",
         "activate-preview2-polish-search.py",
         "activate-preview2-polish-library.py",
@@ -174,14 +169,17 @@ def main() -> int:
         "activate-preview2-navigation.py",
         "activate-preview2-build-identity.py",
         "verify-preview2-product.py",
-        "audit-activators.py",
     )
     for name in required:
         if name not in order:
-            raise SystemExit(f"Preview2 verification: activation step missing {name}")
+            raise SystemExit(f"Preview2 verification: materialization step missing {name}")
     indexes = [order.index(name) for name in required]
     if indexes != sorted(indexes):
-        raise SystemExit("Preview2 verification: unsafe Preview 2 activation/gate ordering")
+        raise SystemExit("Preview2 verification: unsafe Preview 2 materialization order")
+
+    base_entry = (HERE / "activate-features.py").read_text(encoding="utf-8-sig")
+    if '"fix-preview1-build.py"' not in base_entry:
+        raise SystemExit("Preview2 verification: base final compatibility stage missing")
 
     print("eMule Next Preview 2 final-state product verification passed")
     return 0
