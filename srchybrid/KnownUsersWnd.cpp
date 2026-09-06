@@ -9,6 +9,7 @@
 #include "EmuleNextRuntime.h"
 #include "EmuleNextTheme.h"
 #include "EmuleNextUiMetrics.h"
+#include "resource.h"
 #include "InputBox.h"
 #include "OtherFunctions.h"
 #include "emule.h"
@@ -321,55 +322,12 @@ void CKnownUsersWnd::LayoutControls(int cx, int cy)
     m_files.MoveWindow(margin, filesTop, max(0, cx - margin * 2), max(0, cy - margin - filesTop));
 }
 
-void CKnownUsersWnd::LoadViewState()
-{
-    int mode = theApp.GetProfileInt(PROFILE_SECTION, _T("Mode"), ENKUM_CURRENT);
-    if (mode < 0 || mode >= ENKUM_COUNT)
-        mode = ENKUM_CURRENT;
-    m_mode = static_cast<EmuleNextKnownUsersMode>(mode);
-    m_sortColumn = theApp.GetProfileInt(PROFILE_SECTION, _T("SortColumn"), 7);
-    if (m_sortColumn < 0 || m_sortColumn >= USER_COLUMN_COUNT)
-        m_sortColumn = 7;
-    m_sortAscending = theApp.GetProfileInt(PROFILE_SECTION, _T("SortAscending"), 0) != 0;
-    m_search.SetWindowText(theApp.GetProfileString(PROFILE_SECTION, _T("Search"), _T("")));
-}
-
-void CKnownUsersWnd::SaveViewState() const
-{
-    theApp.WriteProfileInt(PROFILE_SECTION, _T("Mode"), static_cast<int>(m_mode));
-    theApp.WriteProfileInt(PROFILE_SECTION, _T("SortColumn"), m_sortColumn);
-    theApp.WriteProfileInt(PROFILE_SECTION, _T("SortAscending"), m_sortAscending ? 1 : 0);
-    CString search;
-    if (::IsWindow(m_search.m_hWnd))
-        m_search.GetWindowText(search);
-    theApp.WriteProfileString(PROFILE_SECTION, _T("Search"), search);
-    if (::IsWindow(m_users.m_hWnd)) {
-        for (int i = 0; i < USER_COLUMN_COUNT; ++i) {
-            CString key;
-            key.Format(_T("ColumnWidth%d"), i);
-            theApp.WriteProfileInt(PROFILE_SECTION, key, m_users.GetColumnWidth(i));
-        }
-    }
-}
-
-void CKnownUsersWnd::ApplyUserColumnWidths()
-{
-    for (int i = 0; i < USER_COLUMN_COUNT; ++i) {
-        CString key;
-        key.Format(_T("ColumnWidth%d"), i);
-        const int width = theApp.GetProfileInt(PROFILE_SECTION, key, -1);
-        if (width >= CEmuleNextUiMetrics::Scale(m_hWnd, 24))
-            m_users.SetColumnWidth(i, width);
-    }
-}
-
 void CKnownUsersWnd::Refresh(bool force)
 {
     if (!force && !IsWindowVisible())
         return;
     RefreshUsers();
     RefreshFiles();
-    UpdateSelectedStatus();
 }
 
 void CKnownUsersWnd::RefreshUsers()
@@ -380,11 +338,19 @@ void CKnownUsersWnd::RefreshUsers()
     if (path.IsEmpty())
         return;
 
+    CString search;
+    m_search.GetWindowText(search);
+    search.Trim();
+    m_searchText = search;
+
     std::unique_ptr<UsersLoadContext> context(new UsersLoadContext);
     context->target = m_hWnd;
     context->databasePath = path;
-    context->query = m_mode == ENKUM_FAVORITES ? ENKUQ_FAVORITES
+    context->query.mode = m_mode == ENKUM_FAVORITES ? ENKUQ_FAVORITES
         : (m_mode == ENKUM_RECENT ? ENKUQ_RECENT : ENKUQ_ALL);
+    context->query.text = CStringW(search);
+    context->query.recentSince = m_mode == ENKUM_RECENT
+        ? static_cast<uint64>(time(NULL)) - 7u * 24u * 60u * 60u : 0;
     m_usersLoading = true;
     if (AfxBeginThread(LoadUsersWorker, context.get(), THREAD_PRIORITY_BELOW_NORMAL) == NULL) {
         m_usersLoading = false;
@@ -415,105 +381,103 @@ void CKnownUsersWnd::RefreshFiles()
     context.release();
 }
 
-bool CKnownUsersWnd::IsCurrent(const EmuleNextKnownUserRecord& user) const
+bool CKnownUsersWnd::RowVisible(const EmuleNextKnownUserRecord& user) const
 {
-    return user.userHash.valid && theApp.clientlist != NULL
-        && theApp.clientlist->FindClientByUserHash(user.userHash.bytes.data()) != NULL;
-}
-
-bool CKnownUsersWnd::MatchesMode(const EmuleNextKnownUserRecord& user) const
-{
-    if (m_mode == ENKUM_CURRENT)
-        return IsCurrent(user);
-    if (m_mode == ENKUM_HISTORY)
-        return !IsCurrent(user);
-    if (m_mode == ENKUM_FAVORITES)
-        return user.favorite;
+    const bool current = IsCurrent(user);
+    if (m_mode == ENKUM_CURRENT && !current)
+        return false;
+    if (m_mode == ENKUM_HISTORY && current)
+        return false;
     return true;
 }
 
-bool CKnownUsersWnd::MatchesSearch(const EmuleNextKnownUserRecord& user) const
+bool CKnownUsersWnd::IsCurrent(const EmuleNextKnownUserRecord& user) const
 {
-    CString needle;
-    m_search.GetWindowText(needle);
-    needle.Trim();
-    if (needle.IsEmpty())
-        return true;
-    needle.MakeLower();
-
-    CString haystack = DisplayName(user) + _T(" ") + CString(user.alias) + _T(" ")
-        + ClientText(user) + _T(" ") + EndpointText(user) + _T(" ") + HashText(user.userHash);
-    haystack.MakeLower();
-    return haystack.Find(needle) >= 0;
+    return theApp.clientlist != NULL && user.userHash.valid
+        && theApp.clientlist->FindClientByUserHash(user.userHash.bytes.data()) != NULL;
 }
 
 void CKnownUsersWnd::SortUserRows()
 {
     const int column = m_sortColumn;
     const bool ascending = m_sortAscending;
-    std::stable_sort(m_userRows.begin(), m_userRows.end(), [this, column, ascending](
-        const EmuleNextKnownUserRecord& left, const EmuleNextKnownUserRecord& right) {
-        int result = 0;
-        switch (column) {
-        case 0: result = DisplayName(left).CompareNoCase(DisplayName(right)); break;
-        case 1: result = CString(left.alias).CompareNoCase(CString(right.alias)); break;
-        case 2: result = static_cast<int>(IsCurrent(left)) - static_cast<int>(IsCurrent(right)); break;
-        case 3: result = ClientText(left).CompareNoCase(ClientText(right)); break;
-        case 4: result = EndpointText(left).CompareNoCase(EndpointText(right)); break;
-        case 5: result = BrowseStatusText(left.userHash).CompareNoCase(BrowseStatusText(right.userHash)); break;
-        case 6: result = CompareUInt64(left.firstSeen, right.firstSeen); break;
-        case 7: result = CompareUInt64(left.lastSeen, right.lastSeen); break;
-        case 8: result = left.fileCount < right.fileCount ? -1 : (left.fileCount > right.fileCount ? 1 : 0); break;
-        case 9: result = CompareUInt64(left.totalBytes, right.totalBytes); break;
-        case 10: result = static_cast<int>(left.favorite) - static_cast<int>(right.favorite); break;
-        case 11: result = HashText(left.userHash).CompareNoCase(HashText(right.userHash)); break;
-        default: break;
-        }
-        return ascending ? result < 0 : result > 0;
-    });
+    std::stable_sort(m_userRows.begin(), m_userRows.end(),
+        [this, column, ascending](const EmuleNextKnownUserRecord& a, const EmuleNextKnownUserRecord& b) {
+            int value = 0;
+            switch (column) {
+            case 0: value = CString(a.userName).CompareNoCase(CString(b.userName)); break;
+            case 1: value = CString(a.alias).CompareNoCase(CString(b.alias)); break;
+            case 2: value = static_cast<int>(IsCurrent(a)) - static_cast<int>(IsCurrent(b)); break;
+            case 3: value = CString(a.clientSoftware).CompareNoCase(CString(b.clientSoftware)); break;
+            case 4:
+                value = a.endpointIp < b.endpointIp ? -1 : (a.endpointIp > b.endpointIp ? 1
+                    : (a.endpointTcpPort < b.endpointTcpPort ? -1 : (a.endpointTcpPort > b.endpointTcpPort ? 1 : 0)));
+                break;
+            case 6: value = CompareUInt64(a.firstSeen, b.firstSeen); break;
+            case 7: value = CompareUInt64(a.lastSeen, b.lastSeen); break;
+            case 8: value = a.fileCount < b.fileCount ? -1 : (a.fileCount > b.fileCount ? 1 : 0); break;
+            case 9: value = CompareUInt64(a.totalBytes, b.totalBytes); break;
+            case 10: value = static_cast<int>(a.favorite) - static_cast<int>(b.favorite); break;
+            default: value = CString(a.userName).CompareNoCase(CString(b.userName)); break;
+            }
+            return ascending ? value < 0 : value > 0;
+        });
 }
 
 void CKnownUsersWnd::PopulateUsers()
 {
+    SortUserRows();
     m_users.SetRedraw(FALSE);
     m_users.DeleteAllItems();
-
     for (size_t i = 0; i < m_userRows.size(); ++i) {
         const EmuleNextKnownUserRecord& user = m_userRows[i];
-        if (!MatchesMode(user) || !MatchesSearch(user))
+        if (!RowVisible(user))
             continue;
-        const int row = m_users.InsertItem(m_users.GetItemCount(), DisplayName(user));
+        CString name(user.userName);
+        if (name.IsEmpty()) name = _T("<unknown user>");
+        const int row = m_users.InsertItem(m_users.GetItemCount(), name);
         m_users.SetItemData(row, static_cast<DWORD_PTR>(i));
         m_users.SetItemText(row, 1, CString(user.alias));
         m_users.SetItemText(row, 2, IsCurrent(user) ? _T("Current") : _T("History"));
-        m_users.SetItemText(row, 3, ClientText(user));
+
+        CString client(user.clientSoftware);
+        if (!user.clientVersion.IsEmpty()) {
+            if (!client.IsEmpty()) client += _T(" ");
+            client += CString(user.clientVersion);
+        }
+        m_users.SetItemText(row, 3, client);
         m_users.SetItemText(row, 4, EndpointText(user));
-        m_users.SetItemText(row, 5, BrowseStatusText(user.userHash));
+
+        EmuleNextPeerShareState state;
+        const bool haveState = theApp.clientlist != NULL && theApp.clientlist->GetPeerShareState(user.userHash, state);
+        m_users.SetItemText(row, 5, BrowseStatusText(haveState ? &state : NULL, IsCurrent(user)));
         m_users.SetItemText(row, 6, DateText(user.firstSeen));
         m_users.SetItemText(row, 7, DateText(user.lastSeen));
-        CString count;
-        count.Format(_T("%u"), user.fileCount);
-        m_users.SetItemText(row, 8, count);
+        CString count; count.Format(_T("%u"), user.fileCount); m_users.SetItemText(row, 8, count);
         m_users.SetItemText(row, 9, CastItoXBytes(user.totalBytes, false, false, 1));
         m_users.SetItemText(row, 10, user.favorite ? _T("Yes") : _T("No"));
         m_users.SetItemText(row, 11, HashText(user.userHash));
     }
-
     m_users.SetRedraw(TRUE);
     m_users.Invalidate(FALSE);
 }
 
 void CKnownUsersWnd::PopulateFiles()
 {
+    EmuleNextPeerShareState state;
+    const bool haveState = theApp.clientlist != NULL && m_fileRowsPeer.valid
+        && theApp.clientlist->GetPeerShareState(m_fileRowsPeer, state);
+
     m_files.SetRedraw(FALSE);
     m_files.DeleteAllItems();
     for (size_t i = 0; i < m_fileRows.size(); ++i) {
         const EmuleNextKnownFileRecord& file = m_fileRows[i];
-        CString name(file.fileName);
-        if (name.IsEmpty())
-            name = _T("<unnamed>");
+        CString name(file.fileName); if (name.IsEmpty()) name = _T("<unnamed>");
         const int row = m_files.InsertItem(static_cast<int>(i), name);
-        m_files.SetItemText(row, 1, FileStateText(file));
+        bool current = false;
+        if (haveState && state.status == ENPSS_SHARED && state.lastCompleted != 0)
+            current = file.lastSeen + 5 >= state.lastCompleted;
+        m_files.SetItemText(row, 1, current ? _T("Current") : _T("History"));
         m_files.SetItemText(row, 2, CastItoXBytes(file.fileSize, false, false, 1));
         m_files.SetItemText(row, 3, DateText(file.firstSeen));
         m_files.SetItemText(row, 4, DateText(file.lastSeen));
@@ -527,8 +491,7 @@ void CKnownUsersWnd::PopulateFiles()
 int CKnownUsersWnd::SelectedUserIndex() const
 {
     const int selected = m_users.GetNextItem(-1, LVNI_SELECTED);
-    if (selected < 0)
-        return -1;
+    if (selected < 0) return -1;
     const DWORD_PTR value = m_users.GetItemData(selected);
     return value < m_userRows.size() ? static_cast<int>(value) : -1;
 }
@@ -536,25 +499,53 @@ int CKnownUsersWnd::SelectedUserIndex() const
 bool CKnownUsersWnd::SelectedHash(EmuleNextHash16& hash) const
 {
     const int index = SelectedUserIndex();
-    if (index < 0)
-        return false;
+    if (index < 0) return false;
     hash = m_userRows[static_cast<size_t>(index)].userHash;
     return hash.valid;
 }
 
-bool CKnownUsersWnd::GetShareState(const EmuleNextHash16& hash, EmuleNextPeerShareState& state) const
+CString CKnownUsersWnd::HashText(const EmuleNextHash16& hash)
 {
-    return theApp.clientlist != NULL && hash.valid && theApp.clientlist->GetPeerShareState(hash, state);
+    if (!hash.valid) return CString();
+    CString result;
+    for (size_t i = 0; i < hash.bytes.size(); ++i) {
+        CString pair; pair.Format(_T("%02X"), static_cast<unsigned>(hash.bytes[i])); result += pair;
+    }
+    return result;
 }
 
-CString CKnownUsersWnd::BrowseStatusText(const EmuleNextHash16& hash) const
+CString CKnownUsersWnd::DateText(uint64 timestamp)
 {
-    EmuleNextPeerShareState state;
-    if (!GetShareState(hash, state))
-        return _T("Idle");
+    if (timestamp == 0) return CString();
+    CTime value(static_cast<time_t>(timestamp));
+    return value.Format(_T("%Y-%m-%d %H:%M"));
+}
 
+CString CKnownUsersWnd::EndpointText(const EmuleNextKnownUserRecord& user)
+{
+    if (user.endpointIp == 0) return CString();
+    CString result;
+    result.Format(_T("%s:%u"), (LPCTSTR)ipstr(user.endpointIp), static_cast<unsigned>(user.endpointTcpPort));
+    return result;
+}
+
+CString CKnownUsersWnd::RemainingText(uint64 timestamp)
+{
+    const uint64 now = static_cast<uint64>(time(NULL));
+    if (timestamp <= now) return _T("now");
+    uint64 seconds = timestamp - now;
+    CString value;
+    if (seconds >= 3600) value.Format(_T("%lluh %02llum"), seconds / 3600, (seconds % 3600) / 60);
+    else if (seconds >= 60) value.Format(_T("%llum %02llus"), seconds / 60, seconds % 60);
+    else value.Format(_T("%llus"), seconds);
+    return value;
+}
+
+CString CKnownUsersWnd::BrowseStatusText(const EmuleNextPeerShareState* state, bool current)
+{
+    if (state == NULL) return current ? _T("Ready") : _T("Offline");
     CString label;
-    switch (state.status) {
+    switch (state->status) {
     case ENPSS_QUEUED: label = _T("Queued"); break;
     case ENPSS_QUERYING: label = _T("Querying"); break;
     case ENPSS_SHARED: label = _T("Shared"); break;
@@ -562,163 +553,36 @@ CString CKnownUsersWnd::BrowseStatusText(const EmuleNextHash16& hash) const
     case ENPSS_TIMEOUT: label = _T("Timeout"); break;
     case ENPSS_UNSUPPORTED: label = _T("Unsupported"); break;
     case ENPSS_ERROR: label = _T("Error"); break;
-    default: label = _T("Idle"); break;
+    default: label = current ? _T("Ready") : _T("Offline"); break;
     }
-    if (state.nextAllowed > static_cast<uint64>(time(NULL)))
-        label += _T(" (") + RemainingText(state.nextAllowed) + _T(")");
+    if (state->nextAllowed > static_cast<uint64>(time(NULL))) {
+        label += _T("; retry ");
+        label += RemainingText(state->nextAllowed);
+    }
+    if (!state->lastError.IsEmpty()) {
+        label += _T("; ");
+        label += state->lastError;
+    }
     return label;
-}
-
-CString CKnownUsersWnd::FileStateText(const EmuleNextKnownFileRecord& file) const
-{
-    EmuleNextPeerShareState state;
-    if (GetShareState(m_fileRowsPeer, state) && state.status == ENPSS_SHARED
-        && state.lastCompleted != 0 && file.lastSeen + 5 >= state.lastCompleted)
-        return _T("Current");
-    return _T("History");
-}
-
-CString CKnownUsersWnd::EndpointText(const EmuleNextKnownUserRecord& user) const
-{
-    if (user.endpointIp == 0)
-        return CString();
-    CString result(ipstr(user.endpointIp));
-    if (user.endpointTcpPort != 0) {
-        CString port;
-        port.Format(_T(":%u"), static_cast<unsigned>(user.endpointTcpPort));
-        result += port;
-    }
-    return result;
-}
-
-CString CKnownUsersWnd::ClientText(const EmuleNextKnownUserRecord& user) const
-{
-    CString value(user.clientSoftware);
-    if (!user.clientVersion.IsEmpty()) {
-        if (!value.IsEmpty())
-            value += _T(" ");
-        value += CString(user.clientVersion);
-    }
-    return value;
-}
-
-CString CKnownUsersWnd::HashText(const EmuleNextHash16& hash)
-{
-    if (!hash.valid)
-        return CString();
-    CString result;
-    for (size_t i = 0; i < hash.bytes.size(); ++i) {
-        CString pair;
-        pair.Format(_T("%02X"), static_cast<unsigned>(hash.bytes[i]));
-        result += pair;
-    }
-    return result;
-}
-
-CString CKnownUsersWnd::DateText(uint64 timestamp)
-{
-    if (timestamp == 0)
-        return CString();
-    CTime value(static_cast<time_t>(timestamp));
-    return value.Format(_T("%Y-%m-%d %H:%M"));
-}
-
-CString CKnownUsersWnd::RemainingText(uint64 target)
-{
-    const uint64 now = static_cast<uint64>(time(NULL));
-    if (target <= now)
-        return _T("ready");
-    uint64 seconds = target - now;
-    CString result;
-    if (seconds >= 24 * 60 * 60)
-        result.Format(_T("%llud"), static_cast<unsigned long long>((seconds + 86399) / 86400));
-    else if (seconds >= 60 * 60)
-        result.Format(_T("%lluh"), static_cast<unsigned long long>((seconds + 3599) / 3600));
-    else if (seconds >= 60)
-        result.Format(_T("%llum"), static_cast<unsigned long long>((seconds + 59) / 60));
-    else
-        result.Format(_T("%llus"), static_cast<unsigned long long>(seconds));
-    return result;
-}
-
-CString CKnownUsersWnd::DisplayName(const EmuleNextKnownUserRecord& user)
-{
-    CString name(user.userName);
-    if (name.IsEmpty())
-        name = _T("<unknown user>");
-    return name;
-}
-
-bool CKnownUsersWnd::SameHash(const EmuleNextHash16& left, const EmuleNextHash16& right)
-{
-    return left.valid && right.valid && left.bytes == right.bytes;
-}
-
-void CKnownUsersWnd::UpdateSelectedStatus()
-{
-    const int index = SelectedUserIndex();
-    if (index < 0) {
-        CString status;
-        status.Format(_T("%d visible peers; data is refreshed in background."), m_users.GetItemCount());
-        m_status.SetWindowText(status);
-        return;
-    }
-
-    const EmuleNextKnownUserRecord& user = m_userRows[static_cast<size_t>(index)];
-    CString status;
-    status.Format(_T("%s | %s | first %s | last %s"),
-        (LPCTSTR)BrowseStatusText(user.userHash), (LPCTSTR)EndpointText(user),
-        (LPCTSTR)DateText(user.firstSeen), (LPCTSTR)DateText(user.lastSeen));
-    EmuleNextPeerShareState state;
-    if (GetShareState(user.userHash, state) && !state.lastError.IsEmpty())
-        status += _T(" | ") + state.lastError;
-    m_status.SetWindowText(status);
-}
-
-void CKnownUsersWnd::UpdateActionButtons()
-{
-    const int index = SelectedUserIndex();
-    const bool selected = index >= 0;
-    bool current = false;
-    bool favorite = false;
-    if (selected) {
-        current = IsCurrent(m_userRows[static_cast<size_t>(index)]);
-        favorite = m_userRows[static_cast<size_t>(index)].favorite;
-    }
-    m_refreshPeerButton.EnableWindow(selected && current && !m_deleteLoading);
-    m_favoriteButton.EnableWindow(selected && !m_deleteLoading);
-    m_aliasButton.EnableWindow(selected && !m_deleteLoading);
-    m_deleteHistoryButton.EnableWindow(selected && !m_deleteLoading);
-    m_favoriteButton.SetWindowText(favorite ? _T("Unfavorite") : _T("Favorite"));
 }
 
 void CKnownUsersWnd::OnTimer(UINT_PTR timerId)
 {
-    if (timerId == TIMER_EN_REFRESH) {
-        Refresh(false);
-        return;
-    }
+    if (timerId == TIMER_EN_REFRESH) { Refresh(false); return; }
     CWnd::OnTimer(timerId);
 }
 
 BOOL CKnownUsersWnd::OnEraseBkgnd(CDC* dc)
 {
-    if (!CEmuleNextTheme::IsDarkMode())
-        return CWnd::OnEraseBkgnd(dc);
-    CRect rect;
-    GetClientRect(&rect);
-    dc->FillSolidRect(rect, CEmuleNextTheme::BackgroundColor());
-    return TRUE;
+    if (!CEmuleNextTheme::IsDarkMode()) return CWnd::OnEraseBkgnd(dc);
+    CRect rect; GetClientRect(&rect); dc->FillSolidRect(rect, CEmuleNextTheme::BackgroundColor()); return TRUE;
 }
 
 HBRUSH CKnownUsersWnd::OnCtlColor(CDC* dc, CWnd* wnd, UINT ctlColor)
 {
-    if (!CEmuleNextTheme::IsDarkMode())
-        return CWnd::OnCtlColor(dc, wnd, ctlColor);
-    dc->SetTextColor(CEmuleNextTheme::TextColor());
-    dc->SetBkColor(CEmuleNextTheme::BackgroundColor());
-    if (ctlColor == CTLCOLOR_STATIC || ctlColor == CTLCOLOR_DLG || ctlColor == CTLCOLOR_EDIT)
-        return static_cast<HBRUSH>(m_darkBrush.GetSafeHandle());
+    if (!CEmuleNextTheme::IsDarkMode()) return CWnd::OnCtlColor(dc, wnd, ctlColor);
+    dc->SetTextColor(CEmuleNextTheme::TextColor()); dc->SetBkColor(CEmuleNextTheme::BackgroundColor());
+    if (ctlColor == CTLCOLOR_STATIC || ctlColor == CTLCOLOR_DLG) return static_cast<HBRUSH>(m_darkBrush.GetSafeHandle());
     return CWnd::OnCtlColor(dc, wnd, ctlColor);
 }
 
@@ -726,12 +590,7 @@ void CKnownUsersWnd::OnUserSelectionChanged(NMHDR* header, LRESULT* result)
 {
     const NMLISTVIEW* change = reinterpret_cast<const NMLISTVIEW*>(header);
     if ((change->uChanged & LVIF_STATE) != 0 && (change->uNewState & LVIS_SELECTED) != 0) {
-        m_fileRows.clear();
-        m_fileRowsPeer = EmuleNextHash16();
-        PopulateFiles();
-        RefreshFiles();
-        UpdateSelectedStatus();
-        UpdateActionButtons();
+        m_fileRows.clear(); m_fileRowsPeer = EmuleNextHash16(); PopulateFiles(); RefreshFiles(); UpdateActionButtons();
     }
     *result = 0;
 }
@@ -739,65 +598,21 @@ void CKnownUsersWnd::OnUserSelectionChanged(NMHDR* header, LRESULT* result)
 void CKnownUsersWnd::OnUserColumnClick(NMHDR* header, LRESULT* result)
 {
     const NMLISTVIEW* click = reinterpret_cast<const NMLISTVIEW*>(header);
-    EmuleNextHash16 selected;
-    const bool hadSelection = SelectedHash(selected);
-    if (m_sortColumn == click->iSubItem)
-        m_sortAscending = !m_sortAscending;
-    else {
-        m_sortColumn = click->iSubItem;
-        m_sortAscending = true;
-    }
-    SortUserRows();
-    PopulateUsers();
-    if (hadSelection) {
-        for (int row = 0; row < m_users.GetItemCount(); ++row) {
-            const DWORD_PTR index = m_users.GetItemData(row);
-            if (index < m_userRows.size() && SameHash(selected, m_userRows[index].userHash)) {
-                m_users.SetItemState(row, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-                break;
-            }
-        }
-    }
-    SaveViewState();
-    *result = 0;
+    if (click->iSubItem == m_sortColumn) m_sortAscending = !m_sortAscending;
+    else { m_sortColumn = click->iSubItem; m_sortAscending = click->iSubItem == 0 || click->iSubItem == 1; }
+    PopulateUsers(); SaveViewState(); *result = 0;
 }
 
 void CKnownUsersWnd::OnModeChanged(NMHDR*, LRESULT* result)
 {
-    const int mode = m_modes.GetCurSel();
-    if (mode >= 0 && mode < ENKUM_COUNT)
-        m_mode = static_cast<EmuleNextKnownUsersMode>(mode);
-    m_fileRows.clear();
-    m_fileRowsPeer = EmuleNextHash16();
-    PopulateFiles();
-    RefreshUsers();
-    SaveViewState();
-    *result = 0;
+    int selected = m_modes.GetCurSel();
+    if (selected >= 0 && selected < ENKUM_COUNT) m_mode = static_cast<EmuleNextKnownUsersMode>(selected);
+    SaveViewState(); RefreshUsers(); *result = 0;
 }
 
 void CKnownUsersWnd::OnSearchChanged()
 {
-    EmuleNextHash16 selected;
-    const bool hadSelection = SelectedHash(selected);
-    PopulateUsers();
-    bool restored = false;
-    if (hadSelection) {
-        for (int row = 0; row < m_users.GetItemCount(); ++row) {
-            const DWORD_PTR index = m_users.GetItemData(row);
-            if (index < m_userRows.size() && SameHash(selected, m_userRows[index].userHash)) {
-                m_users.SetItemState(row, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-                restored = true;
-                break;
-            }
-        }
-    }
-    if (!restored) {
-        m_fileRows.clear();
-        m_fileRowsPeer = EmuleNextHash16();
-        PopulateFiles();
-    }
-    UpdateSelectedStatus();
-    UpdateActionButtons();
+    CString value; m_search.GetWindowText(value); m_searchText = value; SaveViewState(); RefreshUsers();
 }
 
 void CKnownUsersWnd::OnRefreshClicked()
@@ -808,174 +623,131 @@ void CKnownUsersWnd::OnRefreshClicked()
 void CKnownUsersWnd::OnRefreshPeerClicked()
 {
     EmuleNextHash16 hash;
-    if (!SelectedHash(hash) || theApp.clientlist == NULL)
-        return;
-    if (theApp.clientlist->QueuePeerShareRefresh(hash)) {
-        m_status.SetWindowText(_T("Selected peer refresh queued through the normal eMule shared-file request."));
-        UpdateActionButtons();
-        return;
-    }
-
-    EmuleNextPeerShareState state;
-    if (theApp.clientlist->GetPeerShareState(hash, state)) {
-        if (state.status == ENPSS_QUERYING)
-            m_status.SetWindowText(_T("Selected peer is already being queried."));
-        else if (state.nextAllowed > static_cast<uint64>(time(NULL)))
-            m_status.SetWindowText(_T("Selected peer refresh is in cooldown for ") + RemainingText(state.nextAllowed) + _T("."));
-        else
-            m_status.SetWindowText(_T("Selected peer is not currently available for a shared-file request."));
-    }
+    if (!SelectedHash(hash) || theApp.clientlist == NULL) return;
+    if (theApp.clientlist->QueuePeerShareRefresh(hash))
+        m_status.SetWindowText(_T("Selected peer queued for a safe shared-file refresh."));
     else
-        m_status.SetWindowText(_T("Selected peer is offline or not currently requestable."));
+        m_status.SetWindowText(_T("Peer refresh not queued: offline, unsupported, active, or still in cooldown."));
+    PopulateUsers(); UpdateActionButtons();
 }
 
 void CKnownUsersWnd::OnFavoriteClicked()
 {
     const int index = SelectedUserIndex();
-    if (index < 0)
-        return;
+    if (index < 0) return;
     EmuleNextKnownUserRecord& user = m_userRows[static_cast<size_t>(index)];
     if (theEmuleNext.SetPeerFavorite(user.userHash.bytes.data(), !user.favorite)) {
-        user.favorite = !user.favorite;
-        PopulateUsers();
-        RefreshUsers();
+        user.favorite = !user.favorite; PopulateUsers(); UpdateActionButtons();
     }
 }
 
 void CKnownUsersWnd::OnAliasClicked()
 {
     const int index = SelectedUserIndex();
-    if (index < 0)
-        return;
+    if (index < 0) return;
     EmuleNextKnownUserRecord& user = m_userRows[static_cast<size_t>(index)];
     InputBox input(this);
-    CString label;
-    label.Format(_T("Local alias for %s:"), (LPCTSTR)DisplayName(user));
+    CString label; label.Format(_T("Local alias for %s:"), user.userName.IsEmpty() ? _T("peer") : CString(user.userName).GetString());
     input.SetLabels(_T("eMule Next peer alias"), label, CString(user.alias));
-    if (input.DoModal() != IDOK || input.WasCancelled())
-        return;
-    CString alias(input.GetInput());
-    alias.Trim();
-    if (alias.GetLength() > 128)
-        alias = alias.Left(128);
-    if (theEmuleNext.SetPeerAlias(user.userHash.bytes.data(), alias)) {
-        user.alias = CStringW(alias);
-        PopulateUsers();
-        RefreshUsers();
-    }
+    if (input.DoModal() != IDOK || input.WasCancelled()) return;
+    CString alias(input.GetInput()); alias.Trim(); if (alias.GetLength() > 128) alias = alias.Left(128);
+    if (theEmuleNext.SetPeerAlias(user.userHash.bytes.data(), alias)) { user.alias = CStringW(alias); PopulateUsers(); }
 }
 
 void CKnownUsersWnd::OnDeleteHistoryClicked()
 {
-    EmuleNextHash16 hash;
-    const int index = SelectedUserIndex();
-    if (index < 0 || !SelectedHash(hash) || m_deleteLoading)
-        return;
-    CString prompt;
-    prompt.Format(_T("Delete local intelligence history for '%s'?\n\nThe local alias/favorite is retained. A current peer may reappear when observed again."),
-        (LPCTSTR)DisplayName(m_userRows[static_cast<size_t>(index)]));
-    if (AfxMessageBox(prompt, MB_YESNO | MB_ICONWARNING) != IDYES)
-        return;
-
-    const CStringW path = theEmuleNext.Database().GetDatabasePath();
-    if (path.IsEmpty())
-        return;
+    if (m_deleteLoading || !theEmuleNext.IsRunning()) return;
+    EmuleNextHash16 hash; if (!SelectedHash(hash)) return;
+    if (AfxMessageBox(_T("Delete the local intelligence history for this peer? Alias/favorite metadata is kept."),
+            MB_YESNO | MB_ICONQUESTION) != IDYES) return;
+    const CStringW path = theEmuleNext.Database().GetDatabasePath(); if (path.IsEmpty()) return;
     std::unique_ptr<DeleteLoadContext> context(new DeleteLoadContext);
-    context->target = m_hWnd;
-    context->databasePath = path;
-    context->peerHash = hash;
-    m_deleteLoading = true;
-    UpdateActionButtons();
-    m_status.SetWindowText(_T("Deleting selected peer intelligence history in background..."));
-    if (AfxBeginThread(DeleteHistoryWorker, context.get(), THREAD_PRIORITY_BELOW_NORMAL) == NULL) {
-        m_deleteLoading = false;
-        UpdateActionButtons();
-        m_status.SetWindowText(_T("Unable to start peer-history delete worker."));
-        return;
-    }
-    context.release();
+    context->target = m_hWnd; context->databasePath = path; context->peerHash = hash; m_deleteLoading = true;
+    if (AfxBeginThread(DeleteHistoryWorker, context.get(), THREAD_PRIORITY_BELOW_NORMAL) == NULL) { m_deleteLoading = false; return; }
+    context.release(); m_status.SetWindowText(_T("Deleting selected peer history in the background...")); UpdateActionButtons();
 }
 
 void CKnownUsersWnd::OnDarkModeClicked()
 {
-    const bool enabled = m_darkModeButton.GetCheck() == BST_CHECKED;
-    CEmuleNextTheme::SetDarkMode(enabled);
-    if (theApp.emuledlg != NULL)
-        CEmuleNextTheme::ApplyToWindow(theApp.emuledlg->GetSafeHwnd());
-    else
-        CEmuleNextTheme::ApplyToWindow(m_hWnd);
-    Invalidate(TRUE);
+    CEmuleNextTheme::SetDarkMode(m_darkModeButton.GetCheck() == BST_CHECKED);
+    CEmuleNextTheme::ApplyToWindow(theApp.emuledlg != NULL ? theApp.emuledlg->GetSafeHwnd() : m_hWnd); Invalidate(TRUE);
+}
+
+void CKnownUsersWnd::UpdateActionButtons()
+{
+    const int index = SelectedUserIndex(); const bool have = index >= 0; bool current = false;
+    if (have) current = IsCurrent(m_userRows[static_cast<size_t>(index)]);
+    m_refreshPeerButton.EnableWindow(have && current && !m_deleteLoading);
+    m_favoriteButton.EnableWindow(have && !m_deleteLoading);
+    m_aliasButton.EnableWindow(have && !m_deleteLoading);
+    m_deleteHistoryButton.EnableWindow(have && !m_deleteLoading);
+    if (have) m_favoriteButton.SetWindowText(m_userRows[static_cast<size_t>(index)].favorite ? _T("Unfavorite") : _T("Favorite"));
+    else m_favoriteButton.SetWindowText(_T("Favorite"));
+}
+
+void CKnownUsersWnd::LoadViewState()
+{
+    int mode = theApp.GetProfileInt(PROFILE_SECTION, _T("Mode"), ENKUM_CURRENT);
+    if (mode < 0 || mode >= ENKUM_COUNT) mode = ENKUM_CURRENT;
+    m_mode = static_cast<EmuleNextKnownUsersMode>(mode);
+    m_sortColumn = theApp.GetProfileInt(PROFILE_SECTION, _T("SortColumn"), 7);
+    if (m_sortColumn < 0 || m_sortColumn >= USER_COLUMN_COUNT) m_sortColumn = 7;
+    m_sortAscending = theApp.GetProfileInt(PROFILE_SECTION, _T("SortAscending"), 0) != 0;
+    m_searchText = theApp.GetProfileString(PROFILE_SECTION, _T("Search"), _T("")); m_search.SetWindowText(m_searchText);
+}
+
+void CKnownUsersWnd::SaveViewState() const
+{
+    theApp.WriteProfileInt(PROFILE_SECTION, _T("Mode"), static_cast<int>(m_mode));
+    theApp.WriteProfileInt(PROFILE_SECTION, _T("SortColumn"), m_sortColumn);
+    theApp.WriteProfileInt(PROFILE_SECTION, _T("SortAscending"), m_sortAscending ? 1 : 0);
+    CString search; if (::IsWindow(m_search.m_hWnd)) m_search.GetWindowText(search); else search = m_searchText;
+    theApp.WriteProfileString(PROFILE_SECTION, _T("Search"), search);
+    if (::IsWindow(m_users.m_hWnd)) for (int i = 0; i < USER_COLUMN_COUNT; ++i) {
+        CString key; key.Format(_T("ColumnWidth%d"), i); theApp.WriteProfileInt(PROFILE_SECTION, key, m_users.GetColumnWidth(i));
+    }
+}
+
+void CKnownUsersWnd::ApplyUserColumnWidths()
+{
+    if (!::IsWindow(m_users.m_hWnd)) return;
+    for (int i = 0; i < USER_COLUMN_COUNT; ++i) {
+        CString key; key.Format(_T("ColumnWidth%d"), i);
+        const int stored = theApp.GetProfileInt(PROFILE_SECTION, key, 0);
+        if (stored >= CEmuleNextUiMetrics::Scale(m_hWnd, 36) && stored <= CEmuleNextUiMetrics::Scale(m_hWnd, 700))
+            m_users.SetColumnWidth(i, stored);
+    }
 }
 
 LRESULT CKnownUsersWnd::OnUsersLoaded(WPARAM, LPARAM value)
 {
-    std::unique_ptr<UsersLoadResult> result(reinterpret_cast<UsersLoadResult*>(value));
-    m_usersLoading = false;
-    if (result.get() == NULL || !result->ok) {
-        m_status.SetWindowText(_T("Known Users database could not be read."));
-        return 0;
-    }
-
-    EmuleNextHash16 previous;
-    const bool hadSelection = SelectedHash(previous);
-    m_users.DeleteAllItems();
-    m_userRows.swap(result->rows);
-    SortUserRows();
-    PopulateUsers();
-
+    std::unique_ptr<UsersLoadResult> result(reinterpret_cast<UsersLoadResult*>(value)); m_usersLoading = false;
+    if (result.get() == NULL || !result->ok) { m_status.SetWindowText(_T("Known Users database could not be read.")); return 0; }
+    EmuleNextHash16 previous; const bool hadSelection = SelectedHash(previous); m_userRows.swap(result->rows); PopulateUsers();
     int selectRow = -1;
-    if (hadSelection) {
-        for (int row = 0; row < m_users.GetItemCount(); ++row) {
-            const DWORD_PTR index = m_users.GetItemData(row);
-            if (index < m_userRows.size() && SameHash(previous, m_userRows[index].userHash)) {
-                selectRow = row;
-                break;
-            }
-        }
+    if (hadSelection) for (int row = 0; row < m_users.GetItemCount(); ++row) {
+        const DWORD_PTR index = m_users.GetItemData(row);
+        if (index < m_userRows.size() && m_userRows[index].userHash.valid && m_userRows[index].userHash.bytes == previous.bytes) { selectRow = row; break; }
     }
-    if (selectRow < 0 && m_users.GetItemCount() > 0)
-        selectRow = 0;
-    if (selectRow >= 0) {
-        m_users.SetItemState(selectRow, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-        m_users.EnsureVisible(selectRow, FALSE);
-    }
-
-    UpdateSelectedStatus();
-    UpdateActionButtons();
-    return 0;
+    if (selectRow < 0 && m_users.GetItemCount() > 0) selectRow = 0;
+    if (selectRow >= 0) { m_users.SetItemState(selectRow, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED); m_users.EnsureVisible(selectRow, FALSE); }
+    CString status; status.Format(_T("%u database peers; %u shown in %s mode. Background reads are bounded."),
+        static_cast<unsigned>(m_userRows.size()), static_cast<unsigned>(m_users.GetItemCount()),
+        m_mode == ENKUM_CURRENT ? _T("Current") : m_mode == ENKUM_HISTORY ? _T("History") : m_mode == ENKUM_FAVORITES ? _T("Favorites") : _T("Recent"));
+    m_status.SetWindowText(status); UpdateActionButtons(); return 0;
 }
 
 LRESULT CKnownUsersWnd::OnFilesLoaded(WPARAM, LPARAM value)
 {
-    std::unique_ptr<FilesLoadResult> result(reinterpret_cast<FilesLoadResult*>(value));
-    m_filesLoading = false;
-    if (result.get() == NULL || !result->ok)
-        return 0;
-
-    EmuleNextHash16 selected;
-    if (!SelectedHash(selected) || !SameHash(selected, result->peerHash))
-        return 0;
-    m_fileRowsPeer = result->peerHash;
-    m_fileRows.swap(result->rows);
-    PopulateFiles();
-    UpdateSelectedStatus();
-    return 0;
+    std::unique_ptr<FilesLoadResult> result(reinterpret_cast<FilesLoadResult*>(value)); m_filesLoading = false;
+    if (result.get() == NULL || !result->ok) return 0;
+    EmuleNextHash16 selected; if (!SelectedHash(selected) || !selected.valid || selected.bytes != result->peerHash.bytes) return 0;
+    m_fileRowsPeer = result->peerHash; m_fileRows.swap(result->rows); PopulateFiles(); return 0;
 }
 
 LRESULT CKnownUsersWnd::OnHistoryDeleted(WPARAM, LPARAM value)
 {
-    std::unique_ptr<DeleteLoadResult> result(reinterpret_cast<DeleteLoadResult*>(value));
-    m_deleteLoading = false;
-    if (result.get() == NULL || !result->ok) {
-        m_status.SetWindowText(_T("Peer intelligence history could not be deleted."));
-        UpdateActionButtons();
-        return 0;
-    }
-    m_fileRows.clear();
-    m_fileRowsPeer = EmuleNextHash16();
-    PopulateFiles();
-    m_status.SetWindowText(_T("Peer intelligence history deleted; alias/favorite retained."));
-    RefreshUsers();
-    UpdateActionButtons();
-    return 0;
+    std::unique_ptr<DeleteLoadResult> result(reinterpret_cast<DeleteLoadResult*>(value)); m_deleteLoading = false;
+    m_status.SetWindowText(result.get() != NULL && result->ok ? _T("Selected peer history deleted; metadata retained.") : _T("Peer history delete failed."));
+    Refresh(true); UpdateActionButtons(); return 0;
 }
