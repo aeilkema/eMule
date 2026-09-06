@@ -42,7 +42,9 @@ def main() -> int:
     require(search_ui, "context->request.maximumResults = 2000", "Search 2 UI result cap")
     require(search_ui, "context->request.pageSize = 500", "Search 2 UI page size")
 
-    require(library_service, "ORDER BY f.last_seen DESC LIMIT 10000", "Library database safety cap")
+    require(library_service, "LIBRARY_SQL_LIMIT = 10000", "Library database safety cap")
+    require(library_service, "ORDER BY f.last_seen DESC LIMIT ?2", "parameterized Library SQL limit")
+    require(library_service, "sqlite3_bind_int64(statement, 2, static_cast<sqlite3_int64>(LIBRARY_SQL_LIMIT))", "bound Library SQL cap")
     require(library_service, "maximumRows", "Library caller result cap")
     require(library_ui, "service.List(context->filter, result->rows, 5000)", "Library UI result cap")
 
