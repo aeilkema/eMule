@@ -53,6 +53,8 @@ private:
     CButton m_rarePartIntelligence;
     CButton m_etaHealthDisplay;
     CButton m_historyCache;
+    CStatic m_historyCapacityLabel;
+    CComboBox m_historyCapacity;
     CButton m_telemetry;
     CStatic m_telemetryCapacityLabel;
     CComboBox m_telemetryCapacity;
