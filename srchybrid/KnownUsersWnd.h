@@ -27,6 +27,7 @@ public:
     CKnownUsersWnd();
     virtual ~CKnownUsersWnd();
 
+    using CWnd::Create;
     bool Create(CWnd* parent);
     void Refresh(bool force = false);
 
@@ -58,27 +59,20 @@ private:
     void RefreshFiles();
     void PopulateUsers();
     void PopulateFiles();
-    void UpdateSelectedStatus();
+    void SortUserRows();
     void UpdateActionButtons();
     void LoadViewState();
-    void SaveViewState();
+    void SaveViewState() const;
     void ApplyUserColumnWidths();
-    void SortUserRows();
+    bool RowVisible(const EmuleNextKnownUserRecord& user) const;
+    bool IsCurrent(const EmuleNextKnownUserRecord& user) const;
     int SelectedUserIndex() const;
     bool SelectedHash(EmuleNextHash16& hash) const;
-    bool IsCurrent(const EmuleNextKnownUserRecord& user) const;
-    bool MatchesMode(const EmuleNextKnownUserRecord& user) const;
-    bool MatchesSearch(const EmuleNextKnownUserRecord& user) const;
-    bool GetShareState(const EmuleNextHash16& hash, EmuleNextPeerShareState& state) const;
-    CString BrowseStatusText(const EmuleNextHash16& hash) const;
-    CString FileStateText(const EmuleNextKnownFileRecord& file) const;
-    CString EndpointText(const EmuleNextKnownUserRecord& user) const;
-    CString ClientText(const EmuleNextKnownUserRecord& user) const;
     static CString HashText(const EmuleNextHash16& hash);
     static CString DateText(uint64 timestamp);
-    static CString RemainingText(uint64 target);
-    static CString DisplayName(const EmuleNextKnownUserRecord& user);
-    static bool SameHash(const EmuleNextHash16& left, const EmuleNextHash16& right);
+    static CString EndpointText(const EmuleNextKnownUserRecord& user);
+    static CString BrowseStatusText(const EmuleNextPeerShareState* state, bool current);
+    static CString RemainingText(uint64 timestamp);
 
     CTabCtrl m_modes;
     CEdit m_search;
@@ -96,6 +90,7 @@ private:
     std::vector<EmuleNextKnownFileRecord> m_fileRows;
     EmuleNextHash16 m_fileRowsPeer;
     EmuleNextKnownUsersMode m_mode;
+    CString m_searchText;
     int m_sortColumn;
     bool m_sortAscending;
     bool m_usersLoading;
