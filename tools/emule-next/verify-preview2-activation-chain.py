@@ -42,10 +42,7 @@ def is_string_constant(node: ast.AST, value: str) -> bool:
 
 
 def preview2_call_line(tree: ast.AST) -> int:
-    '''Return the line that structurally executes activate-preview2.py.'''
     preview_vars: set[str] = set()
-
-    # Accept any local variable name assigned from HERE / "activate-preview2.py".
     for node in ast.walk(tree):
         if not isinstance(node, (ast.Assign, ast.AnnAssign)):
             continue
@@ -58,52 +55,30 @@ def preview2_call_line(tree: ast.AST) -> int:
         for target in targets:
             if isinstance(target, ast.Name):
                 preview_vars.add(target.id)
-
     if not preview_vars:
-        raise SystemExit(
-            "Preview2 activation-chain verification: activate-features does not resolve activate-preview2.py"
-        )
+        raise SystemExit("Preview2 activation-chain verification: activate-features does not resolve activate-preview2.py")
 
-    # Require runpy.run_path(str(<that variable>), run_name="__main__").
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
         func = node.func
-        if not (
-            isinstance(func, ast.Attribute)
-            and func.attr == "run_path"
-            and is_name(func.value, "runpy")
-        ):
+        if not (isinstance(func, ast.Attribute) and func.attr == "run_path" and is_name(func.value, "runpy")):
             continue
         if not node.args:
             continue
         first = node.args[0]
         if not (
-            isinstance(first, ast.Call)
-            and is_name(first.func, "str")
-            and len(first.args) == 1
-            and isinstance(first.args[0], ast.Name)
-            and first.args[0].id in preview_vars
+            isinstance(first, ast.Call) and is_name(first.func, "str") and len(first.args) == 1
+            and isinstance(first.args[0], ast.Name) and first.args[0].id in preview_vars
         ):
             continue
-        run_name_ok = any(
-            keyword.arg == "run_name" and is_string_constant(keyword.value, "__main__")
-            for keyword in node.keywords
-        )
-        if run_name_ok:
+        if any(keyword.arg == "run_name" and is_string_constant(keyword.value, "__main__") for keyword in node.keywords):
             return node.lineno
-
-    raise SystemExit(
-        "Preview2 activation-chain verification: activate-features does not structurally execute Preview2"
-    )
+    raise SystemExit("Preview2 activation-chain verification: activate-features does not structurally execute Preview2")
 
 
 def base_gate_line(tree: ast.AST) -> int:
-    lines = [
-        node.lineno
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Constant) and node.value == "fix-preview1-build.py"
-    ]
+    lines = [node.lineno for node in ast.walk(tree) if isinstance(node, ast.Constant) and node.value == "fix-preview1-build.py"]
     if not lines:
         raise SystemExit("Preview2 activation-chain verification: base compatibility gate missing")
     return max(lines)
@@ -119,11 +94,7 @@ def preview2_steps(tree: ast.AST) -> list[str]:
         value = node.value
         if not isinstance(value, (ast.Tuple, ast.List)):
             break
-        result: list[str] = []
-        for item in value.elts:
-            if isinstance(item, ast.Constant) and isinstance(item.value, str):
-                result.append(item.value)
-        return result
+        return [item.value for item in value.elts if isinstance(item, ast.Constant) and isinstance(item.value, str)]
     raise SystemExit("Preview2 activation-chain verification: PREVIEW2_STEPS declaration unavailable")
 
 
@@ -131,19 +102,20 @@ def main() -> int:
     features_tree = parse(HERE / "activate-features.py")
     preview_tree = parse(HERE / "activate-preview2.py")
 
-    call_line = preview2_call_line(features_tree)
-    gate_line = base_gate_line(features_tree)
-    if call_line <= gate_line:
+    if preview2_call_line(features_tree) <= base_gate_line(features_tree):
         raise SystemExit("Preview2 activation-chain verification: Preview2 is not the final product layer")
 
     steps = preview2_steps(preview_tree)
     required_order = (
         "activate-preview2-main-shell.py",
         "activate-preview2-ux-completion.py",
+        "activate-preview2-settings-complete.py",
         "activate-preview2-search-ux.py",
         "activate-preview2-header-status.py",
+        "activate-preview2-theme-coverage.py",
         "activate-preview2-build-identity.py",
         "verify-preview2-activation-chain.py",
+        "verify-preview2-settings-theme.py",
         "verify-preview2-ux-completion.py",
         "verify-preview2-product.py",
     )
