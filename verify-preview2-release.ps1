@@ -57,32 +57,12 @@ if ($preflightPos -lt 0 -or $stagePos -lt 0 -or $preflightPos -gt $stagePos) {
     throw "Preview 2 release verification: repository preflight must run before activation-stage creation"
 }
 
-$features = Get-Content -LiteralPath (Join-Path $RepoRoot "tools\emule-next\activate-features.py") -Raw
-foreach ($marker in @(
-    'preview2 = HERE / "activate-preview2.py"',
-    'runpy.run_path(str(preview2), run_name="__main__")',
-    '"fix-preview1-build.py"'
-)) {
-    if (-not $features.Contains($marker)) {
-        throw "Preview 2 release verification: clean activation path missing '$marker'"
-    }
-}
-if ($features.IndexOf('runpy.run_path(str(preview2), run_name="__main__")') -lt $features.IndexOf('"fix-preview1-build.py"')) {
-    throw "Preview 2 release verification: Preview 2 is not the final product layer"
-}
-
-$activationGate = Get-Content -LiteralPath (Join-Path $RepoRoot "tools\emule-next\verify-preview2-activation-chain.py") -Raw
-foreach ($marker in @(
-    'HERE / "activate-features.py"',
-    'HERE / "activate-preview2.py"',
-    'clean activation-chain verification passed'
-)) {
-    if (-not $activationGate.Contains($marker)) {
-        throw "Preview 2 release verification: overlay activation-chain gate missing '$marker'"
-    }
-}
-if ($activationGate.Contains('ROOT / "build-local.ps1"') -or $activationGate.Contains('ROOT / "docs')) {
-    throw "Preview 2 release verification: overlay activation-chain gate depends on repository-root files"
+# The Python gate validates the activation chain structurally through ASTs.
+# Do not duplicate that contract here with fragile variable-name/source-format checks.
+$activationGatePath = Join-Path $RepoRoot "tools\emule-next\verify-preview2-activation-chain.py"
+python $activationGatePath
+if ($LASTEXITCODE -ne 0) {
+    throw "Preview 2 release verification: structural activation-chain gate failed"
 }
 
 $orchestrator = Get-Content -LiteralPath (Join-Path $RepoRoot "tools\emule-next\activate-preview2.py") -Raw
