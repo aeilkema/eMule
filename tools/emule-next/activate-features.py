@@ -61,6 +61,7 @@ for script_name in (
     "verify-smart-scheduling.py",
     "verify-smart-scheduler-runtime.py",
     "verify-smart-scheduler-product.py",
+    "verify-transfer-insights-bounds.py",
     "verify-dashboard-shared-insights.py",
     "verify-ui-metrics.py",
     "verify-no-hotpath-sqlite.py",
