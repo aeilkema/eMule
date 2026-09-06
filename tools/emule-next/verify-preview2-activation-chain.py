@@ -122,6 +122,7 @@ def main() -> int:
         "activate-preview2-warning-cleanup-shareddirs.py",
         "activate-preview2-warning-cleanup-search2.py",
         "activate-preview2-warning-cleanup-legacy.py",
+        "activate-preview2-warning-cleanup-cwnd.py",
         "activate-preview2-warning-cleanup-mfc.py",
         "activate-preview2-warning-cleanup-main.py",
         "activate-preview2-build-identity.py",
