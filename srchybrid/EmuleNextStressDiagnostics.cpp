@@ -5,6 +5,7 @@
 #include "EmuleNextStressDiagnostics.h"
 #include "ClientIndex.h"
 #include "DownloadIndex.h"
+#include "EmuleNextDatabase.h"
 
 #include <vector>
 #include <stdint.h>
@@ -29,11 +30,18 @@ namespace
     {
         return reinterpret_cast<CPartFile*>(static_cast<uintptr_t>(0x100000u + index + 1u));
     }
+
+    void DeleteTemporaryDatabase(const CStringW& path)
+    {
+        ::DeleteFileW(path.GetString());
+        ::DeleteFileW((path + L"-wal").GetString());
+        ::DeleteFileW((path + L"-shm").GetString());
+    }
 }
 
 EmuleNextStressDiagnosticsResult::EmuleNextStressDiagnosticsResult()
-    : success(false), clientEntries(0), downloadEntries(0), registerMilliseconds(0),
-      lookupMilliseconds(0), mutationMilliseconds(0)
+    : success(false), clientEntries(0), downloadEntries(0), writerEvents(0), registerMilliseconds(0),
+      lookupMilliseconds(0), mutationMilliseconds(0), writerMilliseconds(0)
 {
 }
 
@@ -152,8 +160,67 @@ bool CEmuleNextStressDiagnostics::RunIndexStress(uint32 clientEntries,
     }
 
     result.success = true;
-    result.details.Format(L"PASS: %u client entries and %u download entries; register %I64u ms, lookup %I64u ms, mutate %I64u ms.",
+    result.details.Format(L"Index PASS: %u clients / %u downloads; register %I64u ms, lookup %I64u ms, mutate %I64u ms.",
         clientEntries, downloadEntries, result.registerMilliseconds,
         result.lookupMilliseconds, result.mutationMilliseconds);
+    return true;
+}
+
+bool CEmuleNextStressDiagnostics::RunWriterQueueStress(uint32 eventCount,
+    EmuleNextStressDiagnosticsResult& result)
+{
+    result.writerEvents = eventCount;
+    result.writerMilliseconds = 0;
+    if (eventCount == 0 || eventCount > 25000) {
+        result.details = L"Writer stress bound rejected; event range 1..25000.";
+        return false;
+    }
+
+    wchar_t tempFolder[MAX_PATH] = {};
+    wchar_t tempFile[MAX_PATH] = {};
+    if (::GetTempPathW(_countof(tempFolder), tempFolder) == 0
+        || ::GetTempFileNameW(tempFolder, L"enx", 0, tempFile) == 0) {
+        result.details = L"Unable to allocate temporary writer-stress database path.";
+        return false;
+    }
+    const CStringW databasePath(tempFile);
+    DeleteTemporaryDatabase(databasePath);
+
+    CEmuleNextDatabase database;
+    ULONGLONG started = ::GetTickCount64();
+    if (!database.Start(databasePath)) {
+        result.details = L"Temporary writer-stress database failed to start: " + database.GetLastError();
+        DeleteTemporaryDatabase(databasePath);
+        return false;
+    }
+
+    for (uint32 i = 0; i < eventCount; ++i) {
+        unsigned char hash[16];
+        MakeHash(0x60000000u + i + 1u, hash);
+        EmuleNextFileObservation observation;
+        observation.ed2kHash = EmuleNextHash16(hash);
+        observation.fileSize = 1024ui64 + static_cast<uint64>(i);
+        observation.fileName.Format(L"stress-%u.bin", i);
+        observation.seenAt = static_cast<uint64>(time(NULL));
+        database.RecordFileSeen(observation);
+    }
+
+    database.Stop();
+    result.writerMilliseconds = static_cast<uint64>(::GetTickCount64() - started);
+    const EmuleNextDatabaseQueueDiagnostics diagnostics = database.GetQueueDiagnostics();
+    DeleteTemporaryDatabase(databasePath);
+
+    if (diagnostics.queued != 0 || diagnostics.processed != eventCount
+        || diagnostics.dropped != 0 || diagnostics.errors != 0) {
+        result.details.Format(L"Writer FAIL: queued %I64u, processed %I64u/%u, dropped %I64u, errors %I64u.",
+            diagnostics.queued, diagnostics.processed, eventCount, diagnostics.dropped, diagnostics.errors);
+        return false;
+    }
+
+    result.success = true;
+    CStringW writer;
+    writer.Format(L" Writer PASS: %u events in %I64u ms; peak queue %I64u, no drops/errors.",
+        eventCount, result.writerMilliseconds, diagnostics.peakQueued);
+    result.details += writer;
     return true;
 }
