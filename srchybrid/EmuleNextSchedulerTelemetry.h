@@ -34,7 +34,10 @@ struct EmuleNextSchedulerTelemetrySummary
     uint64 a4afPreferences;
     uint64 rarePartPreferences;
     uint64 holds;
+    uint64 droppedPersistenceEvents;
     size_t retainedEvents;
+    size_t pendingPersistenceEvents;
+    bool persistenceReady;
 
     EmuleNextSchedulerTelemetrySummary();
 };
@@ -48,6 +51,8 @@ public:
     void SetCapacity(size_t capacity);
     void SetDatabasePath(const CStringW& databasePath);
     bool PersistenceReady() const;
+    size_t PendingPersistenceEvents() const;
+    uint64 DroppedPersistenceEvents() const;
     void Record(const EmuleNextSchedulerEvent& event);
     void MarkAppliedIntervention();
     void Snapshot(std::deque<EmuleNextSchedulerEvent>& events) const;
@@ -78,4 +83,6 @@ private:
     CStringW m_databasePath;
     bool m_stopPersistence;
     bool m_persistenceReady;
+    bool m_persistenceStarting;
+    uint64 m_droppedPersistEvents;
 };
