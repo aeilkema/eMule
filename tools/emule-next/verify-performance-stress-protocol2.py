@@ -115,8 +115,9 @@ def main() -> int:
         raise SystemExit("Perf2 verification: activation order unavailable")
     required = (
         "activate-database-recovery-diagnostics2-hardening.py",
-        "verify-winsqlite-maintenance-compat.py",
         "activate-performance-stress-regression2.py",
+        "verify-winsqlite-maintenance-compat.py",
+        "verify-database-recovery-diagnostics2.py",
         "verify-performance-stress-protocol2.py",
         "audit-activators.py",
     )
