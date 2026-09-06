@@ -15,6 +15,9 @@ HERE = pathlib.Path(__file__).resolve().parent
 ENTRY = HERE / "activate-features.py"
 
 REQUIRED_ORDER = (
+    "activate-next-views.py",
+    "activate-search2-background-metadata.py",
+    "finalize-search-results.py",
     "activate-smart-scheduler-runtime.py",
     "activate-scheduler-persistence.py",
     "activate-smart-scheduler-ui.py",
@@ -22,6 +25,8 @@ REQUIRED_ORDER = (
     "activate-dashboard-shared-insights.py",
     "activate-ui-metrics.py",
     "activate-next-view-dpi.py",
+    "verify-search2-background-metadata.py",
+    "verify-ui-data-bounds.py",
     "verify-smart-scheduling.py",
     "verify-smart-scheduler-runtime.py",
     "verify-smart-scheduler-product.py",
@@ -79,7 +84,7 @@ def main() -> int:
             else:
                 indexes.append(ordered.index(required))
         if indexes and indexes != sorted(indexes):
-            failures.append("Smart Scheduler persistence/UI activation order is unsafe")
+            failures.append("eMule Next activation/verification order is unsafe")
 
     scheduler_activator = read(HERE / "activate-smart-scheduler-runtime.py")
     expected_a4af = (
@@ -88,6 +93,12 @@ def main() -> int:
     )
     if expected_a4af not in scheduler_activator:
         failures.append("A4AF hook no longer preserves legacy left/right candidate semantics")
+
+    search_metadata = read(HERE / "activate-search2-background-metadata.py")
+    if "AfxBeginThread(SavedSearchLoadWorker" not in search_metadata:
+        failures.append("Search 2 metadata activator no longer moves recurring reads to a worker")
+    if "CSearch2Service service(theEmuleNext.Database())" not in search_metadata:
+        failures.append("Search 2 metadata worker lost its service integration")
 
     search_injectors: list[str] = []
     for path in HERE.glob("*.py"):
