@@ -102,6 +102,7 @@ for script_name in (
     "activate-dashboard.py",
     "fix-dashboard-compile.py",
     "activate-dashboard-navigation.py",
+    "activate-dashboard-host-hardening.py",
     "activate-dashboard-actions.py",
     "activate-dashboard-source-profile.py",
     "activate-file-intelligence-columns.py",
