@@ -28,6 +28,8 @@ CEmuleNextHistoryCache::CEmuleNextHistoryCache()
     , m_generation(0)
     , m_stopPersistence(false)
     , m_persistenceReady(false)
+    , m_persistenceStarting(false)
+    , m_droppedPersistWrites(0)
 {
 }
 
@@ -57,11 +59,15 @@ void CEmuleNextHistoryCache::SetCapacity(size_t capacity)
 
 void CEmuleNextHistoryCache::SetDatabasePath(const CStringW& databasePath)
 {
+    bool reuse = false;
     {
         std::lock_guard<std::mutex> lock(m_persistMutex);
-        if (databasePath == m_databasePath && m_persistThread.joinable())
-            return;
+        reuse = databasePath == m_databasePath
+            && m_persistThread.joinable()
+            && (m_persistenceReady || m_persistenceStarting);
     }
+    if (reuse)
+        return;
 
     StopPersistence();
     if (databasePath.IsEmpty())
@@ -72,6 +78,7 @@ void CEmuleNextHistoryCache::SetDatabasePath(const CStringW& databasePath)
         m_databasePath = databasePath;
         m_stopPersistence = false;
         m_persistenceReady = false;
+        m_persistenceStarting = true;
     }
     try {
         m_persistThread = std::thread(&CEmuleNextHistoryCache::PersistenceMain, this);
@@ -79,6 +86,7 @@ void CEmuleNextHistoryCache::SetDatabasePath(const CStringW& databasePath)
     catch (...) {
         std::lock_guard<std::mutex> lock(m_persistMutex);
         m_persistenceReady = false;
+        m_persistenceStarting = false;
     }
 }
 
@@ -96,6 +104,7 @@ void CEmuleNextHistoryCache::StopPersistence()
         m_persistQueue.clear();
         m_databasePath.Empty();
         m_persistenceReady = false;
+        m_persistenceStarting = false;
         m_stopPersistence = false;
     }
 }
@@ -133,10 +142,14 @@ void CEmuleNextHistoryCache::Observe(const CPartFile* file)
 void CEmuleNextHistoryCache::QueuePersistLocked(const Key& key, const EmuleNextFileHistory& history)
 {
     std::lock_guard<std::mutex> lock(m_persistMutex);
-    if (!m_persistThread.joinable())
+    if (!m_persistThread.joinable() || (!m_persistenceReady && !m_persistenceStarting)) {
+        ++m_droppedPersistWrites;
         return;
-    if (m_persistQueue.size() >= 8192)
+    }
+    if (m_persistQueue.size() >= 8192) {
         m_persistQueue.pop_front();
+        ++m_droppedPersistWrites;
+    }
     PersistItem item;
     item.key = key;
     item.history = history;
@@ -190,6 +203,18 @@ bool CEmuleNextHistoryCache::PersistenceReady() const
 {
     std::lock_guard<std::mutex> lock(m_persistMutex);
     return m_persistenceReady;
+}
+
+size_t CEmuleNextHistoryCache::PendingPersistenceWrites() const
+{
+    std::lock_guard<std::mutex> lock(m_persistMutex);
+    return m_persistQueue.size();
+}
+
+uint64 CEmuleNextHistoryCache::DroppedPersistenceWrites() const
+{
+    std::lock_guard<std::mutex> lock(m_persistMutex);
+    return m_droppedPersistWrites;
 }
 
 void CEmuleNextHistoryCache::Clear()
@@ -248,6 +273,7 @@ void CEmuleNextHistoryCache::PersistenceMain()
     {
         std::lock_guard<std::mutex> lock(m_persistMutex);
         m_persistenceReady = ready;
+        m_persistenceStarting = false;
     }
 
     while (ready) {
@@ -257,7 +283,9 @@ void CEmuleNextHistoryCache::PersistenceMain()
             m_persistCondition.wait_for(lock, std::chrono::milliseconds(500), [this]() {
                 return m_stopPersistence || !m_persistQueue.empty();
             });
-            const size_t count = std::min<size_t>(256, m_persistQueue.size());
+            size_t count = m_persistQueue.size();
+            if (count > 256)
+                count = 256;
             for (size_t i = 0; i < count; ++i) {
                 batch.push_back(m_persistQueue.front());
                 m_persistQueue.pop_front();
@@ -268,7 +296,13 @@ void CEmuleNextHistoryCache::PersistenceMain()
         if (batch.empty())
             continue;
 
-        sqlite3_exec(db, "BEGIN IMMEDIATE", NULL, NULL, NULL);
+        if (sqlite3_exec(db, "BEGIN IMMEDIATE", NULL, NULL, NULL) != SQLITE_OK) {
+            std::lock_guard<std::mutex> lock(m_persistMutex);
+            m_droppedPersistWrites += static_cast<uint64>(batch.size());
+            continue;
+        }
+
+        bool batchOk = true;
         sqlite3_stmt* stmt = NULL;
         const char* sql =
             "INSERT INTO scheduler_file_history(file_hash,ewma_bps,samples,last_observed) VALUES(?1,?2,?3,?4) "
@@ -282,12 +316,28 @@ void CEmuleNextHistoryCache::PersistenceMain()
                 sqlite3_bind_double(stmt, 2, it->history.ewmaBytesPerSecond);
                 sqlite3_bind_int64(stmt, 3, static_cast<sqlite3_int64>(it->history.samples));
                 sqlite3_bind_int64(stmt, 4, static_cast<sqlite3_int64>(it->history.lastObserved));
-                sqlite3_step(stmt);
+                if (sqlite3_step(stmt) != SQLITE_DONE) {
+                    batchOk = false;
+                    break;
+                }
             }
+        } else {
+            batchOk = false;
         }
         if (stmt != NULL)
             sqlite3_finalize(stmt);
-        sqlite3_exec(db, "COMMIT", NULL, NULL, NULL);
+
+        if (batchOk) {
+            if (sqlite3_exec(db, "COMMIT", NULL, NULL, NULL) != SQLITE_OK)
+                batchOk = false;
+        } else {
+            sqlite3_exec(db, "ROLLBACK", NULL, NULL, NULL);
+        }
+        if (!batchOk) {
+            sqlite3_exec(db, "ROLLBACK", NULL, NULL, NULL);
+            std::lock_guard<std::mutex> lock(m_persistMutex);
+            m_droppedPersistWrites += static_cast<uint64>(batch.size());
+        }
     }
 
     if (db != NULL)
@@ -295,5 +345,6 @@ void CEmuleNextHistoryCache::PersistenceMain()
     {
         std::lock_guard<std::mutex> lock(m_persistMutex);
         m_persistenceReady = false;
+        m_persistenceStarting = false;
     }
 }
