@@ -24,6 +24,17 @@ def require(source: str, marker: str, label: str) -> None:
         raise SystemExit(f"DB2 verification: missing {label}: {marker}")
 
 
+def activation_order() -> list[str]:
+    path = HERE / "activate-features.py"
+    tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Tuple, ast.List)):
+            values = [item.value for item in node.elts if isinstance(item, ast.Constant) and isinstance(item.value, str) and item.value.endswith(".py")]
+            if "activate-database-recovery-diagnostics2.py" in values:
+                return values
+    return []
+
+
 def schema_smoke() -> None:
     with tempfile.TemporaryDirectory(prefix="emule-next-db2-") as temp:
         source = pathlib.Path(temp) / "source.sqlite3"
@@ -71,6 +82,18 @@ def main() -> int:
         except SyntaxError as exc:
             raise SystemExit(f"DB2 verification: {script} syntax error line {exc.lineno}: {exc.msg}")
 
+    order = activation_order()
+    if not order:
+        raise SystemExit("DB2 verification: activation order not found")
+    for required in ("activate-scheduler-schema-v2.py", "activate-ui-navigation-modernization2-dashboard.py", "activate-database-recovery-diagnostics2.py", "verify-database-recovery-diagnostics2.py", "audit-activators.py"):
+        if required not in order:
+            raise SystemExit(f"DB2 verification: activation step missing: {required}")
+    indexes = [order.index(name) for name in ("activate-scheduler-schema-v2.py", "activate-ui-navigation-modernization2-dashboard.py", "activate-database-recovery-diagnostics2.py", "verify-database-recovery-diagnostics2.py", "audit-activators.py")]
+    if indexes != sorted(indexes):
+        raise SystemExit("DB2 verification: unsafe activation/gate ordering")
+    if order.count("activate-database-recovery-diagnostics2.py") != 1 or order.count("verify-database-recovery-diagnostics2.py") != 1:
+        raise SystemExit("DB2 verification: duplicate database goal activation/gate")
+
     db_h, db_cpp = read("EmuleNextDatabase.h"), read("EmuleNextDatabase.cpp")
     maint_h, maint_cpp = read("EmuleNextDatabaseMaintenance.h"), read("EmuleNextDatabaseMaintenance.cpp")
     rt_h, rt_cpp = read("EmuleNextRuntime.h"), read("EmuleNextRuntime.cpp")
@@ -85,6 +108,7 @@ def main() -> int:
     require(db_h, "EmuleNextDatabaseQueueDiagnostics", "queue diagnostics contract")
 
     for marker, label in (
+        ('#include "EmuleNextWinSqliteCompat.h"', "WinSQLite compatibility include"),
         ("sqlite3_backup_init", "SQLite online backup API"),
         ("PRAGMA quick_check", "quick integrity check"),
         ("PRAGMA integrity_check", "full integrity check"),
@@ -117,11 +141,13 @@ def main() -> int:
         ("90ui64 * 24ui64 * 60ui64 * 60ui64", "90-day telemetry retention"),
     ):
         require(rt_cpp, marker, label)
+    for marker in ("std::thread m_maintenanceThread", "std::condition_variable m_maintenanceCondition", "std::atomic<bool> m_recoveryRequired"):
+        require(rt_h, marker, "maintenance runtime compile contract")
 
     start_body = rt_cpp[rt_cpp.find("bool CEmuleNextRuntime::Start()"):rt_cpp.find("void CEmuleNextRuntime::Stop()")]
-    if start_body.find("CheckDatabaseFile") > start_body.find("m_database.Start"):
+    if start_body.find("CheckDatabaseFile") < 0 or start_body.find("m_database.Start") < 0 or start_body.find("CheckDatabaseFile") > start_body.find("m_database.Start"):
         raise SystemExit("DB2 verification: startup quick_check runs after database start")
-    if start_body.find("_T(\"pre-migration\")") > start_body.find("m_database.Start"):
+    if start_body.find("_T(\"pre-migration\")") < 0 or start_body.find("_T(\"pre-migration\")") > start_body.find("m_database.Start"):
         raise SystemExit("DB2 verification: pre-migration backup runs after migration start")
     restore = rt_cpp[rt_cpp.find("bool CEmuleNextRuntime::RestoreDatabaseBackup"):rt_cpp.find("bool CEmuleNextRuntime::PruneDatabaseTelemetry")]
     for a, b, label in (("CheckDatabaseFile", "Stop();", "validate before stop"), ("Stop();", "RestoreBackup", "stop before restore"), ("RestoreBackup", "if (!Start())", "restore before restart")):
@@ -130,6 +156,8 @@ def main() -> int:
 
     for marker in ("EMULENEXT_DIAGNOSTICS_VIEW_ID", "MaintenanceWorker", "AfxBeginThread(MaintenanceWorker", "Restore backup...", "Full integrity check", "Prune old telemetry", "Checkpoint WAL", "Open backup folder"):
         require(diag_cpp if marker != "EMULENEXT_DIAGNOSTICS_VIEW_ID" else diag_h, marker, "diagnostics UI")
+    for marker in ("ON_WM_CREATE()", "ON_WM_SIZE()", "ON_MESSAGE(WM_EN_DIAG_RESULT, OnMaintenanceResult)"):
+        require(diag_cpp, marker, "Diagnostics MFC message-map contract")
     if "sqlite3_" in diag_cpp or "winsqlite3" in diag_cpp.lower():
         raise SystemExit("DB2 verification: SQLite leaked into Diagnostics GUI")
     require(host_h, "CEmuleNextDiagnosticsWnd m_diagnosticsWnd", "Diagnostics host member")
@@ -138,6 +166,8 @@ def main() -> int:
     require(host_cpp, "m_diagnosticsWnd.Refresh(false)", "Diagnostics refresh routing")
     require(project, '<ClCompile Include="EmuleNextDatabaseMaintenance.cpp" />', "maintenance project source")
     require(project, '<ClCompile Include="EmuleNextDiagnosticsWnd.cpp" />', "Diagnostics project source")
+    require(project, '<ClInclude Include="EmuleNextDatabaseMaintenance.h" />', "maintenance project header")
+    require(project, '<ClInclude Include="EmuleNextDiagnosticsWnd.h" />', "Diagnostics project header")
 
     schema_smoke()
     print("eMule Next Database / Recovery / Diagnostics 2.0 verification passed")
