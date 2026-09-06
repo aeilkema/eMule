@@ -27,6 +27,8 @@ def main() -> int:
     library_service = load("LibraryBrowserService.cpp")
     library_ui = load("FileLibraryWnd.cpp")
     transfer_insights = load("EmuleNextTransferInsights.cpp")
+    dashboard = load("EmuleNextDashboardWnd.cpp")
+    reader = load("EmuleNextSchedulerTelemetryReader.cpp")
 
     require(known, "kMaximumKnownUsers = 5000", "Known Users row cap")
     require(known, "kMaximumKnownFilesPerUser = 5000", "Known User file row cap")
@@ -45,6 +47,9 @@ def main() -> int:
 
     require(transfer_insights, "kMaxSourceQualitySamples = 32", "source-quality sample cap")
     require(transfer_insights, "kMaxPartChecksPerSource = 256", "per-source part-check cap")
+    require(dashboard, "DASHBOARD_MAX_FILES = 1000", "Dashboard row-analysis cap")
+    require(dashboard, "m_lastRefreshDurationMs > 250 ? 6000 : 3000", "Dashboard adaptive refresh")
+    require(reader, "std::min<size_t>(100", "scheduler diagnostic query cap")
 
     print("eMule Next UI/data bounds verification passed")
     return 0
