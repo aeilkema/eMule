@@ -102,7 +102,9 @@ def main() -> int:
     if "<LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>" not in release:
         raise SystemExit("Warning cleanup verification: Release LTCG not enabled")
     if "<TreatWarningAsError>true</TreatWarningAsError>" not in release:
-        raise SystemExit("Warning cleanup verification: Release /WX zero-warning contract missing")
+        raise SystemExit("Warning cleanup verification: compiler /WX zero-warning contract missing")
+    if "<TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>" not in release:
+        raise SystemExit("Warning cleanup verification: linker /WX zero-warning contract missing")
 
     print("eMule Next Preview 2 zero-warning verification passed")
     return 0
