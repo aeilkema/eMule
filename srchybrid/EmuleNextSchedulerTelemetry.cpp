@@ -9,6 +9,7 @@
 
 EmuleNextSchedulerEvent::EmuleNextSchedulerEvent()
     : timestamp(static_cast<uint64>(time(NULL)))
+    , fileHashValid(false)
     , mode(ENSM_ANALYSIS_ONLY)
     , action(ENSA_NONE)
     , health(0)
@@ -18,6 +19,13 @@ EmuleNextSchedulerEvent::EmuleNextSchedulerEvent()
     , rarePartIndex(static_cast<uint32>(-1))
     , applied(false)
 {
+    fileHash.fill(0);
+}
+
+CEmuleNextSchedulerTelemetry::AppliedPersistItem::AppliedPersistItem()
+    : fileHashValid(false)
+{
+    fileHash.fill(0);
 }
 
 EmuleNextSchedulerTelemetrySummary::EmuleNextSchedulerTelemetrySummary()
@@ -53,6 +61,20 @@ CEmuleNextSchedulerTelemetry::CEmuleNextSchedulerTelemetry()
 CEmuleNextSchedulerTelemetry::~CEmuleNextSchedulerTelemetry()
 {
     StopPersistence();
+}
+
+bool CEmuleNextSchedulerTelemetry::CopyHash(const unsigned char* source,
+    std::array<unsigned char, 16>& destination)
+{
+    destination.fill(0);
+    if (source == NULL)
+        return false;
+    unsigned char aggregate = 0;
+    for (size_t i = 0; i < destination.size(); ++i) {
+        destination[i] = source[i];
+        aggregate |= source[i];
+    }
+    return aggregate != 0;
 }
 
 void CEmuleNextSchedulerTelemetry::SetCapacity(size_t capacity)
@@ -161,10 +183,14 @@ void CEmuleNextSchedulerTelemetry::QueuePersist(const EmuleNextSchedulerEvent& e
     m_persistCondition.notify_one();
 }
 
-void CEmuleNextSchedulerTelemetry::QueueAppliedPersist(const CString& fileName)
+void CEmuleNextSchedulerTelemetry::QueueAppliedPersist(const unsigned char* fileHash, const CString& fileName)
 {
-    if (fileName.IsEmpty())
+    AppliedPersistItem item;
+    item.fileHashValid = CopyHash(fileHash, item.fileHash);
+    item.fileName = fileName;
+    if (!item.fileHashValid && item.fileName.IsEmpty())
         return;
+
     std::lock_guard<std::mutex> lock(m_persistMutex);
     if (!m_persistThread.joinable() || (!m_persistenceReady && !m_persistenceStarting)) {
         ++m_droppedPersistEvents;
@@ -177,7 +203,7 @@ void CEmuleNextSchedulerTelemetry::QueueAppliedPersist(const CString& fileName)
             m_persistAppliedQueue.pop_front();
         ++m_droppedPersistEvents;
     }
-    m_persistAppliedQueue.push_back(fileName);
+    m_persistAppliedQueue.push_back(item);
     m_persistCondition.notify_one();
 }
 
@@ -202,13 +228,18 @@ void CEmuleNextSchedulerTelemetry::Record(const EmuleNextSchedulerEvent& event)
     QueuePersist(event);
 }
 
-void CEmuleNextSchedulerTelemetry::MarkAppliedIntervention(const CString& fileName)
+void CEmuleNextSchedulerTelemetry::MarkAppliedIntervention(const unsigned char* fileHash, const CString& fileName)
 {
+    std::array<unsigned char, 16> key;
+    const bool keyValid = CopyHash(fileHash, key);
     bool changed = false;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         for (std::deque<EmuleNextSchedulerEvent>::reverse_iterator it = m_events.rbegin(); it != m_events.rend(); ++it) {
-            if (!it->applied && it->fileName.CompareNoCase(fileName) == 0) {
+            const bool sameHash = keyValid && it->fileHashValid && it->fileHash == key;
+            const bool legacyNameFallback = (!keyValid || !it->fileHashValid)
+                && !fileName.IsEmpty() && it->fileName.CompareNoCase(fileName) == 0;
+            if (!it->applied && (sameHash || legacyNameFallback)) {
                 it->applied = true;
                 changed = true;
                 break;
@@ -218,7 +249,7 @@ void CEmuleNextSchedulerTelemetry::MarkAppliedIntervention(const CString& fileNa
             ++m_interventions;
     }
     if (changed)
-        QueueAppliedPersist(fileName);
+        QueueAppliedPersist(fileHash, fileName);
 }
 
 void CEmuleNextSchedulerTelemetry::Snapshot(std::deque<EmuleNextSchedulerEvent>& events) const
@@ -285,13 +316,21 @@ void CEmuleNextSchedulerTelemetry::PersistenceMain()
         sqlite3_busy_timeout(db, 3000);
         const char* schema =
             "CREATE TABLE IF NOT EXISTS scheduler_decisions("
-            "id INTEGER PRIMARY KEY AUTOINCREMENT,ts INTEGER NOT NULL,file_name TEXT NOT NULL,"
+            "id INTEGER PRIMARY KEY AUTOINCREMENT,ts INTEGER NOT NULL,file_name TEXT NOT NULL,file_hash BLOB,"
             "mode INTEGER NOT NULL,action INTEGER NOT NULL,health INTEGER NOT NULL,attention INTEGER NOT NULL,"
             "discovery_budget INTEGER NOT NULL,a4af_score INTEGER NOT NULL,rare_part_index INTEGER,"
-            "applied INTEGER NOT NULL,reason TEXT);"
-            "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_ts ON scheduler_decisions(ts DESC);"
-            "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_file_applied ON scheduler_decisions(file_name,applied,id DESC);";
+            "applied INTEGER NOT NULL,reason TEXT);";
         ready = sqlite3_exec(db, schema, NULL, NULL, NULL) == SQLITE_OK;
+        if (ready) {
+            // Existing preview databases predate file_hash. SQLite has no ADD
+            // COLUMN IF NOT EXISTS, so duplicate-column failure is harmless.
+            sqlite3_exec(db, "ALTER TABLE scheduler_decisions ADD COLUMN file_hash BLOB", NULL, NULL, NULL);
+            const char* indexes =
+                "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_ts ON scheduler_decisions(ts DESC);"
+                "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_file_applied ON scheduler_decisions(file_name,applied,id DESC);"
+                "CREATE INDEX IF NOT EXISTS idx_scheduler_decisions_hash_applied ON scheduler_decisions(file_hash,applied,id DESC);";
+            ready = sqlite3_exec(db, indexes, NULL, NULL, NULL) == SQLITE_OK;
+        }
     }
 
     {
@@ -303,7 +342,7 @@ void CEmuleNextSchedulerTelemetry::PersistenceMain()
     uint32 pruneCounter = 0;
     while (ready) {
         std::deque<EmuleNextSchedulerEvent> batch;
-        std::deque<CString> appliedBatch;
+        std::deque<AppliedPersistItem> appliedBatch;
         {
             std::unique_lock<std::mutex> lock(m_persistMutex);
             m_persistCondition.wait_for(lock, std::chrono::milliseconds(500), [this]() {
@@ -339,8 +378,8 @@ void CEmuleNextSchedulerTelemetry::PersistenceMain()
         bool batchOk = true;
         sqlite3_stmt* insertStmt = NULL;
         const char* insertSql =
-            "INSERT INTO scheduler_decisions(ts,file_name,mode,action,health,attention,discovery_budget,a4af_score,rare_part_index,applied,reason) "
-            "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)";
+            "INSERT INTO scheduler_decisions(ts,file_name,file_hash,mode,action,health,attention,discovery_budget,a4af_score,rare_part_index,applied,reason) "
+            "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)";
         if (!batch.empty() && sqlite3_prepare_v2(db, insertSql, -1, &insertStmt, NULL) != SQLITE_OK)
             batchOk = false;
         if (batchOk && insertStmt != NULL) {
@@ -349,18 +388,22 @@ void CEmuleNextSchedulerTelemetry::PersistenceMain()
                 sqlite3_clear_bindings(insertStmt);
                 sqlite3_bind_int64(insertStmt, 1, static_cast<sqlite3_int64>(it->timestamp));
                 sqlite3_bind_text16(insertStmt, 2, it->fileName.GetString(), -1, SQLITE_TRANSIENT);
-                sqlite3_bind_int(insertStmt, 3, static_cast<int>(it->mode));
-                sqlite3_bind_int(insertStmt, 4, static_cast<int>(it->action));
-                sqlite3_bind_int64(insertStmt, 5, static_cast<sqlite3_int64>(it->health));
-                sqlite3_bind_int64(insertStmt, 6, static_cast<sqlite3_int64>(it->attention));
-                sqlite3_bind_int64(insertStmt, 7, static_cast<sqlite3_int64>(it->discoveryBudget));
-                sqlite3_bind_int64(insertStmt, 8, static_cast<sqlite3_int64>(it->a4afScore));
-                if (it->rarePartIndex == static_cast<uint32>(-1))
-                    sqlite3_bind_null(insertStmt, 9);
+                if (it->fileHashValid)
+                    sqlite3_bind_blob(insertStmt, 3, it->fileHash.data(), 16, SQLITE_TRANSIENT);
                 else
-                    sqlite3_bind_int64(insertStmt, 9, static_cast<sqlite3_int64>(it->rarePartIndex));
-                sqlite3_bind_int(insertStmt, 10, it->applied ? 1 : 0);
-                sqlite3_bind_text16(insertStmt, 11, it->reason.GetString(), -1, SQLITE_TRANSIENT);
+                    sqlite3_bind_null(insertStmt, 3);
+                sqlite3_bind_int(insertStmt, 4, static_cast<int>(it->mode));
+                sqlite3_bind_int(insertStmt, 5, static_cast<int>(it->action));
+                sqlite3_bind_int64(insertStmt, 6, static_cast<sqlite3_int64>(it->health));
+                sqlite3_bind_int64(insertStmt, 7, static_cast<sqlite3_int64>(it->attention));
+                sqlite3_bind_int64(insertStmt, 8, static_cast<sqlite3_int64>(it->discoveryBudget));
+                sqlite3_bind_int64(insertStmt, 9, static_cast<sqlite3_int64>(it->a4afScore));
+                if (it->rarePartIndex == static_cast<uint32>(-1))
+                    sqlite3_bind_null(insertStmt, 10);
+                else
+                    sqlite3_bind_int64(insertStmt, 10, static_cast<sqlite3_int64>(it->rarePartIndex));
+                sqlite3_bind_int(insertStmt, 11, it->applied ? 1 : 0);
+                sqlite3_bind_text16(insertStmt, 12, it->reason.GetString(), -1, SQLITE_TRANSIENT);
                 if (sqlite3_step(insertStmt) != SQLITE_DONE) {
                     batchOk = false;
                     break;
@@ -373,15 +416,21 @@ void CEmuleNextSchedulerTelemetry::PersistenceMain()
         sqlite3_stmt* appliedStmt = NULL;
         const char* appliedSql =
             "UPDATE scheduler_decisions SET applied=1 WHERE id=("
-            "SELECT id FROM scheduler_decisions WHERE file_name=?1 AND applied=0 ORDER BY id DESC LIMIT 1)";
+            "SELECT id FROM scheduler_decisions WHERE applied=0 AND "
+            "((?1 IS NOT NULL AND file_hash=?1) OR (file_hash IS NULL AND file_name=?2)) "
+            "ORDER BY id DESC LIMIT 1)";
         if (batchOk && !appliedBatch.empty()
             && sqlite3_prepare_v2(db, appliedSql, -1, &appliedStmt, NULL) != SQLITE_OK)
             batchOk = false;
         if (batchOk && appliedStmt != NULL) {
-            for (std::deque<CString>::const_iterator it = appliedBatch.begin(); it != appliedBatch.end(); ++it) {
+            for (std::deque<AppliedPersistItem>::const_iterator it = appliedBatch.begin(); it != appliedBatch.end(); ++it) {
                 sqlite3_reset(appliedStmt);
                 sqlite3_clear_bindings(appliedStmt);
-                sqlite3_bind_text16(appliedStmt, 1, it->GetString(), -1, SQLITE_TRANSIENT);
+                if (it->fileHashValid)
+                    sqlite3_bind_blob(appliedStmt, 1, it->fileHash.data(), 16, SQLITE_TRANSIENT);
+                else
+                    sqlite3_bind_null(appliedStmt, 1);
+                sqlite3_bind_text16(appliedStmt, 2, it->fileName.GetString(), -1, SQLITE_TRANSIENT);
                 if (sqlite3_step(appliedStmt) != SQLITE_DONE) {
                     batchOk = false;
                     break;
