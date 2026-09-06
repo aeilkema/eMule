@@ -7,7 +7,8 @@ keeps the same service/API while moving that recurring metadata read off-thread.
 
 The activator is intentionally tolerant of both the original Search2Wnd source
 shape and the newer materialized view shape. Repeated activation must be a
-no-op once the worker contract is present.
+no-op once the worker contract is present. It also normalizes CRLF/LF internally
+while preserving the source file's original newline style on write.
 """
 from __future__ import annotations
 
@@ -19,22 +20,33 @@ CPP = SRC / "Search2Wnd.cpp"
 HEADER = SRC / "Search2Wnd.h"
 
 
-def read_text(path: pathlib.Path) -> tuple[str, str]:
+def read_text(path: pathlib.Path) -> tuple[str, str, str]:
     raw = path.read_bytes()
+    crlf = raw.count(b"\r\n")
+    lf_only = raw.count(b"\n") - crlf
+    newline = "\r\n" if crlf > lf_only else "\n"
     if raw.startswith(b"\xef\xbb\xbf"):
-        return raw.decode("utf-8-sig"), "utf-8-sig"
-    try:
-        return raw.decode("utf-8"), "utf-8"
-    except UnicodeDecodeError:
-        return raw.decode("latin-1"), "latin-1"
+        text = raw.decode("utf-8-sig")
+        encoding = "utf-8-sig"
+    else:
+        try:
+            text = raw.decode("utf-8")
+            encoding = "utf-8"
+        except UnicodeDecodeError:
+            text = raw.decode("latin-1")
+            encoding = "latin-1"
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    return text, encoding, newline
 
 
-def write_text(path: pathlib.Path, text: str, encoding: str) -> None:
+def write_text(path: pathlib.Path, text: str, encoding: str, newline: str) -> None:
+    if newline != "\n":
+        text = text.replace("\n", newline)
     path.write_bytes(text.encode(encoding))
 
 
 def patch_header() -> None:
-    text, encoding = read_text(HEADER)
+    text, encoding, newline = read_text(HEADER)
     changed = False
 
     marker = "afx_msg LRESULT OnSavedSearchesLoaded(WPARAM, LPARAM value);"
@@ -62,12 +74,23 @@ def patch_header() -> None:
         changed = True
 
     if changed:
-        write_text(HEADER, text, encoding)
+        write_text(HEADER, text, encoding, newline)
 
 
 def patch_cpp() -> None:
-    text, encoding = read_text(CPP)
+    text, encoding, newline = read_text(CPP)
     changed = False
+
+    # Already fully materialized: nothing to patch. Keep this fast path before
+    # looking for any legacy insertion anchors.
+    if all(marker in text for marker in (
+        "SavedSearchLoadWorker",
+        "WM_EN_SEARCH2_SAVED_LOADED",
+        "OnSavedSearchesLoaded",
+        "PopulateSavedSearches",
+        "m_savedSearchesLoading",
+    )):
+        return
 
     message = "    const UINT WM_EN_SEARCH2_SAVED_LOADED = WM_APP + 0x571;"
     if message not in text:
@@ -107,9 +130,6 @@ def patch_cpp() -> None:
     }
 '''
     if "struct SavedSearchLoadContext" not in text:
-        # Search2Wnd has existed in two source shapes. Older activators used
-        # SearchResult as their insertion point; the materialized view groups
-        # SearchContext first. Accept either while keeping deterministic output.
         anchors = (
             "    struct SearchContext\n",
             "    struct SearchResult\n",
@@ -224,7 +244,7 @@ void CSearch2Wnd::PopulateSavedSearches(const CString& previous)
         raise SystemExit("Search 2 metadata: ReloadSavedSearches implementation changed unexpectedly")
 
     if changed:
-        write_text(CPP, text, encoding)
+        write_text(CPP, text, encoding, newline)
 
 
 def main() -> int:
