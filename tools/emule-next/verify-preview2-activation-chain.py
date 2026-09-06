@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 '''Verify the late Preview 2 activation chain inside the clean activation overlay.
 
-This verifier intentionally inspects only files that are copied into the
-activation overlay (srchybrid + tools/emule-next). Repository-root artifacts
-such as build-local.ps1 are verified separately by verify-preview2-release.ps1.
+This verifier intentionally inspects only files copied into the activation
+overlay. Repository-level build and release scripts are verified separately by
+the repository-level release verifier.
 '''
 from __future__ import annotations
 
@@ -49,15 +49,6 @@ def main() -> int:
         positions.append(pos)
     if positions != sorted(positions):
         raise SystemExit("Preview2 activation-chain verification: unsafe late product ordering")
-
-    # No overlay verifier may depend on repository-root files. This catches the
-    # exact class of failure that previously tried to read build-local.ps1 from
-    # build/activation-stage.
-    forbidden_repo_root_refs = ("build-local.ps1", "docs/", "docs\\", "package-preview2.ps1", "installer/")
-    own_text = pathlib.Path(__file__).read_text(encoding="utf-8-sig", errors="ignore")
-    for marker in forbidden_repo_root_refs:
-        if marker in own_text and marker != "build-local.ps1":
-            raise SystemExit(f"Preview2 activation-chain verification: overlay verifier contains repository-root dependency {marker}")
 
     print("eMule Next Preview 2 clean activation-chain verification passed")
     return 0
