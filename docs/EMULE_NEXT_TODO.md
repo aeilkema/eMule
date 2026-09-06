@@ -73,9 +73,13 @@ Dit bestand is de operationele werklijst voor eMule Next.
 - [x] Canonical `CEmuleNextTransferInsights` model en Dashboard Intelligence 2.0 gebouwd.
 - [x] Dashboard is via de hoofdsidebar het primaire overzicht.
 - [x] Transfers blijft de autoritatieve werkweergave voor downloads/sources.
+- [~] Dashboard progressive complexity geïmplementeerd: primaire filters `All / Attention / Stalled / No sources / Active` blijven zichtbaar.
+- [~] Primaire Dashboard-acties `Open Transfers / Open Sources / Pause-Resume / Refresh / More...` blijven zichtbaar.
+- [~] Rare/Low health/Intervention/A4AF filters en priority/force/reset acties blijven bereikbaar via `More...` in plaats van permanente knopwand.
+- [~] Dashboard summary verkort naar dagelijkse status (downloads/active/attention/down/uploads/scheduler); refresh-timing en specialistische counters domineren niet meer.
 - [ ] Dashboard met kleine, middelgrote en grote downloadqueue runtime testen.
 - [ ] Controleren dat Dashboard → Transfers en Dashboard → Sources selectie correct focust.
-- [ ] Verdere visuele reductie van geavanceerde Dashboard/Transfers-acties alleen uitvoeren waar functionaliteit bereikbaar blijft; geen power-userfunctionaliteit verwijderen.
+- [ ] `More...` filter- en actiehandlers runtime controleren; power-userfunctionaliteit moet volledig behouden blijven.
 
 ## 5. Search / Library / Known Users UX
 **Requirements:** UI-05, UX-01, SEARCH-01, LIB-01, PEER-03
@@ -119,8 +123,10 @@ Dit bestand is de operationele werklijst voor eMule Next.
 - [x] Clean activation-stage + final-state gates blijven basis.
 - [~] `activate-preview2-ux-completion.py` toegevoegd na visible-main-shell materialization.
 - [~] `activate-preview2-header-status.py` toegevoegd zonder backendlogica te dupliceren.
-- [~] `verify-preview2-ux-completion.py` controleert primaire routes, Settings/Diagnostics-scheiding en verbiedt backendlogica in shell.
-- [~] Preview2 orchestrator voert UX-completion + live-header + UX-gate als late productlaag uit.
+- [~] `activate-preview2-dashboard-ux.py` toegevoegd na bestaande Dashboard materialization; gebruikt alleen bestaande handlers/filters.
+- [~] `verify-preview2-ux-completion.py` controleert primaire routes, live header, Dashboard progressive complexity, Settings/Diagnostics-scheiding en verbiedt backendlogica in shell.
+- [~] Preview2 orchestrator voert UX-completion + Dashboard UX + live-header + UX-gate als late productlaag uit.
+- [~] Release/support privacychecks zijn regelgebonden en vermijden brede multiline wildcard-false-positives.
 - [ ] Nieuwe head lokaal Release x64 bouwen.
 - [ ] Bij buildfout eerst volledige nieuwe Preview2-laag/gates als één foutgroep nalopen vóór nieuwe buildvraag.
 
@@ -173,17 +179,18 @@ Dit bestand is de operationele werklijst voor eMule Next.
 3. [ ] Alle primaire hoofdnav-routes doorlopen.
 4. [ ] Settings → Classic eMule settings bridge testen.
 5. [ ] Live header connection/rates testen.
-6. [ ] Diagnostics self-test PASS.
-7. [ ] Light/Dark/System + DPI 100–200% + resize.
-8. [ ] Preview1 config/database/downloadstate upgrade behouden.
-9. [ ] Disposable corruption/recoverytest.
-10. [ ] Volledige live eD2K/Kad/upload/download/A4AF/shared-files matrix.
-11. [ ] Diagnostics report + support bundle.
-12. [ ] Portable clean-unpack/start.
-13. [ ] MSI install/upgrade/uninstall.
-14. [ ] `finalize-preview2-rc.ps1` en definitieve hashes.
-15. [ ] Alleen daarna status **Preview 2 Release Candidate**.
-16. [ ] `goal-1-5` nooit zonder expliciete toestemming naar `develop` promoveren.
+6. [ ] Dashboard primary/More UX controleren.
+7. [ ] Diagnostics self-test PASS.
+8. [ ] Light/Dark/System + DPI 100–200% + resize.
+9. [ ] Preview1 config/database/downloadstate upgrade behouden.
+10. [ ] Disposable corruption/recoverytest.
+11. [ ] Volledige live eD2K/Kad/upload/download/A4AF/shared-files matrix.
+12. [ ] Diagnostics report + support bundle.
+13. [ ] Portable clean-unpack/start.
+14. [ ] MSI install/upgrade/uninstall.
+15. [ ] `finalize-preview2-rc.ps1` en definitieve hashes.
+16. [ ] Alleen daarna status **Preview 2 Release Candidate**.
+17. [ ] `goal-1-5` nooit zonder expliciete toestemming naar `develop` promoveren.
 
 ---
 
