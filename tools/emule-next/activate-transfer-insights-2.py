@@ -53,27 +53,55 @@ def main() -> int:
         text = text.replace(column_anchor, column_anchor + columns, 1)
         changed = True
 
-    localize_anchor = '''\tCString nextEta(_T("Smart ETA"));\n\thdi.pszText = const_cast<LPTSTR>((LPCTSTR)nextEta);\n\tpHeaderCtrl->SetItem(18, &hdi);\n'''
+    localize_anchor = '''\tCString nextEta(_T("Smart ETA"));
+\thdi.pszText = const_cast<LPTSTR>((LPCTSTR)nextEta);
+\tpHeaderCtrl->SetItem(18, &hdi);
+'''
     if 'pHeaderCtrl->SetItem(22, &hdi);' not in text:
         if localize_anchor not in text:
             raise SystemExit("Transfers Intelligence 2: Localize ETA anchor missing")
-        localize = '''\tCString nextHist(_T("Hist. speed"));\n\thdi.pszText = const_cast<LPTSTR>((LPCTSTR)nextHist);\n\tpHeaderCtrl->SetItem(19, &hdi);\n\tCString nextSourceQuality(_T("Source quality"));\n\thdi.pszText = const_cast<LPTSTR>((LPCTSTR)nextSourceQuality);\n\tpHeaderCtrl->SetItem(20, &hdi);\n\tCString nextSourceProfile(_T("Source profile"));\n\thdi.pszText = const_cast<LPTSTR>((LPCTSTR)nextSourceProfile);\n\tpHeaderCtrl->SetItem(21, &hdi);\n\tCString nextScheduler(_T("Scheduler"));\n\thdi.pszText = const_cast<LPTSTR>((LPCTSTR)nextScheduler);\n\tpHeaderCtrl->SetItem(22, &hdi);\n'''
+        localize = '''\tCString nextHist(_T("Hist. speed"));
+\thdi.pszText = const_cast<LPTSTR>((LPCTSTR)nextHist);
+\tpHeaderCtrl->SetItem(19, &hdi);
+\tCString nextSourceQuality(_T("Source quality"));
+\thdi.pszText = const_cast<LPTSTR>((LPCTSTR)nextSourceQuality);
+\tpHeaderCtrl->SetItem(20, &hdi);
+\tCString nextSourceProfile(_T("Source profile"));
+\thdi.pszText = const_cast<LPTSTR>((LPCTSTR)nextSourceProfile);
+\tpHeaderCtrl->SetItem(21, &hdi);
+\tCString nextScheduler(_T("Scheduler"));
+\thdi.pszText = const_cast<LPTSTR>((LPCTSTR)nextScheduler);
+\tpHeaderCtrl->SetItem(22, &hdi);
+'''
         text = text.replace(localize_anchor, localize_anchor + localize, 1)
         changed = True
 
+    # The precursor must have produced valid C++ before we consume it. Fail with
+    # a precise contract error instead of a vague regex miss.
+    if 'const EmuleNextTransferInsight insight = CEmuleNextTransferInsights::Build' not in text:
+        for forbidden in ('\\tEmuleNextFileSignals', '\\tCString NextFileIntelligenceText', '_T(\\"'):
+            if forbidden in text:
+                raise SystemExit(f"Transfers Intelligence 2: precursor leaked escaped Python text: {forbidden}")
+        for required in ('EmuleNextFileSignals BuildNextFileSignals(', 'CString NextFileIntelligenceText(', 'nColumn >= 16 && nColumn <= 18'):
+            if required not in text:
+                raise SystemExit(f"Transfers Intelligence 2: precursor contract missing {required}")
+
     # Remove the old duplicate file-signal builder. Source-specific intelligence
-    # remains untouched.
-    start = text.find('\tEmuleNextFileSignals BuildNextFileSignals(')
-    if start >= 0:
-        end = text.find('\tCString NextStallText(', start)
-        if end < 0:
-            raise SystemExit("Transfers Intelligence 2: duplicate builder end missing")
-        text = text[:start] + text[end:]
+    # remains untouched. Accept tabs or spaces so formatting changes do not break
+    # the transition contract.
+    builder_pattern = re.compile(
+        r'^[ \t]*EmuleNextFileSignals BuildNextFileSignals\(const CPartFile\* file\)\n'
+        r'^[ \t]*\{.*?^([ \t]*)CString NextStallText\(', re.M | re.S)
+    builder_match = builder_pattern.search(text)
+    if builder_match:
+        indent = builder_match.group(1)
+        text = text[:builder_match.start()] + indent + 'CString NextStallText(' + text[builder_match.end():]
         changed = True
 
     function_pattern = re.compile(
-        r'\tCString NextFileIntelligenceText\(const CPartFile\* file, int column\)\n\t\{.*?\n\t\}\n', re.S)
-    replacement = r'''\tCString NextFileIntelligenceText(const CPartFile* file, int column)
+        r'(?P<indent>^[ \t]*)CString NextFileIntelligenceText\(const CPartFile\* file, int column\)\n'
+        r'(?P=indent)\{.*?^(?P=indent)\}\n', re.M | re.S)
+    replacement = '''\tCString NextFileIntelligenceText(const CPartFile* file, int column)
 \t{
 \t\tif (file == NULL)
 \t\t\treturn CString();
@@ -115,21 +143,40 @@ def main() -> int:
 \t\treturn CString();
 \t}
 '''
-    if function_pattern.search(text):
-        updated = function_pattern.sub(replacement, text, count=1)
-        if updated != text:
-            text = updated
-            changed = True
+    match = function_pattern.search(text)
+    if match:
+        indent = match.group('indent')
+        materialized = replacement.replace('\t', indent, 1) if indent != '\t' else replacement
+        # Use a callable replacement so backslashes/quotes are never interpreted
+        # as regex replacement escapes.
+        text = function_pattern.sub(lambda _: materialized, text, count=1)
+        changed = True
     elif 'const EmuleNextTransferInsight insight = CEmuleNextTransferInsights::Build' not in text:
         raise SystemExit("Transfers Intelligence 2: NextFileIntelligenceText missing")
 
-    old = '''\tCString sItem = (nColumn >= 16 && nColumn <= 18)\n\t\t? NextFileIntelligenceText(pPartFile, nColumn)\n\t\t: GetFileItemDisplayText(pPartFile, nColumn);'''
-    new = '''\tCString sItem = (nColumn >= 16 && nColumn <= 22)\n\t\t? NextFileIntelligenceText(pPartFile, nColumn)\n\t\t: GetFileItemDisplayText(pPartFile, nColumn);'''
+    old = '''\tCString sItem = (nColumn >= 16 && nColumn <= 18)
+\t\t? NextFileIntelligenceText(pPartFile, nColumn)
+\t\t: GetFileItemDisplayText(pPartFile, nColumn);'''
+    new = '''\tCString sItem = (nColumn >= 16 && nColumn <= 22)
+\t\t? NextFileIntelligenceText(pPartFile, nColumn)
+\t\t: GetFileItemDisplayText(pPartFile, nColumn);'''
     if old in text:
         text = text.replace(old, new, 1)
         changed = True
     elif new not in text:
         raise SystemExit("Transfers Intelligence 2: DrawFileItem range missing")
+
+    for forbidden in ('\\tCString NextFileIntelligenceText', '_T(\\"'):
+        if forbidden in text:
+            raise SystemExit(f"Transfers Intelligence 2: escaped Python text remains in C++: {forbidden}")
+    for required in (
+        'const EmuleNextTransferInsight insight = CEmuleNextTransferInsights::Build(file, historical);',
+        'InsertColumn(22,\t_T("Scheduler")',
+        'pHeaderCtrl->SetItem(22, &hdi);',
+        'nColumn >= 16 && nColumn <= 22',
+    ):
+        if required not in text:
+            raise SystemExit(f"Transfers Intelligence 2: final contract missing {required}")
 
     if changed:
         save(text, newline)
