@@ -9,6 +9,7 @@
 #include <deque>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 struct EmuleNextSchedulerEvent
 {
@@ -27,6 +28,20 @@ struct EmuleNextSchedulerEvent
     CString reason;
 
     EmuleNextSchedulerEvent();
+};
+
+struct EmuleNextSchedulerOutcomeRecord
+{
+    uint64 timestamp;
+    std::array<unsigned char, 16> fileHash;
+    bool fileHashValid;
+    CString fileName;
+    EmuleNextSchedulingAction action;
+    uint32 windowSeconds;
+    double bytesPerSecond;
+    uint32 usableSources;
+
+    EmuleNextSchedulerOutcomeRecord();
 };
 
 struct EmuleNextSchedulerTelemetrySummary
@@ -57,6 +72,11 @@ public:
     size_t PendingPersistenceEvents() const;
     uint64 DroppedPersistenceEvents() const;
     void Record(const EmuleNextSchedulerEvent& event);
+    void RecordOutcomeBaseline(const unsigned char* fileHash, const CString& fileName,
+        EmuleNextSchedulingAction action, uint64 timestamp, double bytesPerSecond, uint32 usableSources);
+    void RecordOutcomeSample(const unsigned char* fileHash, const CString& fileName,
+        EmuleNextSchedulingAction action, uint64 timestamp, uint32 windowSeconds,
+        double bytesPerSecond, uint32 usableSources);
     void MarkAppliedIntervention(const unsigned char* fileHash, const CString& fileName);
     void Snapshot(std::deque<EmuleNextSchedulerEvent>& events) const;
     void Summary(EmuleNextSchedulerTelemetrySummary& summary) const;
@@ -75,6 +95,7 @@ private:
 
     static bool CopyHash(const unsigned char* source, std::array<unsigned char, 16>& destination);
     void QueuePersist(const EmuleNextSchedulerEvent& event);
+    void QueueOutcomePersist(const EmuleNextSchedulerOutcomeRecord& outcome);
     void QueueAppliedPersist(const unsigned char* fileHash, const CString& fileName);
     void StopPersistence();
     void PersistenceMain();
@@ -92,6 +113,7 @@ private:
     mutable std::mutex m_persistMutex;
     std::condition_variable m_persistCondition;
     std::deque<EmuleNextSchedulerEvent> m_persistQueue;
+    std::deque<EmuleNextSchedulerOutcomeRecord> m_persistOutcomeQueue;
     std::deque<AppliedPersistItem> m_persistAppliedQueue;
     std::thread m_persistThread;
     CStringW m_databasePath;
