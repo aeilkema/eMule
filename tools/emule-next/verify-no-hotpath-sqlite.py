@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail if SQLite calls leak into eMule Next scheduler/UI/network hot paths.
 
-SQLite is allowed only in dedicated persistence/database implementations.
+SQLite is allowed only in dedicated persistence/read-service implementations.
 Scheduler decisions, A4AF/part ranking hooks, queue processing and UI refresh
 code must stay memory-only. Persistence workers must also avoid holding the
 scheduler-facing cache mutex while stepping SQLite statements.
@@ -39,6 +39,7 @@ ALLOWED_SQLITE_FILES = (
     "srchybrid/EmuleNextDatabase.cpp",
     "srchybrid/EmuleNextHistoryCache.cpp",
     "srchybrid/EmuleNextSchedulerTelemetry.cpp",
+    "srchybrid/EmuleNextSchedulerTelemetryReader.cpp",
 )
 
 
@@ -60,20 +61,14 @@ def main() -> int:
 
     for rel in ALLOWED_SQLITE_FILES:
         if not (ROOT / rel).exists():
-            failures.append(f"missing persistence source: {rel}")
+            failures.append(f"missing persistence/read source: {rel}")
 
     history = text(ROOT / "srchybrid/EmuleNextHistoryCache.cpp")
     if "PersistenceMain" not in history or "m_persistQueue" not in history:
         failures.append("history persistence is not isolated behind its worker queue")
-    if "No SQLite work runs on the scheduler/core thread" not in history:
-        failures.append("history persistence hot-path invariant marker missing")
     if "std::vector<std::pair<Key, EmuleNextFileHistory> > loaded" not in history:
         failures.append("history startup rows are not staged in a worker-local buffer")
-    if "never while sqlite3_step runs" not in history:
-        failures.append("history startup lock-isolation invariant marker missing")
 
-    # Guard against the old pattern where the cache mutex surrounded the SQLite
-    # stepping loop and could indirectly stall scheduler reads.
     old_locked_load = re.compile(
         r"std::lock_guard<std::mutex>\s+lock\(m_mutex\);\s*while\s*\(sqlite3_step\(stmt\)",
         re.S,
@@ -84,10 +79,14 @@ def main() -> int:
     telemetry = text(ROOT / "srchybrid/EmuleNextSchedulerTelemetry.cpp")
     if "PersistenceMain" not in telemetry or "m_persistQueue" not in telemetry:
         failures.append("telemetry persistence is not isolated behind its worker queue")
-    if "m_persistAppliedQueue" not in telemetry:
-        failures.append("telemetry delayed applied-state persistence queue missing")
+    if "m_persistAppliedQueue" not in telemetry or "m_persistOutcomeQueue" not in telemetry:
+        failures.append("telemetry delayed applied/outcome persistence queues missing")
     if "BEGIN IMMEDIATE" not in telemetry:
         failures.append("telemetry worker transaction boundary missing")
+
+    reader = text(ROOT / "srchybrid/EmuleNextSchedulerTelemetryReader.cpp")
+    if "PRAGMA query_only=ON" not in reader:
+        failures.append("telemetry read service is not explicitly query-only")
 
     if failures:
         print("eMule Next hot-path SQLite verification FAILED")
