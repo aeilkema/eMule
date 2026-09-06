@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="eMule Next Preview 2"
+      Manufacturer="eMule Next contributors"
+      Version="0.2.0"
+      UpgradeCode="E5A187BD-1333-4A67-ADD4-148C05DDCCC9"
+      Scope="perMachine"
+      Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of eMule Next is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="eMule Next" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="APPLICATIONPROGRAMSFOLDER" Name="eMule Next" />
+    </StandardDirectory>
+    <StandardDirectory Id="DesktopFolder" />
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="MainExecutable" Guid="*" Bitness="always64">
+        <File Id="MainExe" Source="$(var.PreviewExe)" Name="eMule-Next.exe" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="APPLICATIONPROGRAMSFOLDER">
+      <Component Id="StartMenuShortcut" Guid="*" Bitness="always64">
+        <Shortcut Id="StartMenuShortcutLink"
+                  Name="eMule Next Preview 2"
+                  Description="eMule Next Preview 2"
+                  Target="[INSTALLFOLDER]eMule-Next.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKLM"
+                       Key="Software\eMule Next\Preview2"
+                       Name="StartMenuShortcut"
+                       Type="integer"
+                       Value="1"
+                       KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+
+    <!--PREVIEW2_DESKTOP_COMPONENT-->
+
+    <Feature Id="MainFeature" Title="eMule Next Preview 2" Level="1">
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <!--PREVIEW2_DESKTOP_FEATURE-->
+    </Feature>
+  </Package>
+</Wix>
