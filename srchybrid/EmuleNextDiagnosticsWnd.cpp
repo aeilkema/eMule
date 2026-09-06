@@ -16,75 +16,35 @@ namespace
     const UINT WM_EN_DIAG_RESULT = WM_APP + 0x5D8;
     enum MaintenanceAction { ENMA_REFRESH = 0, ENMA_FULL_CHECK, ENMA_BACKUP, ENMA_RESTORE, ENMA_PRUNE, ENMA_CHECKPOINT };
 
-    struct MaintenanceContext {
-        HWND target; int action; CStringW path;
-        MaintenanceContext() : target(NULL), action(ENMA_REFRESH) {}
-    };
-    struct MaintenanceResult {
-        bool ok; int action; CStringW message; EmuleNextDatabaseDiagnostics snapshot;
-        MaintenanceResult() : ok(false), action(ENMA_REFRESH) {}
-    };
+    struct MaintenanceContext { HWND target; int action; CStringW path; MaintenanceContext() : target(NULL), action(ENMA_REFRESH) {} };
+    struct MaintenanceResult { bool ok; int action; CStringW message; EmuleNextDatabaseDiagnostics snapshot; MaintenanceResult() : ok(false), action(ENMA_REFRESH) {} };
 
     UINT AFX_CDECL MaintenanceWorker(LPVOID value)
     {
         std::unique_ptr<MaintenanceContext> context(static_cast<MaintenanceContext*>(value));
-        std::unique_ptr<MaintenanceResult> result(new MaintenanceResult);
-        result->action = context->action;
+        std::unique_ptr<MaintenanceResult> result(new MaintenanceResult); result->action = context->action;
         switch (context->action) {
-        case ENMA_REFRESH:
-            result->ok = theEmuleNext.LoadDatabaseDiagnostics(result->snapshot);
-            result->message = result->ok ? L"Diagnostics refreshed." : L"Database diagnostics unavailable.";
-            break;
-        case ENMA_FULL_CHECK:
-            result->ok = theEmuleNext.RunDatabaseIntegrityCheck(true, result->message);
-            theEmuleNext.LoadDatabaseDiagnostics(result->snapshot); break;
-        case ENMA_BACKUP: {
-            CStringW backupPath;
-            result->ok = theEmuleNext.CreateDatabaseBackup(L"manual", backupPath, result->message);
-            theEmuleNext.LoadDatabaseDiagnostics(result->snapshot); break;
+        case ENMA_REFRESH: result->ok = theEmuleNext.LoadDatabaseDiagnostics(result->snapshot); result->message = result->ok ? L"Diagnostics refreshed." : L"Database diagnostics unavailable."; break;
+        case ENMA_FULL_CHECK: result->ok = theEmuleNext.RunDatabaseIntegrityCheck(true, result->message); theEmuleNext.LoadDatabaseDiagnostics(result->snapshot); break;
+        case ENMA_BACKUP: { CStringW backupPath; result->ok = theEmuleNext.CreateDatabaseBackup(L"manual", backupPath, result->message); theEmuleNext.LoadDatabaseDiagnostics(result->snapshot); break; }
+        case ENMA_RESTORE: result->ok = theEmuleNext.RestoreDatabaseBackup(context->path, result->message); theEmuleNext.LoadDatabaseDiagnostics(result->snapshot); break;
+        case ENMA_PRUNE: { uint64 removed = 0; result->ok = theEmuleNext.PruneDatabaseTelemetry(removed, result->message); theEmuleNext.LoadDatabaseDiagnostics(result->snapshot); break; }
+        case ENMA_CHECKPOINT: result->ok = theEmuleNext.CheckpointDatabase(result->message); theEmuleNext.LoadDatabaseDiagnostics(result->snapshot); break;
         }
-        case ENMA_RESTORE:
-            result->ok = theEmuleNext.RestoreDatabaseBackup(context->path, result->message);
-            theEmuleNext.LoadDatabaseDiagnostics(result->snapshot); break;
-        case ENMA_PRUNE: {
-            uint64 removed = 0;
-            result->ok = theEmuleNext.PruneDatabaseTelemetry(removed, result->message);
-            theEmuleNext.LoadDatabaseDiagnostics(result->snapshot); break;
-        }
-        case ENMA_CHECKPOINT:
-            result->ok = theEmuleNext.CheckpointDatabase(result->message);
-            theEmuleNext.LoadDatabaseDiagnostics(result->snapshot); break;
-        }
-        if (::IsWindow(context->target) && ::PostMessage(context->target, WM_EN_DIAG_RESULT, 0, reinterpret_cast<LPARAM>(result.get())))
-            result.release();
+        if (::IsWindow(context->target) && ::PostMessage(context->target, WM_EN_DIAG_RESULT, 0, reinterpret_cast<LPARAM>(result.get()))) result.release();
         return 0;
     }
 
-    CString SizeText(uint64 bytes)
-    {
-        CString value;
-        if (bytes >= 1024ui64 * 1024ui64) value.Format(_T("%.1f MB"), static_cast<double>(bytes) / (1024.0 * 1024.0));
-        else if (bytes >= 1024ui64) value.Format(_T("%.1f KB"), static_cast<double>(bytes) / 1024.0);
-        else value.Format(_T("%I64u B"), bytes);
-        return value;
-    }
-    CString TimeText(uint64 timestamp)
-    {
-        if (timestamp == 0) return _T("--");
-        CTime value(static_cast<time_t>(timestamp)); return value.Format(_T("%Y-%m-%d %H:%M"));
-    }
+    CString SizeText(uint64 bytes) { CString value; if (bytes >= 1024ui64 * 1024ui64) value.Format(_T("%.1f MB"), static_cast<double>(bytes) / (1024.0 * 1024.0)); else if (bytes >= 1024ui64) value.Format(_T("%.1f KB"), static_cast<double>(bytes) / 1024.0); else value.Format(_T("%I64u B"), bytes); return value; }
+    CString TimeText(uint64 timestamp) { if (timestamp == 0) return _T("--"); CTime value(static_cast<time_t>(timestamp)); return value.Format(_T("%Y-%m-%d %H:%M")); }
 }
 
 BEGIN_MESSAGE_MAP(CEmuleNextDiagnosticsWnd, CWnd)
     ON_WM_CREATE() ON_WM_SIZE() ON_WM_ERASEBKGND() ON_WM_CTLCOLOR()
-    ON_BN_CLICKED(IDC_EN_DIAG_REFRESH, OnRefreshClicked)
-    ON_BN_CLICKED(IDC_EN_DIAG_CHECK, OnCheckClicked)
-    ON_BN_CLICKED(IDC_EN_DIAG_BACKUP, OnBackupClicked)
-    ON_BN_CLICKED(IDC_EN_DIAG_RESTORE, OnRestoreClicked)
-    ON_BN_CLICKED(IDC_EN_DIAG_PRUNE, OnPruneClicked)
-    ON_BN_CLICKED(IDC_EN_DIAG_CHECKPOINT, OnCheckpointClicked)
-    ON_BN_CLICKED(IDC_EN_DIAG_OPEN, OnOpenBackupsClicked)
-    ON_MESSAGE(WM_EN_DIAG_RESULT, OnMaintenanceResult)
+    ON_BN_CLICKED(IDC_EN_DIAG_REFRESH, OnRefreshClicked) ON_BN_CLICKED(IDC_EN_DIAG_CHECK, OnCheckClicked)
+    ON_BN_CLICKED(IDC_EN_DIAG_BACKUP, OnBackupClicked) ON_BN_CLICKED(IDC_EN_DIAG_RESTORE, OnRestoreClicked)
+    ON_BN_CLICKED(IDC_EN_DIAG_PRUNE, OnPruneClicked) ON_BN_CLICKED(IDC_EN_DIAG_CHECKPOINT, OnCheckpointClicked)
+    ON_BN_CLICKED(IDC_EN_DIAG_OPEN, OnOpenBackupsClicked) ON_MESSAGE(WM_EN_DIAG_RESULT, OnMaintenanceResult)
 END_MESSAGE_MAP()
 
 CEmuleNextDiagnosticsWnd::CEmuleNextDiagnosticsWnd() : m_busy(false) {}
@@ -132,9 +92,9 @@ void CEmuleNextDiagnosticsWnd::StartAction(int action, const CStringW& path)
 
 void CEmuleNextDiagnosticsWnd::ApplySnapshot(const EmuleNextDatabaseDiagnostics& s)
 {
-    m_snapshot = s; CString health; health.Format(_T("Status: %s%s"), static_cast<LPCTSTR>(CString(s.status)), s.recoveryRequired ? _T(" — manual recovery required") : _T("")); m_health.SetWindowText(health);
+    m_snapshot = s; CString health; health.Format(_T("Status: %s%s"), static_cast<LPCTSTR>(CString(s.status)), s.recoveryRequired ? _T(" - manual recovery required") : _T("")); m_health.SetWindowText(health);
     CString details;
-    details.Format(_T("Database: %s\r\nSchema: v%d   DB: %s   WAL: %s\r\nBackups: %u   latest: %s\r\nRows — peers %I64u, files %I64u, library %I64u, transfers %I64u, scheduler decisions %I64u, outcomes %I64u\r\nWriter queue — queued %I64u, peak %I64u, processed %I64u, dropped %I64u, errors %I64u\r\nLast integrity check: %s   result: %s\r\nBackup folder: %s"),
+    details.Format(_T("Database: %s\r\nSchema: v%d   DB: %s   WAL: %s\r\nBackups: %u   latest: %s\r\nRows - peers %I64u, files %I64u, library %I64u, transfers %I64u, scheduler decisions %I64u, outcomes %I64u\r\nWriter queue - queued %I64u, peak %I64u, processed %I64u, dropped %I64u, errors %I64u\r\nLast integrity check: %s   result: %s\r\nBackup folder: %s"),
         static_cast<LPCTSTR>(CString(s.databasePath)), s.schemaVersion, static_cast<LPCTSTR>(SizeText(s.databaseBytes)), static_cast<LPCTSTR>(SizeText(s.walBytes)), s.backupCount, static_cast<LPCTSTR>(TimeText(s.lastBackupAt)),
         s.peerCount, s.fileCount, s.libraryCount, s.transferCount, s.schedulerDecisionCount, s.schedulerOutcomeCount,
         s.queue.queued, s.queue.peakQueued, s.queue.processed, s.queue.dropped, s.queue.errors,
