@@ -11,11 +11,11 @@ Dit bestand is de operationele werklijst voor eMule Next.
 ## Huidige bewezen basis
 
 - Werkbranch: `goal-1-5`
-- Laatst door gebruiker lokaal succesvol gebouwde head: `3a290ccc0f1c8c0831209d29bfac5aef88dc35f5`
-- Release x64 build op die head: **geslaagd**, inclusief geïsoleerde activation-stage en verifier-keten.
+- Laatst door gebruiker lokaal succesvol gebouwde head: `4294bd9983c3da0286e4e1736b61032fedf1621d`
+- Release x64 build op die head: **geslaagd**, inclusief volledige Preview 2 activation/final-state gate.
+- Runtimebevinding op `4294bd99…`: executable start en werkt, maar de zichtbare hoofdinterface bleef vrijwel de klassieke eMule-shell. Dit geldt als een **UI-acceptatiefout**, niet als buildfout.
 - Performance / Stress / Protocol Regression 2.0: **build bevestigd; daadwerkelijke Diagnostics-self-test en netwerk-runtime matrix blijven open**.
 - Database / Recovery / Diagnostics 2.0: **build bevestigd**.
-- UI / Navigation Modernization 2.0: **build bevestigd**.
 - Search 2.0, Library 2.0 en Known Users 2.0: **implementatie + lokale builds bevestigd; runtimecases blijven open**.
 - Smart Scheduler default: **Analysis only**.
 - Legacy eD2K/Kad/search/download/upload-protocolcode blijft autoritatief.
@@ -33,14 +33,16 @@ Dit bestand is de operationele werklijst voor eMule Next.
 ## 1. Preview 2 UI-architectuur
 **Requirements:** UI-01, UI-02, UI-03, UI-04, SESSION-01
 
-- [~] `eMule Next 0.2.0 Preview 2` als nieuwe productidentiteit materialiseren.
-- [~] Gedeelde `CEmuleNextModernUi` toolkit toegevoegd voor DPI, fonts, surfaces, list styling en cards.
-- [~] Segoe UI Variable gebruiken indien beschikbaar; Segoe UI fallback zonder fonts mee te leveren.
-- [~] Permanente Preview 2 workspace-sidebar toegevoegd voor Search / Library / Known Users / Settings / Diagnostics binnen de bestaande legacy Search-host.
-- [~] Legacy eD2K/Kad Search-tabrouter blijft autoritatief; Preview 2 verandert geen protocol-searchengine.
-- [~] Search, Library, Known Users, Dashboard en Transfers gebruiken dezelfde moderne list/header theming.
-- [~] Known Users heeft geen aparte Dark-modeknop meer; appearance hoort centraal in Settings.
-- [ ] Preview 2 Release x64 lokaal bouwen en compilatie bevestigen.
+- [x] `eMule Next 0.2.0 Preview 2` als productidentiteit materialiseren en lokaal bouwen.
+- [x] Gedeelde `CEmuleNextModernUi` toolkit toegevoegd voor DPI, fonts, surfaces, list styling en cards.
+- [x] Segoe UI Variable gebruiken indien beschikbaar; Segoe UI fallback zonder fonts mee te leveren.
+- [x] Permanente Preview 2 workspace-sidebar toegevoegd voor Search / Library / Known Users / Settings / Diagnostics binnen de bestaande Search-host.
+- [x] Legacy eD2K/Kad Search-tabrouter blijft autoritatief; Preview 2 verandert geen protocol-searchengine.
+- [x] Search, Library, Known Users, Dashboard en Transfers gebruiken dezelfde moderne list/header theming.
+- [x] Known Users heeft geen aparte Dark-modeknop meer; appearance hoort centraal in Settings.
+- [x] Preview 2 Release x64 compile bevestigd op `4294bd9983c3da0286e4e1736b61032fedf1621d`.
+- [~] **Zichtbare moderne hoofd-shell** toegevoegd als late Preview2-laag: owner-drawn hoofdsidebar, Preview2-header, connectactie en nieuwe contentgeometrie; klassieke toolbar blijft technisch aanwezig maar wordt visueel niet meer primair. Nieuwe lokale build/runtimecheck open.
+- [ ] Bij startup moet de nieuwe hoofdsidebar direct zichtbaar zijn; dit is de eerstvolgende UI-acceptatiecheck.
 - [ ] 100/125/150/175/200% DPI praktijktest.
 - [ ] Resize/minimum-window praktijktest.
 - [ ] Light/Dark/System praktijktest over alle Preview 2 workspaces.
@@ -48,62 +50,63 @@ Dit bestand is de operationele werklijst voor eMule Next.
 ## 2. Settings herstructureren
 **Requirements:** UI-01, UI-03, INTEL-01, PEER-02
 
-- [~] Settings opgesplitst in `Appearance`, `Peer knowledge`, `Intelligence`, `Advanced`.
-- [~] Appearance bevat alleen theme en zichtbare Smart ETA/Health-presentatie.
-- [~] Peer knowledge bevat automatische shared-file knowledge + eenvoudige bounded concurrencykeuze.
-- [~] Intelligence bevat Analysis / Assist / Automatic, profile en capability toggles.
-- [~] Advanced toont scheduler tuning alleen na expliciete `Use custom scheduler tuning` keuze.
-- [~] `Analysis only` blijft de aanbevolen/default veilige modus.
-- [~] History cache en scheduler telemetry zijn geen normale gebruikersknoppen meer.
-- [~] History/telemetry blijven intern bounded: history 4096 files, telemetry 256 events als productdefaults.
-- [~] Runtime schedulerstatus, DB-maintenance en stressacties zijn uit Settings verwijderd en horen in Diagnostics.
+- [x] Settings opgesplitst in `Appearance`, `Peer knowledge`, `Intelligence`, `Advanced` en compile-bewezen.
+- [x] Appearance bevat alleen theme en zichtbare Smart ETA/Health-presentatie.
+- [x] Peer knowledge bevat automatische shared-file knowledge + eenvoudige bounded concurrencykeuze.
+- [x] Intelligence bevat Analysis / Assist / Automatic, profile en capability toggles.
+- [x] Advanced toont scheduler tuning alleen na expliciete `Use custom scheduler tuning` keuze.
+- [x] `Analysis only` blijft de aanbevolen/default veilige modus.
+- [x] History cache en scheduler telemetry zijn geen normale gebruikersknoppen meer.
+- [x] History/telemetry blijven intern bounded: history 4096 files, telemetry 256 events als productdefaults.
+- [x] Runtime schedulerstatus, DB-maintenance en stressacties zijn uit Settings verwijderd en horen in Diagnostics.
+- [ ] Next-specifieke settings waar mogelijk verder integreren in de normale hoofd-Settings/Preferences-ervaring; geen tweede verborgen instellingenwereld als eindproduct.
 - [ ] Runtime controleren dat bestaande Preview 1 profielwaarden correct worden ingelezen en opgeslagen.
 
 ## 3. Diagnostics / runtime validation dashboard
 **Requirements:** DATA-01, PERF-01, PERF-02, TEST-01, SUPPORT-01
 
-- [~] Diagnostics omgebouwd naar cards voor Database, Writer queue, Scheduler en Performance.
-- [~] Bestaande background acties behouden: integrity, backup, restore, prune, checkpoint en stress self-test.
-- [~] Stress self-test blijft bounded: 10.000 ClientIndex, 5.000 DownloadIndex en 10.000 tijdelijke async writer-events.
-- [~] Runtime-testmatrix geïntegreerd in Diagnostics.
-- [~] Teststatus persistent: Not tested / PASS / FAIL; reset ondersteund.
-- [~] Runtimecases omvatten eD2K, Kad, upload, View Shared Files, pause/restart, Scheduler, A4AF, rare-parts, hashing/recovery en DPI/UI.
-- [~] Diagnostics rapport export toegevoegd met productversie, build-head, DB/writer/schedulerstatus, stressresultaat en runtime-teststatus.
+- [x] Diagnostics omgebouwd naar cards voor Database, Writer queue, Scheduler en Performance en compile-bewezen.
+- [x] Bestaande background acties behouden: integrity, backup, restore, prune, checkpoint en stress self-test.
+- [x] Stress self-test blijft bounded: 10.000 ClientIndex, 5.000 DownloadIndex en 10.000 tijdelijke async writer-events.
+- [x] Runtime-testmatrix geïntegreerd in Diagnostics.
+- [x] Teststatus persistent: Not tested / PASS / FAIL; reset ondersteund.
+- [x] Diagnostics rapport export toegevoegd met productversie, build-head, DB/writer/schedulerstatus, stressresultaat en runtime-teststatus.
 - [ ] Diagnostics self-test daadwerkelijk uitvoeren op de lokaal gebouwde Preview 2 executable.
 - [ ] Exportbestand praktisch controleren.
 
 ## 4. Preview 2 build/release-output
 **Requirements:** CORE-01, RELEASE-01, CI-01
 
-- [~] `build-local.ps1` produceert `artifacts/eMule-Next-0.2.0-Preview2-x64.exe`.
-- [~] `eMule-Next-x64.exe` blijft latest alias.
-- [~] Preview 2 build identity wordt apart van protocolversie gegenereerd.
-- [~] Preview 2 final-state gate controleert de uiteindelijke materialized UI/productcode pas na de oude bewezen gates.
-- [~] Release-layout verifier `verify-preview2-release.ps1` toegevoegd.
-- [ ] Nieuwe Preview 2 head lokaal Release x64 bouwen.
-- [ ] SHA-256 van de bewezen executable vastleggen.
+- [x] `build-local.ps1` produceert `artifacts/eMule-Next-0.2.0-Preview2-x64.exe`.
+- [x] `eMule-Next-x64.exe` blijft latest alias.
+- [x] Preview 2 build identity wordt apart van protocolversie gegenereerd.
+- [x] Preview 2 final-state gate controleert de uiteindelijke materialized UI/productcode pas na de oude bewezen gates.
+- [x] Release-layout verifier `verify-preview2-release.ps1` toegevoegd.
+- [x] Preview 2 Release x64 build bevestigd op `4294bd9983c3da0286e4e1736b61032fedf1621d`.
+- [ ] Nieuwe zichtbare-main-shell head lokaal Release x64 bouwen.
+- [ ] SHA-256 van de uiteindelijke release-candidate executable vastleggen.
 
 ## 5. Portable Preview 2
 **Requirements:** RELEASE-02, SESSION-01
 
-- [~] `package-preview2.ps1` toegevoegd.
-- [~] Output: `eMule-Next-0.2.0-Preview2-x64-portable.zip` + SHA-256 manifest.
-- [~] Portable package bevat geen user config, intelligence DB, peer history of `.part/.part.met` data.
-- [~] Release notes en runtime-testmatrix worden als documentatie meegenomen.
-- [ ] Portable ZIP daadwerkelijk genereren na groene Preview 2 build.
+- [x] `package-preview2.ps1` toegevoegd.
+- [x] Output: `eMule-Next-0.2.0-Preview2-x64-portable.zip` + SHA-256 manifest.
+- [x] Portable package bevat geen user config, intelligence DB, peer history of `.part/.part.met` data.
+- [x] Release notes en runtime-testmatrix worden als documentatie meegenomen.
+- [ ] Portable ZIP daadwerkelijk genereren na definitief groene Preview 2 UI-build.
 - [ ] Clean-unpack/start praktijktest uitvoeren.
 - [ ] Bestaande data/config-locatie bij portable gebruik praktisch bevestigen.
 
 ## 6. MSI installer
 **Requirements:** RELEASE-03, SESSION-01
 
-- [~] WiX MSI-definitie toegevoegd in `installer/preview2/Product.wxs`.
-- [~] x64 per-machine installatie naar Program Files.
-- [~] Start Menu shortcut standaard.
-- [~] Desktop shortcut als expliciete buildvariant (`-DesktopShortcut`).
-- [~] `MajorUpgrade` met stabiele UpgradeCode.
-- [~] MSI bezit bewust geen AppData/config/intelligence/downloadstate directories.
-- [~] `build-preview2-installer.ps1` toegevoegd; vereist lokale WiX CLI.
+- [x] WiX MSI-definitie toegevoegd in `installer/preview2/Product.wxs`.
+- [x] x64 per-machine installatie naar Program Files.
+- [x] Start Menu shortcut standaard.
+- [x] Desktop shortcut als expliciete buildvariant (`-DesktopShortcut`).
+- [x] `MajorUpgrade` met stabiele UpgradeCode.
+- [x] MSI bezit bewust geen AppData/config/intelligence/downloadstate directories.
+- [x] `build-preview2-installer.ps1` toegevoegd; vereist lokale WiX CLI.
 - [ ] MSI daadwerkelijk bouwen met geïnstalleerde WiX Toolset.
 - [ ] Install/start/uninstall praktijktest.
 - [ ] Upgrade Preview 1 -> Preview 2 praktijktest.
@@ -170,10 +173,12 @@ Dit bestand is de operationele werklijst voor eMule Next.
 
 ---
 
-# P2 — na groene Preview 2 build
+# P2 — na groene zichtbare Preview 2 shell
 
 ## Runtime release-candidate validatie
 
+- [ ] Start Preview 2 en bevestig dat de moderne hoofdsidebar/header direct bij startup zichtbaar zijn.
+- [ ] Controleer Settings, Diagnostics, Dashboard en Search vanuit de nieuwe shell.
 - [ ] Start Preview 2 met bestaande Preview 1 config/database/downloads.
 - [ ] Controleer schema/backups/recovery status in Diagnostics.
 - [ ] Voer stress self-test uit.
@@ -189,7 +194,7 @@ Dit bestand is de operationele werklijst voor eMule Next.
 # Beslisregels voor volgende `/goal`-rondes
 
 1. Eerst deze TODO en het projectplan lezen.
-2. Build-success is geen runtime/protocol-success.
+2. Build-success is geen runtime/protocol-success; een visueel niet-herkenbare UI telt ook niet als UI-success.
 3. Grote tranches samenhangend uitvoeren vóór een nieuwe lokale build.
 4. Geen backend-only checkbox als DONE wanneer de gebruiker de functie nog niet kan gebruiken waar UI vereist is.
 5. Geen nieuwe SQL in scheduler-, network- of GUI-hotpaths.
