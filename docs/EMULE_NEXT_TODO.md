@@ -41,7 +41,6 @@ Dit bestand is de operationele werklijst voor eMule Next.
 - [~] Diagnostics naar primaire hoofdsidebar promoveren.
 - [~] Search-host krijgt één smalle publieke router voor permanente Next-workspaces; legacy handmatige Search/View Shared Files tabs blijven autoritatief.
 - [~] Interne Next-sidebar wordt bij directe hoofdnav-routes verborgen; permanente workspace krijgt volledige contentbreedte.
-- [~] Legacy Search-route herstelt de echte Search-selector/tabs en maakt geen tweede netwerksearchengine.
 - [~] Hoofdnav bewaart alleen gewone werkruimtes voor startup; Settings/Diagnostics worden niet automatisch als startupscherm vastgezet.
 - [ ] Nieuwe UX-completion head lokaal Release x64 bouwen.
 - [ ] Runtime hoofdnav testen: Dashboard / Transfers / Search / Library / Shared Files / Known Users / Messages / Servers / Kad / Statistics / Settings / Diagnostics / IRC.
@@ -84,11 +83,13 @@ Dit bestand is de operationele werklijst voor eMule Next.
 ## 5. Search / Library / Known Users UX
 **Requirements:** UI-05, UX-01, SEARCH-01, LIB-01, PEER-03
 
+- [~] Hoofdsidebar `Search` opent Search 2 als moderne standaardworkspace.
+- [~] Search 2 krijgt `Network search...` naast de zoekbalk; deze route opent de bestaande legacy eD2K/Kad Search-parameters/resulttabs en bouwt geen tweede netwerkengine.
 - [~] Library en Known Users rechtstreeks vanuit hoofdsidebar bereikbaar via Search-host router.
 - [~] Interne Next-sidebar niet langer nodig voor normale hoofdnav-route.
 - [x] Search 2/Library/Known Users gebruiken gedeelde ModernUi list/header styling.
 - [x] Legacy Search blijft de netwerksearchengine; Search 2 introduceert geen tweede eD2K/Kad searchengine.
-- [ ] Legacy handmatige Search met actieve tabs vanuit hoofdsidebar testen.
+- [ ] Hoofdnav Search → Search 2 → Network search... → legacy Search parameters/resulttabs runtime testen.
 - [ ] View Shared Files tab testen terwijl Library/Known Users via hoofdsidebar gebruikt worden.
 - [ ] Library Download again/relink/missing/available-again runtime testen.
 - [ ] Known Users duplicate-name/userhash/alias/favorite/delete-history runtime testen.
@@ -122,10 +123,11 @@ Dit bestand is de operationele werklijst voor eMule Next.
 
 - [x] Clean activation-stage + final-state gates blijven basis.
 - [~] `activate-preview2-ux-completion.py` toegevoegd na visible-main-shell materialization.
+- [~] `activate-preview2-search-ux.py` maakt Search 2 primair en bewaart legacy netwerksearch via een expliciete brug.
 - [~] `activate-preview2-header-status.py` toegevoegd zonder backendlogica te dupliceren.
 - [~] `activate-preview2-dashboard-ux.py` toegevoegd na bestaande Dashboard materialization; gebruikt alleen bestaande handlers/filters.
-- [~] `verify-preview2-ux-completion.py` controleert primaire routes, live header, Dashboard progressive complexity, Settings/Diagnostics-scheiding en verbiedt backendlogica in shell.
-- [~] Preview2 orchestrator voert UX-completion + Dashboard UX + live-header + UX-gate als late productlaag uit.
+- [~] `verify-preview2-ux-completion.py` controleert primaire routes, Search-bridge, live header, Dashboard progressive complexity, Settings/Diagnostics-scheiding en verbiedt backendlogica in shell.
+- [~] Preview2 orchestrator voert UX-completion + Search UX + Dashboard UX + live-header + UX-gate als late productlaag uit.
 - [~] Release/support privacychecks zijn regelgebonden en vermijden brede multiline wildcard-false-positives.
 - [ ] Nieuwe head lokaal Release x64 bouwen.
 - [ ] Bij buildfout eerst volledige nieuwe Preview2-laag/gates als één foutgroep nalopen vóór nieuwe buildvraag.
@@ -177,20 +179,21 @@ Dit bestand is de operationele werklijst voor eMule Next.
 1. [ ] Build nieuwe UX-completion head met `build-local.ps1 -KeepActivationStage`.
 2. [ ] Startup: moderne hoofdsidebar/header direct zichtbaar.
 3. [ ] Alle primaire hoofdnav-routes doorlopen.
-4. [ ] Settings → Classic eMule settings bridge testen.
-5. [ ] Live header connection/rates testen.
-6. [ ] Dashboard primary/More UX controleren.
-7. [ ] Diagnostics self-test PASS.
-8. [ ] Light/Dark/System + DPI 100–200% + resize.
-9. [ ] Preview1 config/database/downloadstate upgrade behouden.
-10. [ ] Disposable corruption/recoverytest.
-11. [ ] Volledige live eD2K/Kad/upload/download/A4AF/shared-files matrix.
-12. [ ] Diagnostics report + support bundle.
-13. [ ] Portable clean-unpack/start.
-14. [ ] MSI install/upgrade/uninstall.
-15. [ ] `finalize-preview2-rc.ps1` en definitieve hashes.
-16. [ ] Alleen daarna status **Preview 2 Release Candidate**.
-17. [ ] `goal-1-5` nooit zonder expliciete toestemming naar `develop` promoveren.
+4. [ ] Search → Search 2 → Network search... bridge testen.
+5. [ ] Settings → Classic eMule settings bridge testen.
+6. [ ] Live header connection/rates testen.
+7. [ ] Dashboard primary/More UX controleren.
+8. [ ] Diagnostics self-test PASS.
+9. [ ] Light/Dark/System + DPI 100–200% + resize.
+10. [ ] Preview1 config/database/downloadstate upgrade behouden.
+11. [ ] Disposable corruption/recoverytest.
+12. [ ] Volledige live eD2K/Kad/upload/download/A4AF/shared-files matrix.
+13. [ ] Diagnostics report + support bundle.
+14. [ ] Portable clean-unpack/start.
+15. [ ] MSI install/upgrade/uninstall.
+16. [ ] `finalize-preview2-rc.ps1` en definitieve hashes.
+17. [ ] Alleen daarna status **Preview 2 Release Candidate**.
+18. [ ] `goal-1-5` nooit zonder expliciete toestemming naar `develop` promoveren.
 
 ---
 
