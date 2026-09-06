@@ -123,6 +123,26 @@ bool CPeerShareScanner::QueuePeer(const EmuleNextHash16& peerHash, bool highPrio
     return true;
 }
 
+bool CPeerShareScanner::QueuePeerManual(const EmuleNextHash16& peerHash, uint64 now)
+{
+    if (!peerHash.valid)
+        return false;
+    now = ResolveNow(now);
+
+    Entry* existing = FindEntry(peerHash);
+    if (existing != NULL) {
+        if (existing->state.status == ENPSS_QUERYING)
+            return false;
+        // A user-requested refresh may replace cached success data, but must
+        // never punch through privacy or transport-failure cooldowns.
+        if (existing->state.status == ENPSS_SHARED)
+            existing->state.nextAllowed = now;
+        else if (now < existing->state.nextAllowed)
+            return false;
+    }
+    return QueuePeer(peerHash, true, now);
+}
+
 CPeerShareScanner::Entry* CPeerShareScanner::NextReady(uint64 now)
 {
     Entry* best = NULL;
