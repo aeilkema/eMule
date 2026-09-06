@@ -12,6 +12,7 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 - Werkbranch: `goal-1-5`
 - Laatst lokaal succesvol gebouwde head: `cef1851566cbadbe530aa0d44b18ce449129ebb8`
 - Release x64 lokale build: **geslaagd**
+- Nieuwe Intelligence 2.0 / Scheduler-completion tranche: **implementatie gereed; lokale buildtest nu uitvoeren**
 - Smart Scheduler default: **Analysis only**
 - Protocolregel: legacy eD2K/Kad-logica blijft leidend.
 
@@ -28,28 +29,32 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 ## 1. Branch consolideren en regressiecheck
 **Requirements:** CORE-01, CORE-02, CI-01
 
-- [ ] `goal-1-5` volledig vergelijken met `develop` en de tranche als samenhangende update consolideren.
-- [ ] Alle activators/verifiers nog één keer tegen de actuele branch nalopen.
-- [ ] Controleren dat een lokale build de echte repository-overlay niet wijzigt.
-- [ ] Controleren dat `build/activation-stage` bij falen bewaard blijft en bij succes standaard wordt verwijderd.
-- [ ] Na runtime-smoketest `goal-1-5` naar `develop` promoveren.
+- [~] `goal-1-5` volledig vergelijken met `develop` en de tranche als samenhangende update consolideren.
+- [x] Activator/verifier-keten uitgebreid met één completion gate voor Dashboard/Transfers Intelligence 2.0 + Scheduler persistence.
+- [x] Lokale buildactivatie werkt via een staging-overlay zodat de echte repository-overlay niet wordt gemuteerd.
+- [x] `build/activation-stage` blijft bij falen beschikbaar en wordt bij succes standaard verwijderd; `-KeepActivationStage` kan hem expliciet bewaren.
+- [ ] Nieuwe Intelligence 2.0 / Scheduler-completion head lokaal Release x64 bouwen.
+- [ ] Runtime-smoketest uitvoeren.
+- [ ] Daarna `goal-1-5` naar `develop` promoveren.
 
 ## 2. Dashboard & Transfers Intelligence 2.0
 **Requirements:** INTEL-01, UI-01, UI-03, PERF-01
 
-- [~] Dashboard en Smart Scheduler gebruiken dezelfde transfer-intelligence builder.
+- [x] Dashboard, Transfers en Smart Scheduler gebruiken dezelfde canonical `CEmuleNextTransferInsights`-builder voor file-intelligence.
 - [x] Bounded live source-quality sampling in `CEmuleNextTransferInsights`.
-- [x] Persistente historische EWMA-rate beschikbaar voor scheduler/Dashboard.
-- [x] Scheduler action/applied/runtime persistence status zichtbaar maken.
-- [ ] Dashboardkolommen volledig sorteerbaar maken.
-- [ ] Kolombreedtes, sorteervolgorde en actieve filter persistent maken.
-- [ ] Extra filters: low health, scheduler intervention, A4AF opportunity.
-- [ ] `Last intervention` en `Last useful source` zichtbaar maken.
-- [ ] Historische snelheid, live snelheid en bronkwaliteit duidelijk naast elkaar tonen.
-- [ ] Detailpaneel uitbreiden met strong/normal/weak/failed source-profiel.
-- [ ] Force analysis / reset intelligence per download toevoegen.
-- [ ] Transfers-view dezelfde intelligencevelden laten gebruiken; dubbele berekeningen verwijderen.
-- [ ] Controleren dat refresh bij grote downloadqueues geen merkbare UI-pauze veroorzaakt.
+- [x] Persistente historische EWMA-rate beschikbaar voor scheduler/Dashboard/Transfers.
+- [x] Scheduler action/applied/runtime persistence status zichtbaar.
+- [x] Dashboardkolommen volledig sorteerbaar.
+- [x] Kolombreedtes, sorteervolgorde en actieve filter persistent.
+- [x] Extra filters: low health, scheduler intervention, A4AF opportunity.
+- [x] `Last intervention` en `Last useful source` zichtbaar.
+- [x] Historische snelheid, live snelheid en bronkwaliteit duidelijk naast elkaar.
+- [x] Detailpaneel met strong/normal/weak/failed/transferring source-profiel.
+- [x] Force analysis / reset intelligence per download.
+- [x] Transfers-view gebruikt dezelfde intelligencevelden; oude dubbele file-signalberekening verwijderd.
+- [x] Dashboard-refresh begrensd en adaptief: maximaal 1000 files per pass; refreshinterval vergroot wanneer rendering >250 ms duurt.
+- [ ] Lokale Release x64 build van deze nieuwe implementatie bevestigen.
+- [ ] Runtime-smoketest met kleine en grotere downloadqueue uitvoeren; pas daarna hoofdblok als volledig DONE beschouwen.
 
 ## 3. Scheduler/history persistentie afronden
 **Requirements:** INTEL-01, DATA-01, PERF-01
@@ -57,15 +62,21 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 - [x] Async `scheduler_file_history` persistence.
 - [x] Async `scheduler_decisions` persistence.
 - [x] Late A4AF/rare-part applied-state duurzaam corrigeren.
-- [x] File hash als primaire telemetry-identiteit gebruiken.
+- [x] File hash als primaire telemetry-identiteit.
 - [x] Bounded queues + drop diagnostics.
-- [x] SQLite buiten scheduler/A4AF/part-ranking/UI hot paths houden.
-- [ ] Scheduler snapshots van verwijderde/voltooide downloads periodiek opruimen.
-- [ ] Generieke `lastInterventionAt` splitsen van source-discovery cooldown indien runtime-test laat zien dat rare/A4AF discovery onnodig vertraagt.
-- [ ] Resultaat van interventies meten: snelheid/source-count na bijvoorbeeld 30 s en 120 s.
-- [ ] Persistent telemetry query/read service voor diagnoseweergave toevoegen.
-- [ ] Database schema version/migratie voor scheduler-tabellen formeel opnemen in DATA-01 migratielaag.
-- [ ] Integrity/backup-pad expliciet ook voor nieuwe scheduler-tabellen testen.
+- [x] SQLite buiten scheduler/A4AF/part-ranking/UI hot paths.
+- [x] Scheduler snapshots van verwijderde/voltooide downloads periodiek opruimen.
+- [x] Interventietimestamps gesplitst in discovery / A4AF / rare-part; source-discovery cooldown wordt niet meer door andere acties onnodig geblokkeerd.
+- [x] Anti-flapping voor A4AF en rare-part telemetry/interventies.
+- [x] Interventieresultaten meten via baseline + 30 s + 120 s samples van snelheid/source-count.
+- [x] Persistent telemetry query/read service voor diagnoseweergave; query-only en buiten de UI-thread.
+- [x] Formele DATA-01 schema v2 voor `scheduler_file_history`, `scheduler_decisions` en `scheduler_outcomes`.
+- [x] Upgradepad voor bestaande Preview-databases zonder `file_hash`.
+- [x] Integrity/backup-smoketest dekt scheduler-tabellen en controleert teruglezen uit de backup.
+- [x] Per-file intelligence reset verwijdert runtime snapshot en persisted history.
+- [x] Completion gate `verify-intelligence-goal-complete.py` plus activator-audit bewaken de volledige implementatie.
+- [ ] Lokale Release x64 build bevestigen.
+- [ ] Runtime-test in Analysis/Assist/Automatic uitvoeren en 30/120s outcome-registratie controleren.
 
 ## 4. Known Users 2.0
 **Requirements:** PEER-01 t/m PEER-05, SESSION-01, PERF-01
@@ -147,7 +158,7 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 ## Database en herstel
 **Requirements:** DATA-01, SESSION-01
 
-- [ ] Formele schema-versioning/migrations uitbreiden boven huidige schema-versie.
+- [~] Formele schema-versioning/migrations: schedulerdeel staat nu op schema v2; volgende schemawijzigingen moeten dit patroon volgen.
 - [ ] Automatische periodieke databasebackup ontwerpen/implementeren.
 - [ ] Integrity check vanuit Settings/diagnostics beschikbaar maken.
 - [ ] Herstelpad bij corrupte intelligence-database testen.
