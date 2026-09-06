@@ -43,6 +43,8 @@ def main() -> int:
     diag_cpp = read("EmuleNextDiagnosticsWnd.cpp")
     host_h = read("SearchResultsWnd.h")
     host_cpp = read("SearchResultsWnd.cpp")
+    main_h = read("EmuleDlg.h")
+    main_cpp = read("EmuleDlg.cpp")
     search = read("Search2Wnd.cpp")
     library = read("FileLibraryWnd.cpp")
     users = read("KnownUsersWnd.cpp")
@@ -62,8 +64,10 @@ def main() -> int:
     for marker in (
         "class CEmuleNextModernUi",
         "NavigationWidth",
+        "HeaderHeight",
         "DrawRoundedCard",
         "class CEmuleNextCard",
+        "class CEmuleNextNavList",
     ):
         require(modern_h, marker, "modern UI toolkit")
     for marker in (
@@ -72,6 +76,8 @@ def main() -> int:
         "LVS_EX_DOUBLEBUFFER",
         "DarkMode_Explorer",
         "DrawRoundedCard",
+        "CEmuleNextNavList::DrawItem",
+        "CEmuleNextNavList::MeasureItem",
     ):
         require(modern_cpp, marker, "modern UI implementation")
 
@@ -142,6 +148,40 @@ def main() -> int:
     ):
         require(host_cpp, marker, "Preview 2 workspace navigation")
 
+    # Preview 2 must be visibly different at application startup. The modern
+    # shell is therefore gated at CemuleDlg level rather than accepting only
+    # restyled child views hidden behind the classic toolbar.
+    for marker in (
+        "CEmuleNextNavList m_preview2MainNav",
+        "CStatic m_preview2Brand",
+        "CButton m_preview2ConnectButton",
+        "OnPreview2MainNavChanged",
+    ):
+        require(main_h, marker, "Preview 2 main shell header")
+    for marker in (
+        "IDC_EN_PREVIEW2_MAIN_NAV",
+        'm_preview2MainNav.AddString(_T("Dashboard"))',
+        'm_preview2MainNav.AddString(_T("Transfers"))',
+        'm_preview2MainNav.AddString(_T("Search"))',
+        'm_preview2MainNav.AddString(_T("Shared Files"))',
+        'm_preview2MainNav.AddString(_T("Servers"))',
+        'm_preview2MainNav.AddString(_T("Kad"))',
+        'm_preview2MainNav.AddString(_T("Settings"))',
+        "Preview 2 main shell: persistent navigation rail",
+        "pwndToolbarX->ShowWindow(SW_HIDE)",
+        "SetWindowText(EMULENEXT_PRODUCT_WITH_CORE_TEXT)",
+        "OnPreview2Connect",
+        "MP_VIEW1_DOWNLOADS",
+        "0xEE20",
+    ):
+        require(main_cpp, marker, "visible Preview 2 main shell")
+
+    id_pos = main_cpp.find("IDC_EN_PREVIEW2_MAIN_NAV =")
+    map_pos = main_cpp.find("BEGIN_MESSAGE_MAP(CemuleDlg, CTrayDialog)")
+    handler_pos = main_cpp.find("ON_LBN_SELCHANGE(IDC_EN_PREVIEW2_MAIN_NAV")
+    if not (id_pos >= 0 and map_pos > id_pos and handler_pos > map_pos):
+        raise SystemExit("Preview2 verification: main shell control ID/message-map ordering unsafe")
+
     for source, marker, label in (
         (search, "CEmuleNextModernUi::ApplyList(m_results);", "Search modern list"),
         (library, "CEmuleNextModernUi::ApplyList(m_results);", "Library modern list"),
@@ -167,6 +207,7 @@ def main() -> int:
         "activate-preview2-polish-dashboard.py",
         "activate-preview2-polish-transfers.py",
         "activate-preview2-navigation.py",
+        "activate-preview2-main-shell.py",
         "activate-preview2-build-identity.py",
         "verify-preview2-product.py",
     )
