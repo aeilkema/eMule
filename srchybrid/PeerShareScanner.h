@@ -59,6 +59,9 @@ public:
     void SetFailureCooldownSeconds(uint64 cooldownSeconds);
 
     bool QueuePeer(const EmuleNextHash16& peerHash, bool highPriority = false, uint64 now = 0);
+    // Manual refresh may bypass only a previous successful-result TTL. Privacy
+    // denial, unsupported, failure and timeout cooldowns remain authoritative.
+    bool QueuePeerManual(const EmuleNextHash16& peerHash, uint64 now = 0);
     void Tick(uint64 now = 0);
 
     void OnSharedFileList(const EmuleNextHash16& peerHash, uint32 fileCount, uint64 totalBytes, uint64 now = 0);
