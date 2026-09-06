@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [switch]$RebuildDependencies,
     [switch]$KeepActivationStage
@@ -42,6 +42,25 @@ Write-Host "Applying eMule Next integration in staging..."
 python (Join-Path $StageTools "integrate.py")
 if ($LASTEXITCODE -ne 0) {
     throw "Integration failed in isolated staging overlay: $StageRoot"
+}
+
+# Git for Windows can materialize repository text as CRLF even when the blob is
+# LF. A number of activators intentionally compare multiline C++ fragments, so
+# normalize only the isolated staging source to LF before running them. The
+# normalizer is byte-based and never decodes legacy ANSI/UTF-8 source content.
+Write-Host "Normalizing activation-stage source newlines..."
+python (Join-Path $StageTools "normalize-stage-newlines.py") $StageSource
+if ($LASTEXITCODE -ne 0) {
+    throw "Activation-stage newline normalization failed: $StageRoot"
+}
+
+# Run the static activator audit before any feature activator mutates the stage.
+# The same audit runs again near the end of activate-features.py, so both the
+# scripts and the final activation order are guarded.
+Write-Host "Preflighting eMule Next activators..."
+python (Join-Path $StageTools "audit-activators.py")
+if ($LASTEXITCODE -ne 0) {
+    throw "Activator preflight failed in isolated staging overlay: $StageRoot"
 }
 
 Write-Host "Activating eMule Next runtime features in staging..."
