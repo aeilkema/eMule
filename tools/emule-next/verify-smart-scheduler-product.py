@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-fast verification for the Smart Scheduler product layer."""
+"""Fail-fast verification for the completed Smart Scheduler product layer."""
 from __future__ import annotations
 
 import pathlib
@@ -19,50 +19,50 @@ def main() -> int:
     require(SRC / "EmuleNextSmartScheduler.h", (
         "EmuleNextSchedulerRuntimeStatus",
         "GetRuntimeStatusText",
-        "maxFilesPerRound",
-        "historyPendingWrites",
-        "historyDroppedWrites",
-        "telemetryEnabled",
-        "MarkApplied",
+        "ForceAnalyze",
+        "ResetFileIntelligence",
+        "lastDiscoveryAt",
+        "lastA4AFAt",
+        "lastRarePartAt",
+        "lastUsefulSourceAt",
+        "EmuleNextInterventionOutcome",
     ))
     require(SRC / "EmuleNextSmartScheduler.cpp", (
         "SmartSchedulerMaxFilesPerRound",
-        "SmartHistoryCache",
         "SmartHistoryCacheCapacity",
         "SmartTelemetryCapacity",
-        "event.applied = intervened",
-        "event.fileHash = key",
-        "MarkApplied(candidateFile->GetFileHash(), candidateFile->GetFileName())",
-        "MarkApplied(file->GetFileHash(), file->GetFileName())",
-        "m_telemetry.MarkAppliedIntervention(fileHash, fileName)",
+        "PruneSnapshots(queue, now)",
+        "sinceDiscovery",
+        "BeginOutcome(file, ENSA_DISCOVERY_BOOST, now)",
+        "RecordOutcomeSample",
+        "MarkApplied(candidateFile, ENSA_A4AF_PREFER)",
+        "MarkApplied(file, ENSA_RARE_PART_PROTECT)",
+        "m_history.Remove(fileHash)",
     ))
     require(SRC / "EmuleNextSchedulerTelemetry.h", (
-        "EmuleNextSchedulerTelemetrySummary",
-        "fileHashValid",
-        "appliedInterventions",
+        "EmuleNextSchedulerOutcomeRecord",
+        "RecordOutcomeBaseline",
+        "RecordOutcomeSample",
         "MarkAppliedIntervention(const unsigned char* fileHash, const CString& fileName)",
-        "void Clear()",
     ))
     require(SRC / "EmuleNextSchedulerTelemetry.cpp", (
-        "file_hash BLOB",
-        "idx_scheduler_decisions_hash_applied",
-        "m_persistAppliedQueue",
+        "scheduler_outcomes",
+        "idx_scheduler_outcomes_hash_ts",
+        "m_persistOutcomeQueue",
+        "UPDATE scheduler_decisions SET applied=1",
     ))
-    require(SRC / "EmuleNextSettingsWnd.cpp", (
-        "SmartSchedulerProfile",
-        "SmartSchedulerCooldown",
-        "SmartSchedulerMaxFilesPerRound",
-        "SmartA4AFMinimumScore",
-        "SmartHistoryCache",
-        "SmartHistoryCacheCapacity",
-        "SmartTelemetry",
-        "SmartTelemetryCapacity",
+    require(SRC / "EmuleNextSchedulerTelemetryReader.cpp", (
+        "LoadRecentForFile",
+        "scheduler_decisions",
+        "scheduler_outcomes",
+        "PRAGMA query_only=ON",
     ))
     require(SRC / "EmuleNextDashboardWnd.cpp", (
-        'InsertColumn(14, _T("Scheduler")',
+        "EMULENEXT_DASHBOARD_INTELLIGENCE2" if False else "CEmuleNextSchedulerTelemetryReader",
         "theEmuleNextScheduler.GetRuntimeStatusText()",
-        "schedulerSnapshot.applied",
-        "CEmuleNextTransferInsights::Build(file, historicalBytesPerSecond)",
+        "theEmuleNextScheduler.ForceAnalyze",
+        "theEmuleNextScheduler.ResetFileIntelligence",
+        "CEmuleNextTransferInsights::Build(file, historical)",
     ))
 
     for hot in ("EmuleNextDashboardWnd.cpp", "EmuleNextSmartScheduler.cpp", "DownloadQueue.cpp", "PartFile.cpp", "DownloadListCtrl.cpp"):
