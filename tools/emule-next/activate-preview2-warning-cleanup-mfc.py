@@ -21,12 +21,18 @@ def save(path: pathlib.Path, text: str, nl: str) -> None:
 
 
 def wrap_all_message_maps(text: str) -> str:
-    # Normalize guards previously added around individual maps, then wrap every
-    # MFC message map independently. This keeps C4191 enabled everywhere else.
-    text = text.replace("#pragma warning(push)\n#pragma warning(disable:4191)\n", "")
-    text = text.replace("\n#pragma warning(pop)", "")
+    guarded = re.compile(
+        r"#pragma warning\(push\)\n#pragma warning\(disable:4191\)\n"
+        r"(BEGIN_MESSAGE_MAP\(.*?END_MESSAGE_MAP\(\))\n#pragma warning\(pop\)",
+        re.S,
+    )
+    text = guarded.sub(lambda m: m.group(1), text)
     pattern = re.compile(r"BEGIN_MESSAGE_MAP\(.*?END_MESSAGE_MAP\(\)", re.S)
-    return pattern.sub(lambda m: "#pragma warning(push)\n#pragma warning(disable:4191)\n" + m.group(0) + "\n#pragma warning(pop)", text)
+    return pattern.sub(
+        lambda m: "#pragma warning(push)\n#pragma warning(disable:4191)\n"
+        + m.group(0) + "\n#pragma warning(pop)",
+        text,
+    )
 
 
 def main() -> int:
