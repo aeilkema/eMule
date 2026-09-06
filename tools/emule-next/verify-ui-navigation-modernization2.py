@@ -34,6 +34,7 @@ def main() -> int:
     # Catch Python mistakes before C++ compilation can begin.
     parse_script("activate-ui-navigation-modernization2.py")
     parse_script("activate-ui-navigation-modernization2-layout.py")
+    parse_script("activate-ui-navigation-modernization2-dashboard.py")
 
     helper = read("EmuleNextWorkspaceUi.h")
     search_h, search_cpp = read("Search2Wnd.h"), read("Search2Wnd.cpp")
