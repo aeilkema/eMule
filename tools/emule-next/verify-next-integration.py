@@ -24,6 +24,35 @@ CHECKS = {
         "Source profile",
         "Last intervention",
     ),
+    "KnownUsersWnd.h": (
+        "ENKUM_CURRENT", "ENKUM_HISTORY", "ENKUM_FAVORITES", "ENKUM_RECENT",
+        "OnSearchChanged", "OnRefreshPeerClicked", "OnDeleteHistoryClicked",
+        "void SaveViewState();",
+    ),
+    "KnownUsersWnd.cpp": (
+        '_T("Current")', '_T("History")', '_T("Favorites")', '_T("Recent 7d")',
+        '_T("First seen")', '_T("Browse status")', "QueuePeerShareRefresh",
+        "DeleteHistoryWorker", "SetPeerFavorite", "SetPeerAlias",
+        "file.lastSeen + 5 >= state.lastCompleted", "EmuleNextUiMetrics::Scale",
+        "void CKnownUsersWnd::SaveViewState()",
+    ),
+    "KnownUsersService.cpp": (
+        "kMaximumKnownUsers = 2000", "kMaximumKnownFilesPerUser = 2000",
+        "PRAGMA query_only=ON", "peer_endpoints pe ON pe.id=(", "DeletePeerHistory",
+        '#include "EmuleNextWinSqliteCompat.h"',
+    ),
+    "ClientList.h": (
+        "QueuePeerShareRefresh", "GetPeerShareState",
+    ),
+    "ClientList.cpp": (
+        "bool CClientList::QueuePeerShareRefresh", "m_peerShareScanner.QueuePeerManual(peerHash)",
+        "m_peerShareScanner.OnUnsupported(peerHash)", "bool CClientList::GetPeerShareState",
+        "ImportClientSharedFilesForPeer(toadd->GetUserName(), toadd->GetUserHash()",
+    ),
+    "PeerShareScanner.cpp": (
+        "bool CPeerShareScanner::QueuePeerManual", "existing->state.status == ENPSS_SHARED",
+        "else if (now < existing->state.nextAllowed)",
+    ),
     "DownloadListCtrl.h": (
         "SelectFile(CPartFile *file, bool expand = false)",
     ),
@@ -85,6 +114,9 @@ CHECKS = {
 }
 
 FORBIDDEN = {
+    "KnownUsersWnd.cpp": (
+        "sqlite3_", "void CKnownUsersWnd::SaveViewState() const",
+    ),
     "TransferWnd.cpp": (
         "AddDebugLogLine",
     ),
