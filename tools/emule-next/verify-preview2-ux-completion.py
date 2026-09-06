@@ -27,6 +27,8 @@ def main() -> int:
     search_cpp = read("SearchResultsWnd.cpp")
     settings_h = read("EmuleNextSettingsWnd.h")
     settings_cpp = read("EmuleNextSettingsWnd.cpp")
+    dashboard_h = read("EmuleNextDashboardWnd.h")
+    dashboard_cpp = read("EmuleNextDashboardWnd.cpp")
 
     for marker, label in (
         ('m_preview2MainNav.AddString(_T("Dashboard"))', "Dashboard primary navigation"),
@@ -59,6 +61,16 @@ def main() -> int:
     require(settings_cpp, "Classic eMule settings...", "classic Preferences bridge label")
     require(settings_cpp, "OnClassicPreferencesClicked", "classic Preferences bridge handler")
     require(settings_cpp, "ShowPreferences()", "classic Preferences bridge action")
+
+    for marker, label in (
+        ("CButton m_more;", "Dashboard More action"),
+        ("void CEmuleNextDashboardWnd::OnMoreClicked()", "Dashboard More menu"),
+        ("primaryFilters", "Dashboard primary filter set"),
+        ("primaryActions", "Dashboard primary action set"),
+        ("Preview 2 progressive complexity", "Dashboard specialist-control suppression"),
+        ("%u downloads   |   %u active", "Dashboard concise summary"),
+    ):
+        require(dashboard_h if marker == "CButton m_more;" else dashboard_cpp, marker, label)
 
     # Settings remains product configuration only. Diagnostics/runtime controls
     # are intentionally forbidden here.
