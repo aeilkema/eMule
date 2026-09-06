@@ -62,7 +62,7 @@ private:
     void SortUserRows();
     void UpdateActionButtons();
     void LoadViewState();
-    void SaveViewState() const;
+    void SaveViewState();
     void ApplyUserColumnWidths();
     bool RowVisible(const EmuleNextKnownUserRecord& user) const;
     bool IsCurrent(const EmuleNextKnownUserRecord& user) const;
