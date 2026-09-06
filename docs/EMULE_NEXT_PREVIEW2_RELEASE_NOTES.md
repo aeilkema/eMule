@@ -42,6 +42,9 @@ The late Search bridge also has an explicit compile-order contract so it does no
 - Segoe UI Variable is used when available, with Segoe UI fallback.
 - Search, Library, Known Users, Dashboard and Transfers use the same modern list/header theming while keeping their existing product logic.
 - Dark/light/System appearance continues to use the existing theme service.
+- Every legacy primary workspace is re-themed whenever it becomes active.
+- The complete original Preferences tree receives the active Preview 2 theme after its pages are initialized.
+- Messages/Chat has additional explicit dark/light handling for Friends, tabs, input controls and existing/new RichEdit chat logs so Dark mode does not leave the conversation surface system-white.
 
 ### Dashboard progressive complexity
 
@@ -65,18 +68,38 @@ Primary actions:
 
 `More...` keeps Rare parts, Low health, Intervention, A4AF, priority changes, forced analysis and intelligence reset available without dominating the normal workflow. The summary line is reduced to daily state: downloads, active items, attention count, transfer rate, uploads and scheduler state.
 
-### Settings restructured
+### Complete Settings entry point
 
-Normal Settings now contains only user-facing choices:
+Preview 2 keeps its four native categories directly editable in the modern Settings workspace:
 
 - **Appearance** — System/Light/Dark and Smart ETA/Health display.
 - **Peer knowledge** — automatic shared-file knowledge collection and bounded concurrency.
 - **Intelligence** — Analysis / Assist / Automatic mode, scheduler profile and capability toggles.
 - **Advanced** — optional explicit scheduler tuning.
 
-History-cache and scheduler-telemetry capacities are no longer normal user controls. Preview 2 keeps these bounded services enabled with conservative internal limits. Runtime counters, integrity status, backups and stress actions belong in Diagnostics instead of Settings.
+The same Settings navigation now also represents **all 15 production upstream eMule Preferences pages**:
 
-A **Classic eMule settings...** action remains available from the modern Settings entry point for upstream Connection, Directories and other legacy Preferences. This keeps one product entry point without duplicating the existing configuration engine.
+- General
+- Display
+- Connection
+- Proxy
+- Server
+- Directories
+- Files
+- Notifications
+- Statistics
+- IRC
+- Messages
+- Security
+- Scheduler
+- Web Server
+- Tweaks
+
+For those original pages, Preview 2 deliberately does not duplicate hundreds of values into a second settings database or UI model. Selecting a category exposes a targeted **Open … settings...** action which opens that exact original property page through the existing `CemuleDlg::ShowPreferences(pageId)` path. The original validation, Apply/OK behavior and `thePrefs` storage therefore remain authoritative.
+
+The resource ID for each original page is derived from its existing `PPg*.h` declaration during clean activation. The Settings navigation is scrollable for smaller windows/high DPI. Applying a theme refreshes the complete application window tree rather than only the Settings host.
+
+History-cache and scheduler-telemetry capacities remain bounded internal product defaults. Runtime counters, integrity status, backups and stress actions belong in Diagnostics rather than normal Settings.
 
 ### Diagnostics and runtime validation
 
@@ -126,7 +149,7 @@ Preview 2 includes the current Search 2, Library 2 and Known Users 2 product tra
 
 ## Clean build and materialization
 
-`build-local.ps1` builds from a clean activation overlay. The base runtime/UI chain runs first, followed by `activate-preview2.py` as the explicit final product layer. The Preview 2 orchestrator parses all late scripts before applying them and then runs dedicated activation-chain, UX and product final-state gates.
+`build-local.ps1` builds from a clean activation overlay. The base runtime/UI chain runs first, followed by `activate-preview2.py` exactly once as the explicit final product layer. The Preview 2 orchestrator parses all late scripts before applying them and then runs dedicated activation-chain, Settings/theme, UX and product final-state gates.
 
 This prevents a successful Preview 2 build from accidentally depending on stale generated source from a previous local build.
 
@@ -157,4 +180,4 @@ The support bundle explicitly excludes the intelligence SQLite database, Prefere
 
 ## Still requiring runtime proof
 
-A successful Release x64 build proves compilation and static contracts, not live network compatibility. Before a Preview 2 build is promoted as runtime-proven, complete the runtime matrix in `docs/EMULE_NEXT_RUNTIME_TEST_MATRIX.md` / Diagnostics against real eD2K/Kad peers and real incomplete downloads.
+A successful Release x64 build proves compilation and static contracts, not live network compatibility or final theme coverage. Before a Preview 2 build is promoted as runtime-proven, complete the runtime matrix in `docs/EMULE_NEXT_RUNTIME_TEST_MATRIX.md` / Diagnostics and verify all 19 Settings categories plus Light/Dark/System across the primary workspaces on real runtime state.
