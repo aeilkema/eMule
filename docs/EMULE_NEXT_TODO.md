@@ -10,9 +10,10 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 ## Huidige bewezen basis
 
 - Werkbranch: `goal-1-5`
-- Laatst lokaal succesvol gebouwde head: `cef1851566cbadbe530aa0d44b18ce449129ebb8`
-- Release x64 lokale build: **geslaagd**
-- Nieuwe Intelligence 2.0 / Scheduler-completion tranche: **implementatie gereed; lokale buildtest nu uitvoeren**
+- Laatst lokaal succesvol gebouwde head: `250f87f70029bd6cacb4cd10000206c50e7a442f`
+- Release x64 lokale build: **geslaagd**, inclusief geïsoleerde activation-stage en verifier-keten.
+- Dashboard/Transfers Intelligence 2.0 + Scheduler persistence: **build bevestigd; runtime-smoketest blijft open**.
+- Known Users 2.0: **implementatie + completion gate gereed; eerstvolgende lokale buildtest**.
 - Smart Scheduler default: **Analysis only**
 - Protocolregel: legacy eD2K/Kad-logica blijft leidend.
 
@@ -30,10 +31,11 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 **Requirements:** CORE-01, CORE-02, CI-01
 
 - [~] `goal-1-5` volledig vergelijken met `develop` en de tranche als samenhangende update consolideren.
-- [x] Activator/verifier-keten uitgebreid met één completion gate voor Dashboard/Transfers Intelligence 2.0 + Scheduler persistence.
+- [x] Activator/verifier-keten uitgebreid met completion gates voor Dashboard/Transfers Intelligence 2.0 + Scheduler persistence en Known Users 2.0.
 - [x] Lokale buildactivatie werkt via een staging-overlay zodat de echte repository-overlay niet wordt gemuteerd.
 - [x] `build/activation-stage` blijft bij falen beschikbaar en wordt bij succes standaard verwijderd; `-KeepActivationStage` kan hem expliciet bewaren.
-- [ ] Nieuwe Intelligence 2.0 / Scheduler-completion head lokaal Release x64 bouwen.
+- [x] Intelligence 2.0 / Scheduler-completion head `250f87f70029bd6cacb4cd10000206c50e7a442f` lokaal Release x64 gebouwd.
+- [ ] Known Users 2.0 head lokaal Release x64 bouwen.
 - [ ] Runtime-smoketest uitvoeren.
 - [ ] Daarna `goal-1-5` naar `develop` promoveren.
 
@@ -53,7 +55,7 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 - [x] Force analysis / reset intelligence per download.
 - [x] Transfers-view gebruikt dezelfde intelligencevelden; oude dubbele file-signalberekening verwijderd.
 - [x] Dashboard-refresh begrensd en adaptief: maximaal 1000 files per pass; refreshinterval vergroot wanneer rendering >250 ms duurt.
-- [ ] Lokale Release x64 build van deze nieuwe implementatie bevestigen.
+- [x] Lokale Release x64 build van deze implementatie bevestigd op `250f87f70029bd6cacb4cd10000206c50e7a442f`.
 - [ ] Runtime-smoketest met kleine en grotere downloadqueue uitvoeren; pas daarna hoofdblok als volledig DONE beschouwen.
 
 ## 3. Scheduler/history persistentie afronden
@@ -75,7 +77,7 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 - [x] Integrity/backup-smoketest dekt scheduler-tabellen en controleert teruglezen uit de backup.
 - [x] Per-file intelligence reset verwijdert runtime snapshot en persisted history.
 - [x] Completion gate `verify-intelligence-goal-complete.py` plus activator-audit bewaken de volledige implementatie.
-- [ ] Lokale Release x64 build bevestigen.
+- [x] Lokale Release x64 build bevestigd op `250f87f70029bd6cacb4cd10000206c50e7a442f`.
 - [ ] Runtime-test in Analysis/Assist/Automatic uitvoeren en 30/120s outcome-registratie controleren.
 
 ## 4. Known Users 2.0
@@ -83,21 +85,29 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 
 - [x] Background user/file refresh.
 - [x] Userhash als primaire live/historical match.
-- [x] User- en filequery expliciet begrensd.
-- [x] Useraggregatie geoptimaliseerd.
-- [ ] Zoekveld voor Known Users.
-- [ ] Filters: Current / History / Favorites / recently seen.
-- [ ] Sorteren op naam, last seen, file count, shared size.
-- [ ] First seen zichtbaar maken naast last seen.
-- [ ] Laatste endpoint/IP/poort en browse-status tonen.
-- [ ] Favorite/alias duidelijk in lijst/detail tonen.
-- [ ] Selected peer: first/last seen per file tonen.
-- [ ] Selected peer: current vs historical file state onderscheiden.
-- [ ] Restored View Shared Files-tabs runtime testen op userhash-deduplicatie.
-- [ ] Dubbele usernames met endpoint-fallback runtime testen.
-- [ ] Denied/timeout/success-TTL/cooldown zichtbaar maken voor diagnose.
-- [ ] Handmatige refresh van één peer toevoegen zonder globale scan.
-- [ ] Lokale intelligence-history voor één peer gecontroleerd kunnen verwijderen.
+- [x] User- en filequery expliciet begrensd tot maximaal 2000 peers / 2000 files per peer.
+- [x] Useraggregatie geoptimaliseerd; read-service gebruikt `PRAGMA query_only=ON`.
+- [x] Zoekveld voor Known Users.
+- [x] Filters: Current / History / Favorites / Recent 7d.
+- [x] Sorteren op naam, first/last seen, file count, shared size, endpoint, browse-status en overige zichtbare kolommen.
+- [x] Kolombreedtes, sortering, mode en zoektekst persistent.
+- [x] First seen zichtbaar naast last seen.
+- [x] Laatste endpoint/IP/TCP-poort en browse-status tonen.
+- [x] Favorite/alias duidelijk in lijst/detail tonen en bewerkbaar maken.
+- [x] Selected peer: first/last seen per file tonen.
+- [x] Selected peer: current vs historical file state onderscheiden.
+- [x] Restored View Shared Files-koppeling blijft primair userhash-gebaseerd met endpoint-disambiguatie voor dubbele namen.
+- [x] Deterministische duplicate-username verifier bewijst dat gelijke usernames met verschillende hashes/endpoints niet worden samengevoegd.
+- [x] Denied/timeout/unsupported/error/success-TTL/cooldown zichtbaar maken voor diagnose.
+- [x] Handmatige refresh van één peer toegevoegd zonder globale scan en zonder denied/failure-cooldowns te omzeilen.
+- [x] Lokale intelligence-history voor één peer asynchroon en gecontroleerd verwijderen; lokale alias/favorite blijven behouden.
+- [x] `verify-known-users2.py` completion gate + activator-audit + algemene integratieverifier bewaken het hoofdstuk.
+- [ ] Lokale Release x64 build van Known Users 2.0 bevestigen.
+- [ ] Runtime: Current/History/Favorites/Recent + sort/filter/session-state controleren.
+- [ ] Runtime: restored View Shared Files-tab op userhash-deduplicatie testen.
+- [ ] Runtime: twee peers met dezelfde username en verschillende endpoints praktisch testen.
+- [ ] Runtime: success, denied, timeout en cooldown-diagnose met echte peers controleren.
+- [ ] Runtime: per-peer refresh en Delete history zonder UI-freeze/crash controleren.
 
 ## 5. Search 2.0
 **Requirements:** SEARCH-01, PERF-01, UI-03
@@ -140,7 +150,7 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 **Requirements:** UI-01, UI-02, UI-03, UI-04
 
 - [x] Gedeelde `EmuleNextUiMetrics` toegevoegd.
-- [~] Dashboard, Settings, Search 2, Library en Known Users naar gedeelde DPI-metrics brengen.
+- [~] Dashboard, Settings, Search 2, Library en Known Users naar gedeelde DPI-metrics brengen; Known Users 2.0 gebruikt de gedeelde metrics nu voor zijn nieuwe layout.
 - [ ] Alle nieuwe vaste pixelmaten in deze views verder elimineren waar schaalbaar layoutgedrag beter is.
 - [ ] 100/125/150/175/200% DPI praktijktest uitvoeren.
 - [ ] Resize/minimum-window tests uitvoeren.
@@ -169,7 +179,7 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 **Requirements:** PERF-01, PERF-02
 
 - [ ] 0 downloads / 1 download / honderden downloads testen.
-- [ ] 5000 Known Users praktijktest.
+- [ ] 2000 Known Users + grote peer/file-history praktijktest.
 - [ ] Grote peer-share met duizenden files testen.
 - [ ] Grote Search/Library database testen.
 - [ ] Memory growth van scheduler snapshots/history/telemetry controleren.
