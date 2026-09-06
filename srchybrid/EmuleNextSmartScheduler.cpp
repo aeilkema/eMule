@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "EmuleNextSmartScheduler.h"
 #include "EmuleNextTransferInsights.h"
+#include "EmuleNextRuntime.h"
 #include "UpDownClient.h"
 #include "DownloadQueue.h"
 #include "PartFile.h"
@@ -37,8 +38,11 @@ EmuleNextSchedulerRuntimeStatus::EmuleNextSchedulerRuntimeStatus()
     , a4af(true)
     , rareParts(true)
     , historyEnabled(true)
+    , historyPersistenceReady(false)
     , telemetryEnabled(true)
     , trackedFiles(0)
+    , historyFiles(0)
+    , historyGeneration(0)
     , decisions(0)
     , appliedInterventions(0)
 {
@@ -131,6 +135,14 @@ void CEmuleNextSmartScheduler::Tick(CDownloadQueue* queue)
     const bool telemetryEnabled = theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetry"), 1) != 0;
     const UINT telemetryCapacity = theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetryCapacity"), 256);
     m_telemetry.SetCapacity(static_cast<size_t>(std::max<UINT>(16u, std::min<UINT>(4096u, telemetryCapacity))));
+
+    if (historyEnabled) {
+        const UINT historyCapacity = theApp.GetProfileInt(_T("eMule Next"), _T("SmartHistoryCacheCapacity"), 4096);
+        m_history.SetCapacity(static_cast<size_t>(std::max<UINT>(128u, std::min<UINT>(16384u, historyCapacity))));
+        CEmuleNextDatabase& database = theEmuleNextRuntime.Database();
+        if (database.IsRunning())
+            m_history.SetDatabasePath(database.GetDatabasePath());
+    }
 
     const size_t total = static_cast<size_t>(queue->GetFileCount());
     if (total == 0)
@@ -320,6 +332,9 @@ void CEmuleNextSmartScheduler::GetRuntimeStatus(EmuleNextSchedulerRuntimeStatus&
     status.a4af = settings.a4af;
     status.rareParts = settings.rareParts;
     status.historyEnabled = theApp.GetProfileInt(_T("eMule Next"), _T("SmartHistoryCache"), 1) != 0;
+    status.historyPersistenceReady = m_history.PersistenceReady();
+    status.historyFiles = static_cast<uint32>(m_history.Size());
+    status.historyGeneration = m_history.Generation();
     status.telemetryEnabled = theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetry"), 1) != 0;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -336,10 +351,11 @@ CString CEmuleNextSmartScheduler::GetRuntimeStatusText() const
     EmuleNextSchedulerRuntimeStatus status;
     GetRuntimeStatus(status);
     CString text;
-    text.Format(_T("%s / %s | scan %u files | cooldown %us | tracked %u | decisions %llu | applied %llu"),
+    text.Format(_T("%s / %s | scan %u | cooldown %us | tracked %u | history %u%s | decisions %llu | applied %llu"),
         (LPCTSTR)CDownloadIntelligence::SchedulingModeText(status.mode),
         (LPCTSTR)ProfileText(status.profile), status.maxFilesPerRound, status.cooldownSeconds,
-        status.trackedFiles, status.decisions, status.appliedInterventions);
+        status.trackedFiles, status.historyFiles, status.historyPersistenceReady ? _T(" persistent") : _T(" memory"),
+        status.decisions, status.appliedInterventions);
     return text;
 }
 
