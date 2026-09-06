@@ -31,17 +31,17 @@ def main() -> int:
             raise SystemExit("Preview2 navigation: include anchor missing")
         cpp = cpp.replace(anchor, anchor + '#include "EmuleNextModernUi.h"\n', 1)
 
-    if "IDC_EN_PREVIEW2_NAV" not in cpp:
-        namespace_anchor = "///////////////////////////////////////////////////////////////////////////////\n// CSearchResultsSelector"
-        addition = f"enum {{ IDC_EN_PREVIEW2_NAV = {IDC_EN_PREVIEW2_NAV} }};\n\n"
-        if namespace_anchor not in cpp:
-            raise SystemExit("Preview2 navigation: selector anchor missing")
-        cpp = cpp.replace(namespace_anchor, addition + namespace_anchor, 1)
+    # MFC message-map macros require the control ID to be declared before the
+    # BEGIN_MESSAGE_MAP block is compiled. Checking for the token alone is not
+    # sufficient because the token also appears in ON_LBN_SELCHANGE and Create.
+    map_anchor = "BEGIN_MESSAGE_MAP(CSearchResultsWnd, CResizableFormView)\n"
+    if map_anchor not in cpp:
+        raise SystemExit("Preview2 navigation: message map anchor missing")
+    definition = f"enum {{ IDC_EN_PREVIEW2_NAV = {IDC_EN_PREVIEW2_NAV} }};"
+    if definition not in cpp:
+        cpp = cpp.replace(map_anchor, definition + "\n\n" + map_anchor, 1)
 
     if "ON_LBN_SELCHANGE(IDC_EN_PREVIEW2_NAV, OnNextNavigationChanged)" not in cpp:
-        map_anchor = "BEGIN_MESSAGE_MAP(CSearchResultsWnd, CResizableFormView)\n"
-        if map_anchor not in cpp:
-            raise SystemExit("Preview2 navigation: message map anchor missing")
         cpp = cpp.replace(map_anchor, map_anchor + "\tON_LBN_SELCHANGE(IDC_EN_PREVIEW2_NAV, OnNextNavigationChanged)\n", 1)
 
     if 'm_nextNavigation.AddString(_T("Search"));' not in cpp:
@@ -56,18 +56,18 @@ def main() -> int:
         if diagnostics_block not in cpp:
             raise SystemExit("Preview2 navigation: expected final Diagnostics creation contract missing")
         addition = '''
-	CRect nextNavEmpty(0, 0, 0, 0);
-	if (!m_nextNavigation.Create(WS_CHILD | WS_TABSTOP | LBS_NOTIFY | LBS_NOINTEGRALHEIGHT,
-			nextNavEmpty, this, IDC_EN_PREVIEW2_NAV))
-		return;
-	m_nextNavigation.AddString(_T("Search"));
-	m_nextNavigation.AddString(_T("Library"));
-	m_nextNavigation.AddString(_T("Known Users"));
-	m_nextNavigation.AddString(_T("Settings"));
-	m_nextNavigation.AddString(_T("Diagnostics"));
-	m_nextNavigation.SetFont(CFont::FromHandle(static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT))));
-	CEmuleNextModernUi::SetExplorerTheme(m_nextNavigation.m_hWnd);
-	m_nextNavigation.ShowWindow(SW_HIDE);
+\tCRect nextNavEmpty(0, 0, 0, 0);
+\tif (!m_nextNavigation.Create(WS_CHILD | WS_TABSTOP | LBS_NOTIFY | LBS_NOINTEGRALHEIGHT,
+\t\t\tnextNavEmpty, this, IDC_EN_PREVIEW2_NAV))
+\t\treturn;
+\tm_nextNavigation.AddString(_T("Search"));
+\tm_nextNavigation.AddString(_T("Library"));
+\tm_nextNavigation.AddString(_T("Known Users"));
+\tm_nextNavigation.AddString(_T("Settings"));
+\tm_nextNavigation.AddString(_T("Diagnostics"));
+\tm_nextNavigation.SetFont(CFont::FromHandle(static_cast<HFONT>(::GetStockObject(DEFAULT_GUI_FONT))));
+\tCEmuleNextModernUi::SetExplorerTheme(m_nextNavigation.m_hWnd);
+\tm_nextNavigation.ShowWindow(SW_HIDE);
 
 '''
         cpp = cpp.replace(restore_anchor, addition + restore_anchor, 1)
@@ -83,9 +83,9 @@ def main() -> int:
     if "CWnd* preview2ActiveView" not in cpp:
         if persistent_anchor not in cpp:
             raise SystemExit("Preview2 navigation: persistent branch anchor missing")
-        addition = '''		m_nextNavigation.ShowWindow(SW_SHOW);
-		CWnd* preview2ActiveView = NULL;
-		int preview2NavIndex = -1;
+        addition = '''\t\tm_nextNavigation.ShowWindow(SW_SHOW);
+\t\tCWnd* preview2ActiveView = NULL;
+\t\tint preview2NavIndex = -1;
 '''
         cpp = cpp.replace(persistent_anchor, persistent_anchor + addition, 1)
 
@@ -108,17 +108,17 @@ def main() -> int:
         return_anchor = "\t\treturn;\n\t}\n\n\tsearchlistctrl.ShowWindow(SW_SHOW);"
         if return_anchor not in cpp:
             raise SystemExit("Preview2 navigation: persistent return anchor missing")
-        layout = '''		if (preview2NavIndex >= 0)
-			m_nextNavigation.SetCurSel(preview2NavIndex);
-		CRect preview2Rect;
-		searchlistctrl.GetWindowRect(&preview2Rect);
-		ScreenToClient(&preview2Rect);
-		const int preview2NavWidth = CEmuleNextModernUi::NavigationWidth(m_hWnd);
-		const int preview2Gap = CEmuleNextModernUi::ControlGap(m_hWnd);
-		m_nextNavigation.MoveWindow(preview2Rect.left, preview2Rect.top, preview2NavWidth, preview2Rect.Height());
-		if (preview2ActiveView != NULL)
-			preview2ActiveView->MoveWindow(preview2Rect.left + preview2NavWidth + preview2Gap, preview2Rect.top,
-				max(0, preview2Rect.Width() - preview2NavWidth - preview2Gap), preview2Rect.Height());
+        layout = '''\t\tif (preview2NavIndex >= 0)
+\t\t\tm_nextNavigation.SetCurSel(preview2NavIndex);
+\t\tCRect preview2Rect;
+\t\tsearchlistctrl.GetWindowRect(&preview2Rect);
+\t\tScreenToClient(&preview2Rect);
+\t\tconst int preview2NavWidth = CEmuleNextModernUi::NavigationWidth(m_hWnd);
+\t\tconst int preview2Gap = CEmuleNextModernUi::ControlGap(m_hWnd);
+\t\tm_nextNavigation.MoveWindow(preview2Rect.left, preview2Rect.top, preview2NavWidth, preview2Rect.Height());
+\t\tif (preview2ActiveView != NULL)
+\t\t\tpreview2ActiveView->MoveWindow(preview2Rect.left + preview2NavWidth + preview2Gap, preview2Rect.top,
+\t\t\t\tmax(0, preview2Rect.Width() - preview2NavWidth - preview2Gap), preview2Rect.Height());
 '''
         cpp = cpp.replace(return_anchor, layout + return_anchor, 1)
 
@@ -127,39 +127,45 @@ def main() -> int:
 
 void CSearchResultsWnd::OnNextNavigationChanged()
 {
-	const int selection = m_nextNavigation.GetCurSel();
-	const uint32 ids[] = {
-		EMULENEXT_SEARCH2_VIEW_ID,
-		EMULENEXT_LIBRARY_VIEW_ID,
-		EMULENEXT_KNOWN_USERS_VIEW_ID,
-		EMULENEXT_SETTINGS_VIEW_ID,
-		EMULENEXT_DIAGNOSTICS_VIEW_ID
-	};
-	if (selection < 0 || selection >= _countof(ids))
-		return;
+\tconst int selection = m_nextNavigation.GetCurSel();
+\tconst uint32 ids[] = {
+\t\tEMULENEXT_SEARCH2_VIEW_ID,
+\t\tEMULENEXT_LIBRARY_VIEW_ID,
+\t\tEMULENEXT_KNOWN_USERS_VIEW_ID,
+\t\tEMULENEXT_SETTINGS_VIEW_ID,
+\t\tEMULENEXT_DIAGNOSTICS_VIEW_ID
+\t};
+\tif (selection < 0 || selection >= _countof(ids))
+\t\treturn;
 
-	TCITEM item = {};
-	item.mask = TCIF_PARAM;
-	for (int i = 0; i < searchselect.GetItemCount(); ++i) {
-		if (!searchselect.GetItem(i, &item) || item.lParam == NULL)
-			continue;
-		SSearchParams* params = reinterpret_cast<SSearchParams*>(item.lParam);
-		if (params->dwSearchID == ids[selection]) {
-			searchselect.SetCurSel(i);
-			searchselect.HighlightItem(i, FALSE);
-			ShowResults(params);
-			return;
-		}
-	}
+\tTCITEM item = {};
+\titem.mask = TCIF_PARAM;
+\tfor (int i = 0; i < searchselect.GetItemCount(); ++i) {
+\t\tif (!searchselect.GetItem(i, &item) || item.lParam == NULL)
+\t\t\tcontinue;
+\t\tSSearchParams* params = reinterpret_cast<SSearchParams*>(item.lParam);
+\t\tif (params->dwSearchID == ids[selection]) {
+\t\t\tsearchselect.SetCurSel(i);
+\t\t\tsearchselect.HighlightItem(i, FALSE);
+\t\t\tShowResults(params);
+\t\t\treturn;
+\t\t}
+\t}
 }
 '''
 
     # Structural final-state checks catch partial/misplaced materialization
-    # before MSVC. The navigation must be created after the complete Diagnostics
-    # block and before workspace restoration.
+    # before MSVC. In particular, the control ID must precede the MFC message
+    # map and the navigation control must be created after Diagnostics but before
+    # workspace restoration.
+    definition_pos = cpp.find(definition)
+    message_map_pos = cpp.find(map_anchor)
+    message_entry_pos = cpp.find("ON_LBN_SELCHANGE(IDC_EN_PREVIEW2_NAV, OnNextNavigationChanged)")
     create_pos = cpp.find('m_nextNavigation.AddString(_T("Search"));')
     diag_pos = cpp.find("\tif (m_diagnosticsWnd.Create(this)) {")
     restore_pos = cpp.find("\t// Restore the last eMule Next workspace; fall back to Known Users.")
+    if not (definition_pos >= 0 and message_map_pos > definition_pos and message_entry_pos > message_map_pos):
+        raise SystemExit("Preview2 navigation: control ID/message-map compile ordering unsafe")
     if not (diag_pos >= 0 and create_pos > diag_pos and restore_pos > create_pos):
         raise SystemExit("Preview2 navigation: unsafe host creation ordering")
 
