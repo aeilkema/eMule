@@ -7,6 +7,14 @@
 
 #include <winsqlite3.h>
 #include <algorithm>
+#include <chrono>
+
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 
 EmuleNextFileHistory::EmuleNextFileHistory()
     : ewmaBytesPerSecond(0.0)
