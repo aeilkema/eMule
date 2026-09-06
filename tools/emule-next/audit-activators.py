@@ -17,6 +17,7 @@ ENTRY = HERE / "activate-features.py"
 REQUIRED_ORDER = (
     "activate-next-views.py",
     "activate-search2-background-metadata.py",
+    "activate-search2-background-actions.py",
     "finalize-search-results.py",
     "activate-smart-scheduler-runtime.py",
     "activate-scheduler-persistence.py",
@@ -26,6 +27,7 @@ REQUIRED_ORDER = (
     "activate-ui-metrics.py",
     "activate-next-view-dpi.py",
     "verify-search2-background-metadata.py",
+    "verify-search2-background-actions.py",
     "verify-ui-data-bounds.py",
     "verify-smart-scheduling.py",
     "verify-smart-scheduler-runtime.py",
@@ -58,8 +60,6 @@ def script_order(source: str) -> list[str]:
 def main() -> int:
     failures: list[str] = []
 
-    # Parse every integration helper, not only the entry point. This catches a
-    # broken activator before it can partially mutate the build tree.
     for path in sorted(HERE.glob("*.py")):
         try:
             ast.parse(read(path), filename=str(path))
@@ -99,6 +99,11 @@ def main() -> int:
         failures.append("Search 2 metadata activator no longer moves recurring reads to a worker")
     if "CSearch2Service service(theEmuleNext.Database())" not in search_metadata:
         failures.append("Search 2 metadata worker lost its service integration")
+
+    search_actions = read(HERE / "activate-search2-background-actions.py")
+    for marker in ("service.SaveSearch", "service.DeleteSavedSearch", "service.AddHashBlock"):
+        if marker not in search_actions:
+            failures.append(f"Search 2 background action activator missing {marker}")
 
     search_injectors: list[str] = []
     for path in HERE.glob("*.py"):
