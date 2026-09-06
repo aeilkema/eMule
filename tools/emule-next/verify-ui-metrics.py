@@ -47,12 +47,11 @@ def main() -> int:
     require(search2, "CEmuleNextUiMetrics::Scale(m_hWnd, 360)", "Search 2 scaled columns")
     require(library, '#include "EmuleNextUiMetrics.h"', "Library metrics include")
     require(library, "const int controlsTop = CEmuleNextUiMetrics::Scale", "Library scaled layout")
-    require(library, "CEmuleNextUiMetrics::Scale(m_hWnd, 340)", "Library scaled columns")
+    require(library, "m_results.InsertColumn(0, _T(\"File\"), LVCFMT_LEFT, CEmuleNextUiMetrics::Scale(m_hWnd, 330));", "Library 2 scaled file column")
+    require(library, "const int actionHeight = CEmuleNextUiMetrics::Scale", "Library 2 scaled action row")
 
     # Known Users 2.0 owns its DPI-aware geometry directly instead of relying
     # on the legacy activate-next-view-dpi.py constants (190/84/105 etc.).
-    # Verify the actual 2.0 contract so the old verifier cannot reject a newer
-    # layout merely because a column width was intentionally changed.
     require(known, '#include "EmuleNextUiMetrics.h"', "Known Users metrics include")
     require(known, "const int margin = CEmuleNextUiMetrics::Scale(m_hWnd, 8);", "Known Users 2.0 scaled margin")
     require(known, "const int modesWidth = CEmuleNextUiMetrics::Scale(m_hWnd, 330);", "Known Users 2.0 scaled mode tabs")
