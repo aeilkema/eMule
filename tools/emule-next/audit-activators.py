@@ -35,6 +35,7 @@ REQUIRED_ORDER = (
     "finalize-search-results.py",
     "activate-dashboard.py",
     "activate-dashboard-navigation.py",
+    "activate-dashboard-host-hardening.py",
     "activate-smart-scheduler-runtime.py",
     "activate-scheduler-action-stability.py",
     "activate-scheduler-schema-v2.py",
@@ -135,8 +136,6 @@ def main() -> int:
             if ordered.index("verify-intelligence-goal-complete.py") > ordered.index("audit-activators.py"):
                 failures.append("intelligence completion gate must run before the activator audit")
 
-    # Dashboard 2.0 supersedes old rendering/content patches, but it does NOT
-    # supersede the TransferWnd/DownloadListCtrl/PartFile host bridges.
     hosts = assigned_string_set(source, "DASHBOARD_HOST_INTEGRATORS")
     render_patchers = assigned_string_set(source, "DASHBOARD_RENDER_PATCHERS")
     expected_hosts = {"activate-dashboard.py", "activate-dashboard-navigation.py"}
@@ -156,9 +155,6 @@ def main() -> int:
     if "has_dashboard_intelligence2()" not in source:
         failures.append("Dashboard Intelligence 2.0 materialization guard missing")
 
-    # Windows Git checkouts often use CRLF. The central entrypoint must normalize
-    # the source overlay before any multiline activator executes; build-local.ps1
-    # performs the same step explicitly as defense in depth.
     for marker in (
         "def normalize_activation_sources()",
         "normalize_activation_sources()",
@@ -210,6 +206,13 @@ def main() -> int:
     ):
         if marker not in dashboard_navigation:
             failures.append(f"Dashboard navigation integration lost {marker}")
+    dashboard_hardening = read(HERE / "activate-dashboard-host-hardening.py")
+    for marker in (
+        "restore persisted Dashboard safely after first real layout",
+        "rebuilding toolbar chrome must not discard Dashboard selection",
+    ):
+        if marker not in dashboard_hardening:
+            failures.append(f"Dashboard host hardening lost {marker}")
 
     stability = read(HERE / "activate-scheduler-action-stability.py")
     for marker in ("previousActionAt", "candidate.lastA4AFAt", "Preserve an active measurement window"):
