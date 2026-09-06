@@ -145,6 +145,7 @@ for script_name in (
     "verify-library2-compile-contracts.py",
     "verify-library2-product.py",
     "verify-ui-navigation-modernization2.py",
+    "verify-winsqlite-maintenance-compat.py",
     "verify-database-recovery-diagnostics2.py",
     "verify-ui-data-bounds.py",
     "verify-known-users2.py",
