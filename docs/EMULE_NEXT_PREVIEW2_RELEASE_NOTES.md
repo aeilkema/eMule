@@ -4,13 +4,66 @@ Preview 2 is a productization and usability release built on the existing eMule 
 
 ## Main changes
 
-### Modern Preview 2 workspace
+### One primary Preview 2 shell
+
+The modern Preview 2 shell is now the primary product chrome rather than an extra layer behind the classic toolbar.
+
+Primary navigation:
+
+- Dashboard
+- Transfers
+- Search
+- Library
+- Shared Files
+- Known Users
+- Messages
+- Servers
+- Kad
+- Statistics
+- Settings
+- Diagnostics
+- IRC
+
+The classic toolbar and upstream dialogs remain available for compatibility, but Library, Known Users, Settings and Diagnostics no longer require users to navigate through an internal Search sidebar.
+
+The header includes the active section, Connect/Disconnect and live connection/transfer status using the existing eMule refresh paths rather than a second polling loop.
+
+### Modern Search with preserved legacy network search
+
+**Search** now opens Search 2 as the normal Preview 2 search workspace.
+
+Search 2 remains an intelligence/history layer. It does not implement a second eD2K/Kad network engine. A visible **Network search...** action switches to the existing `CSearchDlg`, restores the legacy Search result selector/tabs and opens the existing Search parameters. Server/global/Kad network routing therefore remains upstream-authoritative.
+
+The late Search bridge also has an explicit compile-order contract so it does not depend on accidental precompiled-header side effects.
+
+### Modern Preview 2 workspace styling
 
 - Shared `EmuleNextModernUi` design layer for DPI-aware spacing, surfaces, cards, fonts and list styling.
 - Segoe UI Variable is used when available, with Segoe UI fallback.
-- Permanent Search / Library / Known Users / Settings / Diagnostics workspaces get a dedicated Preview 2 navigation sidebar rather than relying only on legacy search-tab semantics.
 - Search, Library, Known Users, Dashboard and Transfers use the same modern list/header theming while keeping their existing product logic.
 - Dark/light/System appearance continues to use the existing theme service.
+
+### Dashboard progressive complexity
+
+Dashboard remains the daily transfer overview but no longer presents every specialist action as a permanent button.
+
+Primary filters:
+
+- All
+- Attention
+- Stalled
+- No sources
+- Active
+
+Primary actions:
+
+- Open Transfers
+- Open Sources
+- Pause/Resume
+- Refresh
+- More...
+
+`More...` keeps Rare parts, Low health, Intervention, A4AF, priority changes, forced analysis and intelligence reset available without dominating the normal workflow. The summary line is reduced to daily state: downloads, active items, attention count, transfer rate, uploads and scheduler state.
 
 ### Settings restructured
 
@@ -22,6 +75,8 @@ Normal Settings now contains only user-facing choices:
 - **Advanced** — optional explicit scheduler tuning.
 
 History-cache and scheduler-telemetry capacities are no longer normal user controls. Preview 2 keeps these bounded services enabled with conservative internal limits. Runtime counters, integrity status, backups and stress actions belong in Diagnostics instead of Settings.
+
+A **Classic eMule settings...** action remains available from the modern Settings entry point for upstream Connection, Directories and other legacy Preferences. This keeps one product entry point without duplicating the existing configuration engine.
 
 ### Diagnostics and runtime validation
 
@@ -67,18 +122,28 @@ Preview 2 includes the previously implemented hardening blocks:
 
 ### Search 2 / Library 2 / Known Users 2
 
-Preview 2 includes the current Search 2, Library 2 and Known Users 2 product tranches, including bounded/background reads, persistence, modern workspace integration and their existing completion gates. Real peer/network behavior still requires the runtime validation matrix before being called fully release-proven.
+Preview 2 includes the current Search 2, Library 2 and Known Users 2 product tranches, including bounded/background reads, persistence, modern workspace integration and their existing completion gates. Library and Known Users are promoted into primary navigation. Real peer/network behavior still requires the runtime validation matrix before being called fully release-proven.
 
-## Packaging
+## Clean build and materialization
 
-The repository now provides:
+`build-local.ps1` builds from a clean activation overlay. The base runtime/UI chain runs first, followed by `activate-preview2.py` as the explicit final product layer. The Preview 2 orchestrator parses all late scripts before applying them and then runs dedicated activation-chain, UX and product final-state gates.
+
+This prevents a successful Preview 2 build from accidentally depending on stale generated source from a previous local build.
+
+## Packaging and support
+
+The repository provides:
 
 - `build-local.ps1` -> `artifacts/eMule-Next-0.2.0-Preview2-x64.exe`
 - `package-preview2.ps1` -> portable Preview 2 ZIP + SHA-256 manifest
 - `build-preview2-installer.ps1` -> x64 MSI through WiX CLI
 - `installer/preview2/Product.wxs` -> MajorUpgrade-capable MSI definition
+- `create-preview2-support-bundle.ps1` -> privacy-bounded support ZIP from an exported Diagnostics report
+- `finalize-preview2-rc.ps1` -> release verification, portable package, optional MSI and final SHA-256 RC manifest
 
 The portable ZIP contains no user configuration, intelligence database or download state. The MSI installs only application binaries and shortcuts; normal uninstall/upgrade therefore does not intentionally remove user data.
+
+The support bundle explicitly excludes the intelligence SQLite database, Preferences/config files, peer history/`known.met` and incomplete `.part/.part.met` downloads.
 
 ## Safety defaults
 
