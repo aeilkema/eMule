@@ -26,6 +26,7 @@ REQUIRED_ORDER = (
     "activate-ui-metrics.py",
     "activate-next-view-dpi.py",
     "activate-transfer-insights-2.py",
+    "activate-dashboard-intelligence2-fixes.py",
     "verify-search2-background-metadata.py",
     "verify-search2-background-actions.py",
     "verify-ui-data-bounds.py",
@@ -40,6 +41,7 @@ REQUIRED_ORDER = (
     "verify-no-hotpath-sqlite.py",
     "verify-scheduler-persistence.py",
     "verify-scheduler-schema-v2.py",
+    "verify-scheduler-database-maintenance.py",
 )
 
 
@@ -108,6 +110,15 @@ def main() -> int:
 
     if "has_dashboard_intelligence2()" not in source or "DASHBOARD_LEGACY_PATCHERS" not in source:
         failures.append("Dashboard Intelligence 2.0 legacy-patcher guard missing")
+    for legacy in (
+        "activate-dashboard.py",
+        "activate-dashboard-actions.py",
+        "activate-dashboard-source-profile.py",
+        "activate-smart-scheduler-ui.py",
+        "activate-dashboard-shared-insights.py",
+    ):
+        if legacy not in source:
+            failures.append(f"Dashboard legacy-patcher guard lost {legacy}")
 
     search_injectors: list[str] = []
     for path in HERE.glob("*.py"):
