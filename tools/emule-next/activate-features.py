@@ -54,6 +54,7 @@ for script_name in (
     "activate-smart-scheduler-runtime.py",
     "activate-scheduler-persistence.py",
     "activate-smart-scheduler-ui.py",
+    "activate-scheduler-persistence-status.py",
     "activate-dashboard-shared-insights.py",
     "activate-ui-metrics.py",
     "activate-next-view-dpi.py",
