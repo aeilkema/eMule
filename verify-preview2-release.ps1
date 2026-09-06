@@ -18,11 +18,13 @@ $requiredFiles = @(
     "docs\EMULE_NEXT_RUNTIME_TEST_MATRIX.md",
     "docs\EMULE_NEXT_TODO.md",
     "docs\EMULE_NEXT_PROJECT_PLAN.md",
+    "tools\emule-next\activate-features.py",
     "tools\emule-next\activate-preview2.py",
     "tools\emule-next\activate-preview2-ux-completion.py",
     "tools\emule-next\activate-preview2-search-ux.py",
     "tools\emule-next\activate-preview2-header-status.py",
     "tools\emule-next\activate-preview2-dashboard-ux.py",
+    "tools\emule-next\verify-preview2-activation-chain.py",
     "tools\emule-next\verify-preview2-ux-completion.py",
     "tools\emule-next\verify-preview2-product.py"
 )
@@ -38,11 +40,26 @@ $build = Get-Content -LiteralPath (Join-Path $RepoRoot "build-local.ps1") -Raw
 foreach ($marker in @(
     'eMule-Next-0.2.0-Preview2-x64.exe',
     'Building eMule Next Preview 2 x64',
+    'python (Join-Path $tools "activate-features.py")',
     'Preview 2:'
 )) {
     if (-not $build.Contains($marker)) {
         throw "Preview 2 release verification: build-local.ps1 missing '$marker'"
     }
+}
+
+$features = Get-Content -LiteralPath (Join-Path $RepoRoot "tools\emule-next\activate-features.py") -Raw
+foreach ($marker in @(
+    'preview2 = HERE / "activate-preview2.py"',
+    'runpy.run_path(str(preview2), run_name="__main__")',
+    '"fix-preview1-build.py"'
+)) {
+    if (-not $features.Contains($marker)) {
+        throw "Preview 2 release verification: clean activation path missing '$marker'"
+    }
+}
+if ($features.IndexOf('runpy.run_path(str(preview2), run_name="__main__")') -lt $features.IndexOf('"fix-preview1-build.py"')) {
+    throw "Preview 2 release verification: Preview 2 is not the final product layer"
 }
 
 $orchestrator = Get-Content -LiteralPath (Join-Path $RepoRoot "tools\emule-next\activate-preview2.py") -Raw
@@ -52,6 +69,7 @@ foreach ($marker in @(
     'activate-preview2-search-ux.py',
     'activate-preview2-header-status.py',
     'activate-preview2-dashboard-ux.py',
+    'verify-preview2-activation-chain.py',
     'verify-preview2-ux-completion.py',
     'verify-preview2-product.py'
 )) {
