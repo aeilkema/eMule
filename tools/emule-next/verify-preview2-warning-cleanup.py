@@ -11,6 +11,10 @@ ACTIVE_MAP = re.compile(
     r"^[ \t]*BEGIN_MESSAGE_MAP\([^\n]*\)\n.*?^[ \t]*END_MESSAGE_MAP\(\)",
     re.M | re.S,
 )
+CWND_CLASS = re.compile(
+    r"class\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*public\s+CWnd\s*\n\{(?P<body>.*?)\n\};",
+    re.S,
+)
 
 
 def read(rel: str) -> str:
@@ -31,6 +35,7 @@ def main() -> int:
     library_cpp = read("FileLibraryWnd.cpp")
     settings_h = read("EmuleNextSettingsWnd.h")
     settings_cpp = read("EmuleNextSettingsWnd.cpp")
+    diagnostics_h = read("EmuleNextDiagnosticsWnd.h")
     transfer = read("TransferWnd.cpp")
     results = read("SearchResultsWnd.cpp")
     search_list = read("SearchList.cpp")
@@ -75,6 +80,28 @@ def main() -> int:
     if "m_nextSettingsWnd.Create(" in results or "m_nextSettingsWnd.CreateView(" not in results:
         raise SystemExit("Warning cleanup verification: Settings host call not migrated to CreateView")
 
+    # Any remaining convenience Create overload on an eMule Next CWnd must
+    # explicitly expose CWnd::Create. This catches Diagnostics and future views
+    # without waiting for another full rebuild warning.
+    checked_cwnd_classes = 0
+    for path in sorted(SRC.glob("*.h")):
+        if not (path.name.startswith("EmuleNext") or path.name in {
+            "KnownUsersWnd.h", "Search2Wnd.h", "FileLibraryWnd.h", "DownloadIntelligenceWnd.h"
+        }):
+            continue
+        text = path.read_bytes().decode("latin-1", errors="ignore").replace("\r\n", "\n").replace("\r", "\n")
+        for match in CWND_CLASS.finditer(text):
+            body = match.group("body")
+            if not re.search(r"\b(?:bool|BOOL)\s+Create\s*\(", body):
+                continue
+            checked_cwnd_classes += 1
+            if "using CWnd::Create;" not in body:
+                raise SystemExit(
+                    f"Warning cleanup verification: {path.name}:{match.group(1)} hides CWnd::Create"
+                )
+    if "bool Create(CWnd* parent);" in diagnostics_h and "using CWnd::Create;" not in diagnostics_h:
+        raise SystemExit("Warning cleanup verification: Diagnostics Create overload not hardened")
+
     if "LPCTSTR pvPropValue = va_arg(args, LPCTSTR);" in search_list:
         raise SystemExit("Warning cleanup verification: Kad varargs still transport integers through pointers")
     if "const uint32 uPropValue = va_arg(args, uint32);" not in search_list:
@@ -116,8 +143,6 @@ def main() -> int:
     if "#pragma warning(disable:4266)\n#include <afxinet.h>\n#pragma warning(pop)" not in http_header:
         raise SystemExit("Warning cleanup verification: vendor afxinet C4266 scope missing")
 
-    # Every real MFC message map in the complete source tree must have a local
-    # C4191 guard. Commented-out macro text is not a message map.
     total_maps = 0
     for path in SRC.rglob("*.cpp"):
         text = path.read_bytes().decode("latin-1", errors="ignore").replace("\r\n", "\n").replace("\r", "\n")
@@ -143,7 +168,10 @@ def main() -> int:
     if "<TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>" not in release:
         raise SystemExit("Warning cleanup verification: linker /WX zero-warning contract missing")
 
-    print(f"eMule Next Preview 2 zero-warning verification passed ({total_maps} active MFC maps guarded)")
+    print(
+        f"eMule Next Preview 2 zero-warning verification passed "
+        f"({total_maps} active MFC maps guarded; {checked_cwnd_classes} custom CWnd Create overloads hardened)"
+    )
     return 0
 
 
