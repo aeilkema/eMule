@@ -66,17 +66,11 @@ def has_dashboard_intelligence2() -> bool:
 
 normalize_activation_sources()
 
-# These two scripts are infrastructure, not legacy Dashboard rendering. They
-# must remain active so Dashboard 2.0 is hosted in Transfers and can navigate
-# back to the authoritative download list.
 DASHBOARD_HOST_INTEGRATORS = {
     "activate-dashboard.py",
     "activate-dashboard-navigation.py",
 }
 
-# These scripts patch the old Dashboard implementation itself. Intelligence
-# 2.0 already contains their final behavior, so replaying them would downgrade
-# or duplicate the materialized Dashboard source.
 DASHBOARD_RENDER_PATCHERS = {
     "fix-dashboard-compile.py",
     "activate-dashboard-actions.py",
@@ -106,6 +100,7 @@ for script_name in (
     "activate-dashboard-actions.py",
     "activate-dashboard-source-profile.py",
     "activate-file-intelligence-columns.py",
+    "verify-file-intelligence-transition.py",
     "activate-transfer-lifecycle.py",
     "activate-upload-transfer-lifecycle.py",
     "activate-transfer-statusbars.py",
