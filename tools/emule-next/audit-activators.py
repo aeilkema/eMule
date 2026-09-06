@@ -20,6 +20,7 @@ REQUIRED_ORDER = (
     "activate-search2-background-actions.py",
     "finalize-search-results.py",
     "activate-smart-scheduler-runtime.py",
+    "activate-scheduler-action-stability.py",
     "activate-scheduler-schema-v2.py",
     "activate-scheduler-persistence.py",
     "activate-scheduler-persistence-status.py",
@@ -98,6 +99,11 @@ def main() -> int:
     )
     if expected_a4af not in scheduler_activator:
         failures.append("A4AF hook no longer preserves legacy left/right candidate semantics")
+
+    stability = read(HERE / "activate-scheduler-action-stability.py")
+    for marker in ("previousActionAt", "candidate.lastA4AFAt", "Preserve an active measurement window"):
+        if marker not in stability:
+            failures.append(f"scheduler action stability lost {marker}")
 
     search_metadata = read(HERE / "activate-search2-background-metadata.py")
     if "AfxBeginThread(SavedSearchLoadWorker" not in search_metadata:
