@@ -131,6 +131,7 @@ for script_name in (
     "activate-transfer-insights-2.py",
     "activate-dashboard-intelligence2-fixes.py",
     "activate-ui-navigation-modernization2.py",
+    "activate-ui-navigation-modernization2-layout.py",
     "verify-search2-background-metadata.py",
     "verify-search2-background-actions.py",
     "verify-search2-product.py",
