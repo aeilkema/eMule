@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
-"""Repair legacy compatibility regressions, then materialize Preview 2.
+"""Repair legacy compatibility regressions before the final Preview 2 layer.
 
-This helper remains the last base-activation step so all historic product gates
-have already passed before Preview 2 replaces Settings/Diagnostics and applies
-its final visual/product layer.
+This helper remains the last base-activation step. It only repairs legacy
+compile-compatibility contracts. The outer activate-features.py entry point is
+the single owner that invokes activate-preview2.py exactly once afterwards.
 """
 from __future__ import annotations
 
 import pathlib
-import runpy
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SRC = ROOT / "srchybrid"
-HERE = pathlib.Path(__file__).resolve().parent
 
 
 def load(path: pathlib.Path) -> tuple[str, str]:
@@ -152,15 +150,6 @@ def main() -> int:
     patch_settings()
     patch_theme()
     print("eMule Next legacy compile compatibility fixes active")
-
-    # Preview 2 intentionally runs after every pre-existing completion gate and
-    # after the legacy compile-compatibility patch above. Its own orchestrator
-    # performs a final-state gate after materialization.
-    try:
-        runpy.run_path(str(HERE / "activate-preview2.py"), run_name="__main__")
-    except SystemExit as exc:
-        if exc.code not in (None, 0):
-            raise
     return 0
 
 
