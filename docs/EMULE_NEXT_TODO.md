@@ -10,10 +10,10 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 ## Huidige bewezen basis
 
 - Werkbranch: `goal-1-5`
-- Laatst lokaal succesvol gebouwde head: `250f87f70029bd6cacb4cd10000206c50e7a442f`
+- Laatst lokaal succesvol gebouwde head: `98f8272bd84a70f22da6a0ec1dad34af1c59bd75`
 - Release x64 lokale build: **geslaagd**, inclusief geïsoleerde activation-stage en verifier-keten.
 - Dashboard/Transfers Intelligence 2.0 + Scheduler persistence: **build bevestigd; runtime-smoketest blijft open**.
-- Known Users 2.0: **implementatie + completion gate gereed; eerstvolgende lokale buildtest**.
+- Known Users 2.0: **implementatie + completion gate + lokale Release x64 build geslaagd; runtime-smoketest blijft open**.
 - Smart Scheduler default: **Analysis only**
 - Protocolregel: legacy eD2K/Kad-logica blijft leidend.
 
@@ -35,9 +35,9 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 - [x] Lokale buildactivatie werkt via een staging-overlay zodat de echte repository-overlay niet wordt gemuteerd.
 - [x] `build/activation-stage` blijft bij falen beschikbaar en wordt bij succes standaard verwijderd; `-KeepActivationStage` kan hem expliciet bewaren.
 - [x] Intelligence 2.0 / Scheduler-completion head `250f87f70029bd6cacb4cd10000206c50e7a442f` lokaal Release x64 gebouwd.
-- [ ] Known Users 2.0 head lokaal Release x64 bouwen.
-- [ ] Runtime-smoketest uitvoeren.
-- [ ] Daarna `goal-1-5` naar `develop` promoveren.
+- [x] Known Users 2.0 head `98f8272bd84a70f22da6a0ec1dad34af1c59bd75` lokaal Release x64 gebouwd.
+- [ ] Known Users 2.0 runtime-smoketest uitvoeren.
+- [ ] Daarna alleen na expliciete toestemming `goal-1-5` naar `develop` promoveren.
 
 ## 2. Dashboard & Transfers Intelligence 2.0
 **Requirements:** INTEL-01, UI-01, UI-03, PERF-01
@@ -102,7 +102,7 @@ Dit bestand is de operationele werklijst voor de verdere ontwikkeling van eMule 
 - [x] Handmatige refresh van één peer toegevoegd zonder globale scan en zonder denied/failure-cooldowns te omzeilen.
 - [x] Lokale intelligence-history voor één peer asynchroon en gecontroleerd verwijderen; lokale alias/favorite blijven behouden.
 - [x] `verify-known-users2.py` completion gate + activator-audit + algemene integratieverifier bewaken het hoofdstuk.
-- [ ] Lokale Release x64 build van Known Users 2.0 bevestigen.
+- [x] Lokale Release x64 build van Known Users 2.0 bevestigd op `98f8272bd84a70f22da6a0ec1dad34af1c59bd75`.
 - [ ] Runtime: Current/History/Favorites/Recent + sort/filter/session-state controleren.
 - [ ] Runtime: restored View Shared Files-tab op userhash-deduplicatie testen.
 - [ ] Runtime: twee peers met dezelfde username en verschillende endpoints praktisch testen.
