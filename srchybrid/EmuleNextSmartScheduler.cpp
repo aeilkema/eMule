@@ -11,6 +11,7 @@
 #include "emule.h"
 
 #include <algorithm>
+#include <set>
 
 #ifdef min
 #undef min
@@ -21,9 +22,27 @@
 
 CEmuleNextSmartScheduler theEmuleNextScheduler;
 
+EmuleNextInterventionOutcome::EmuleNextInterventionOutcome()
+    : action(ENSA_NONE)
+    , startedAt(0)
+    , baselineBytesPerSecond(0.0)
+    , baselineUsableSources(0)
+    , measured30(false)
+    , bytesPerSecond30(0.0)
+    , usableSources30(0)
+    , measured120(false)
+    , bytesPerSecond120(0.0)
+    , usableSources120(0)
+{
+}
+
 EmuleNextSchedulerSnapshot::EmuleNextSchedulerSnapshot()
     : evaluatedAt(0)
     , lastInterventionAt(0)
+    , lastDiscoveryAt(0)
+    , lastA4AFAt(0)
+    , lastRarePartAt(0)
+    , lastUsefulSourceAt(0)
     , applied(false)
 {
 }
@@ -42,6 +61,7 @@ EmuleNextSchedulerRuntimeStatus::EmuleNextSchedulerRuntimeStatus()
     , telemetryEnabled(true)
     , telemetryPersistenceReady(false)
     , trackedFiles(0)
+    , trackedOutcomes(0)
     , historyFiles(0)
     , historyGeneration(0)
     , historyPendingWrites(0)
@@ -56,6 +76,7 @@ EmuleNextSchedulerRuntimeStatus::EmuleNextSchedulerRuntimeStatus()
 CEmuleNextSmartScheduler::CEmuleNextSmartScheduler()
     : m_roundRobinOffset(0)
     , m_lastTick(0)
+    , m_lastPruneTick(0)
 {
 }
 
@@ -152,6 +173,12 @@ void CEmuleNextSmartScheduler::Tick(CDownloadQueue* queue)
             m_history.SetDatabasePath(database.GetDatabasePath());
     }
 
+    const uint64 now = static_cast<uint64>(time(NULL));
+    if (m_lastPruneTick == 0 || tick - m_lastPruneTick >= 30000) {
+        PruneSnapshots(queue, now);
+        m_lastPruneTick = tick;
+    }
+
     const size_t total = static_cast<size_t>(queue->GetFileCount());
     if (total == 0)
         return;
@@ -163,13 +190,51 @@ void CEmuleNextSmartScheduler::Tick(CDownloadQueue* queue)
     for (size_t skip = 0; skip < start; ++skip)
         queue->GetFileNext(pos);
 
-    const uint64 now = static_cast<uint64>(time(NULL));
     for (size_t processed = 0; processed < count; ++processed) {
         CPartFile* file = queue->GetFileNext(pos);
         if (file != NULL)
             EvaluateFile(queue, file, settings, now, historyEnabled, telemetryEnabled);
     }
     m_roundRobinOffset = (start + count) % total;
+}
+
+bool CEmuleNextSmartScheduler::ForceAnalyze(CDownloadQueue* queue, CPartFile* file)
+{
+    if (queue == NULL || file == NULL || file->GetStatus() == PS_COMPLETE)
+        return false;
+    EmuleNextSchedulingSettings settings = LoadSettings();
+    settings.mode = ENSM_ANALYSIS_ONLY;
+    const bool historyEnabled = theApp.GetProfileInt(_T("eMule Next"), _T("SmartHistoryCache"), 1) != 0;
+    const bool telemetryEnabled = theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetry"), 1) != 0;
+    EvaluateFile(queue, file, settings, static_cast<uint64>(time(NULL)), historyEnabled, telemetryEnabled);
+    return true;
+}
+
+void CEmuleNextSmartScheduler::ResetFileIntelligence(const unsigned char* fileHash, bool clearHistory)
+{
+    Key key;
+    if (!MakeKey(fileHash, key))
+        return;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_snapshots.erase(key);
+        m_outcomes.erase(key);
+    }
+    if (clearHistory)
+        m_history.Remove(fileHash);
+}
+
+void CEmuleNextSmartScheduler::ResetAllSessionIntelligence(bool clearHistory)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_snapshots.clear();
+        m_outcomes.clear();
+        m_roundRobinOffset = 0;
+    }
+    m_telemetry.Clear();
+    if (clearHistory)
+        m_history.Clear();
 }
 
 void CEmuleNextSmartScheduler::EvaluateFile(CDownloadQueue* queue, CPartFile* file,
@@ -184,6 +249,7 @@ void CEmuleNextSmartScheduler::EvaluateFile(CDownloadQueue* queue, CPartFile* fi
         historical = m_history.HistoricalBytesPerSecond(file->GetFileHash());
     }
     const EmuleNextTransferInsight insight = CEmuleNextTransferInsights::Build(file, historical);
+    UpdateOutcome(file, insight, now);
     const EmuleNextSchedulingDecision decision = CDownloadIntelligence::EvaluateScheduling(
         insight.file, insight.parts, insight.bestSourceQuality, settings);
 
@@ -191,31 +257,48 @@ void CEmuleNextSmartScheduler::EvaluateFile(CDownloadQueue* queue, CPartFile* fi
     if (!MakeKey(file->GetFileHash(), key))
         return;
 
-    uint64 previousIntervention = 0;
+    EmuleNextSchedulerSnapshot previous;
+    bool hasPrevious = false;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         const std::map<Key, EmuleNextSchedulerSnapshot>::const_iterator existing = m_snapshots.find(key);
-        if (existing != m_snapshots.end())
-            previousIntervention = existing->second.lastInterventionAt;
+        if (existing != m_snapshots.end()) {
+            previous = existing->second;
+            hasPrevious = true;
+        }
     }
 
-    const uint32 since = previousIntervention == 0 || now <= previousIntervention
-        ? 0xFFFFFFFFu : static_cast<uint32>(std::min<uint64>(0xFFFFFFFFui64, now - previousIntervention));
+    const uint64 previousDiscovery = hasPrevious ? previous.lastDiscoveryAt : 0;
+    const uint32 sinceDiscovery = previousDiscovery == 0 || now <= previousDiscovery
+        ? 0xFFFFFFFFu : static_cast<uint32>(std::min<uint64>(0xFFFFFFFFui64, now - previousDiscovery));
     bool intervened = false;
     if (settings.mode == ENSM_AUTOMATIC
         && settings.sourceDiscovery
         && decision.discoveryChanged
         && decision.discoveryBudget > settings.normalDiscoveryBudget
         && insight.file.usableSources <= 3
-        && CDownloadIntelligence::ShouldApplyDecision(decision, settings, since)) {
+        && CDownloadIntelligence::ShouldApplyDecision(decision, settings, sinceDiscovery)) {
         queue->SendLocalSrcRequest(file);
         intervened = true;
+        BeginOutcome(file, ENSA_DISCOVERY_BOOST, now);
     }
 
     EmuleNextSchedulerSnapshot snapshot;
     snapshot.decision = decision;
     snapshot.evaluatedAt = now;
-    snapshot.lastInterventionAt = intervened ? now : previousIntervention;
+    if (hasPrevious) {
+        snapshot.lastInterventionAt = previous.lastInterventionAt;
+        snapshot.lastDiscoveryAt = previous.lastDiscoveryAt;
+        snapshot.lastA4AFAt = previous.lastA4AFAt;
+        snapshot.lastRarePartAt = previous.lastRarePartAt;
+        snapshot.lastUsefulSourceAt = previous.lastUsefulSourceAt;
+    }
+    if (insight.file.usableSources > 0 && (insight.bestSourceQuality > 0 || insight.file.currentBytesPerSecond > 0.0))
+        snapshot.lastUsefulSourceAt = now;
+    if (intervened) {
+        snapshot.lastInterventionAt = now;
+        snapshot.lastDiscoveryAt = now;
+    }
     snapshot.applied = intervened;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -243,23 +326,97 @@ void CEmuleNextSmartScheduler::EvaluateFile(CDownloadQueue* queue, CPartFile* fi
     }
 }
 
-void CEmuleNextSmartScheduler::MarkApplied(const unsigned char* fileHash, const CString& fileName)
+void CEmuleNextSmartScheduler::BeginOutcome(const CPartFile* file, EmuleNextSchedulingAction action, uint64 now)
 {
-    Key key;
-    if (!MakeKey(fileHash, key))
+    if (file == NULL)
         return;
+    Key key;
+    if (!MakeKey(file->GetFileHash(), key))
+        return;
+    EmuleNextInterventionOutcome outcome;
+    outcome.action = action;
+    outcome.startedAt = now;
+    outcome.baselineBytesPerSecond = static_cast<double>(file->GetDatarate());
+    const int valid = file->GetValidSourcesCount();
+    outcome.baselineUsableSources = valid > 0 ? static_cast<uint32>(valid) : 0;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_outcomes[key] = outcome;
+    }
+    m_telemetry.RecordOutcomeBaseline(file->GetFileHash(), file->GetFileName(), action,
+        now, outcome.baselineBytesPerSecond, outcome.baselineUsableSources);
+}
+
+void CEmuleNextSmartScheduler::UpdateOutcome(const CPartFile* file, const EmuleNextTransferInsight& insight, uint64 now)
+{
+    if (file == NULL)
+        return;
+    Key key;
+    if (!MakeKey(file->GetFileHash(), key))
+        return;
+
+    bool write30 = false;
+    bool write120 = false;
+    EmuleNextSchedulingAction action = ENSA_NONE;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        std::map<Key, EmuleNextInterventionOutcome>::iterator it = m_outcomes.find(key);
+        if (it == m_outcomes.end() || it->second.startedAt == 0 || now < it->second.startedAt)
+            return;
+        const uint64 elapsed = now - it->second.startedAt;
+        action = it->second.action;
+        if (!it->second.measured30 && elapsed >= 30) {
+            it->second.measured30 = true;
+            it->second.bytesPerSecond30 = insight.file.currentBytesPerSecond;
+            it->second.usableSources30 = insight.file.usableSources;
+            write30 = true;
+        }
+        if (!it->second.measured120 && elapsed >= 120) {
+            it->second.measured120 = true;
+            it->second.bytesPerSecond120 = insight.file.currentBytesPerSecond;
+            it->second.usableSources120 = insight.file.usableSources;
+            write120 = true;
+        }
+    }
+
+    if (write30)
+        m_telemetry.RecordOutcomeSample(file->GetFileHash(), file->GetFileName(), action,
+            now, 30, insight.file.currentBytesPerSecond, insight.file.usableSources);
+    if (write120)
+        m_telemetry.RecordOutcomeSample(file->GetFileHash(), file->GetFileName(), action,
+            now, 120, insight.file.currentBytesPerSecond, insight.file.usableSources);
+}
+
+void CEmuleNextSmartScheduler::MarkApplied(const CPartFile* file, EmuleNextSchedulingAction action)
+{
+    if (file == NULL)
+        return;
+    Key key;
+    if (!MakeKey(file->GetFileHash(), key))
+        return;
+    const uint64 now = static_cast<uint64>(time(NULL));
     bool changed = false;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         std::map<Key, EmuleNextSchedulerSnapshot>::iterator it = m_snapshots.find(key);
-        if (it != m_snapshots.end() && !it->second.applied) {
+        if (it != m_snapshots.end()) {
+            if (!it->second.applied)
+                changed = true;
             it->second.applied = true;
-            it->second.lastInterventionAt = static_cast<uint64>(time(NULL));
-            changed = true;
+            it->second.lastInterventionAt = now;
+            if (action == ENSA_A4AF_PREFER)
+                it->second.lastA4AFAt = now;
+            else if (action == ENSA_RARE_PART_PROTECT)
+                it->second.lastRarePartAt = now;
+            else if (action == ENSA_DISCOVERY_BOOST)
+                it->second.lastDiscoveryAt = now;
         }
     }
-    if (changed && theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetry"), 1) != 0)
-        m_telemetry.MarkAppliedIntervention(fileHash, fileName);
+    if (changed) {
+        BeginOutcome(file, action, now);
+        if (theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetry"), 1) != 0)
+            m_telemetry.MarkAppliedIntervention(file->GetFileHash(), file->GetFileName());
+    }
 }
 
 uint16 CEmuleNextSmartScheduler::AdjustPartRank(const CPartFile* file, UINT part, UINT frequency, uint16 legacyRank)
@@ -282,7 +439,7 @@ uint16 CEmuleNextSmartScheduler::AdjustPartRank(const CPartFile* file, UINT part
     const uint32 bonus = frequency <= 1 ? 1600u : (frequency == 2 ? 900u : 350u);
     const uint16 adjusted = static_cast<uint16>(legacyRank > bonus ? legacyRank - bonus : 0);
     if (adjusted != legacyRank)
-        MarkApplied(file->GetFileHash(), file->GetFileName());
+        MarkApplied(file, ENSA_RARE_PART_PROTECT);
     return adjusted;
 }
 
@@ -311,10 +468,46 @@ bool CEmuleNextSmartScheduler::PreferA4AFCandidate(const CPartFile* currentFile,
     if (!legacyPreference
         && candidate.decision.a4afScore >= currentScore + 80
         && candidate.decision.attention >= currentAttention) {
-        MarkApplied(candidateFile->GetFileHash(), candidateFile->GetFileName());
+        MarkApplied(candidateFile, ENSA_A4AF_PREFER);
         return true;
     }
     return legacyPreference;
+}
+
+void CEmuleNextSmartScheduler::PruneSnapshots(CDownloadQueue* queue, uint64 now)
+{
+    if (queue == NULL)
+        return;
+    std::set<Key> active;
+    for (POSITION pos = NULL; ;) {
+        CPartFile* file = queue->GetFileNext(pos);
+        if (file != NULL && file->GetStatus() != PS_COMPLETE) {
+            Key key;
+            if (MakeKey(file->GetFileHash(), key))
+                active.insert(key);
+        }
+        if (pos == NULL)
+            break;
+    }
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    for (std::map<Key, EmuleNextSchedulerSnapshot>::iterator it = m_snapshots.begin(); it != m_snapshots.end(); ) {
+        const bool inactive = active.find(it->first) == active.end();
+        const bool stale = it->second.evaluatedAt != 0 && now > it->second.evaluatedAt
+            && now - it->second.evaluatedAt > 900;
+        if (inactive || stale) {
+            m_outcomes.erase(it->first);
+            it = m_snapshots.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    for (std::map<Key, EmuleNextInterventionOutcome>::iterator it = m_outcomes.begin(); it != m_outcomes.end(); ) {
+        if (active.find(it->first) == active.end())
+            it = m_outcomes.erase(it);
+        else
+            ++it;
+    }
 }
 
 bool CEmuleNextSmartScheduler::GetSnapshot(const unsigned char* fileHash, EmuleNextSchedulerSnapshot& snapshot) const
@@ -327,6 +520,19 @@ bool CEmuleNextSmartScheduler::GetSnapshot(const unsigned char* fileHash, EmuleN
     if (it == m_snapshots.end())
         return false;
     snapshot = it->second;
+    return true;
+}
+
+bool CEmuleNextSmartScheduler::GetOutcome(const unsigned char* fileHash, EmuleNextInterventionOutcome& outcome) const
+{
+    Key key;
+    if (!MakeKey(fileHash, key))
+        return false;
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const std::map<Key, EmuleNextInterventionOutcome>::const_iterator it = m_outcomes.find(key);
+    if (it == m_outcomes.end())
+        return false;
+    outcome = it->second;
     return true;
 }
 
@@ -351,6 +557,7 @@ void CEmuleNextSmartScheduler::GetRuntimeStatus(EmuleNextSchedulerRuntimeStatus&
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         status.trackedFiles = static_cast<uint32>(m_snapshots.size());
+        status.trackedOutcomes = static_cast<uint32>(m_outcomes.size());
     }
     EmuleNextSchedulerTelemetrySummary telemetry;
     m_telemetry.Summary(telemetry);
@@ -366,10 +573,11 @@ CString CEmuleNextSmartScheduler::GetRuntimeStatusText() const
     EmuleNextSchedulerRuntimeStatus status;
     GetRuntimeStatus(status);
     CString text;
-    text.Format(_T("%s / %s | scan %u | cooldown %us | tracked %u | history %u%s q:%u drop:%llu gen:%llu | telemetry %s q:%u drop:%llu | decisions %llu | applied %llu"),
+    text.Format(_T("%s / %s | scan %u | cooldown %us | tracked %u outcomes %u | history %u%s q:%u drop:%llu gen:%llu | telemetry %s q:%u drop:%llu | decisions %llu | applied %llu"),
         (LPCTSTR)CDownloadIntelligence::SchedulingModeText(status.mode),
         (LPCTSTR)ProfileText(status.profile), status.maxFilesPerRound, status.cooldownSeconds,
-        status.trackedFiles, status.historyFiles, status.historyPersistenceReady ? _T(" persistent") : _T(" memory"),
+        status.trackedFiles, status.trackedOutcomes,
+        status.historyFiles, status.historyPersistenceReady ? _T(" persistent") : _T(" memory"),
         static_cast<unsigned int>(status.historyPendingWrites), status.historyDroppedWrites, status.historyGeneration,
         status.telemetryPersistenceReady ? _T("persistent") : _T("memory"),
         static_cast<unsigned int>(status.telemetryPendingWrites), status.telemetryDroppedWrites,
