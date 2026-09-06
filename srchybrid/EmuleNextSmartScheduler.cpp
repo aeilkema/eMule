@@ -40,11 +40,14 @@ EmuleNextSchedulerRuntimeStatus::EmuleNextSchedulerRuntimeStatus()
     , historyEnabled(true)
     , historyPersistenceReady(false)
     , telemetryEnabled(true)
+    , telemetryPersistenceReady(false)
     , trackedFiles(0)
     , historyFiles(0)
     , historyGeneration(0)
     , decisions(0)
     , appliedInterventions(0)
+    , telemetryPendingWrites(0)
+    , telemetryDroppedWrites(0)
 {
 }
 
@@ -136,10 +139,13 @@ void CEmuleNextSmartScheduler::Tick(CDownloadQueue* queue)
     const UINT telemetryCapacity = theApp.GetProfileInt(_T("eMule Next"), _T("SmartTelemetryCapacity"), 256);
     m_telemetry.SetCapacity(static_cast<size_t>(std::max<UINT>(16u, std::min<UINT>(4096u, telemetryCapacity))));
 
+    CEmuleNextDatabase& database = theEmuleNextRuntime.Database();
+    if (telemetryEnabled && database.IsRunning())
+        m_telemetry.SetDatabasePath(database.GetDatabasePath());
+
     if (historyEnabled) {
         const UINT historyCapacity = theApp.GetProfileInt(_T("eMule Next"), _T("SmartHistoryCacheCapacity"), 4096);
         m_history.SetCapacity(static_cast<size_t>(std::max<UINT>(128u, std::min<UINT>(16384u, historyCapacity))));
-        CEmuleNextDatabase& database = theEmuleNextRuntime.Database();
         if (database.IsRunning())
             m_history.SetDatabasePath(database.GetDatabasePath());
     }
@@ -344,6 +350,9 @@ void CEmuleNextSmartScheduler::GetRuntimeStatus(EmuleNextSchedulerRuntimeStatus&
     m_telemetry.Summary(telemetry);
     status.decisions = telemetry.decisions;
     status.appliedInterventions = telemetry.appliedInterventions;
+    status.telemetryPersistenceReady = telemetry.persistenceReady;
+    status.telemetryPendingWrites = telemetry.pendingPersistenceEvents;
+    status.telemetryDroppedWrites = telemetry.droppedPersistenceEvents;
 }
 
 CString CEmuleNextSmartScheduler::GetRuntimeStatusText() const
@@ -351,10 +360,12 @@ CString CEmuleNextSmartScheduler::GetRuntimeStatusText() const
     EmuleNextSchedulerRuntimeStatus status;
     GetRuntimeStatus(status);
     CString text;
-    text.Format(_T("%s / %s | scan %u | cooldown %us | tracked %u | history %u%s | decisions %llu | applied %llu"),
+    text.Format(_T("%s / %s | scan %u | cooldown %us | tracked %u | history %u%s | telemetry %s q:%u drop:%llu | decisions %llu | applied %llu"),
         (LPCTSTR)CDownloadIntelligence::SchedulingModeText(status.mode),
         (LPCTSTR)ProfileText(status.profile), status.maxFilesPerRound, status.cooldownSeconds,
         status.trackedFiles, status.historyFiles, status.historyPersistenceReady ? _T(" persistent") : _T(" memory"),
+        status.telemetryPersistenceReady ? _T("persistent") : _T("memory"),
+        static_cast<unsigned int>(status.telemetryPendingWrites), status.telemetryDroppedWrites,
         status.decisions, status.appliedInterventions);
     return text;
 }
