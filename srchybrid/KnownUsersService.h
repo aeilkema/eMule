@@ -7,11 +7,23 @@
 
 #include <vector>
 
-enum EmuleNextKnownUsersQuery
+enum EmuleNextKnownUsersQueryMode
 {
     ENKUQ_ALL = 0,
     ENKUQ_FAVORITES,
     ENKUQ_RECENT
+};
+
+struct EmuleNextKnownUsersQuery
+{
+    EmuleNextKnownUsersQueryMode mode;
+    CStringW text;
+    uint64 recentSince;
+
+    EmuleNextKnownUsersQuery()
+        : mode(ENKUQ_ALL), recentSince(0)
+    {
+    }
 };
 
 struct EmuleNextKnownUserRecord
@@ -64,7 +76,7 @@ public:
 
     // Reads are bounded and query-only. Current-vs-history is intentionally
     // resolved by the UI against CClientList, not inferred from stale SQLite.
-    bool ListUsers(EmuleNextKnownUsersQuery query,
+    bool ListUsers(const EmuleNextKnownUsersQuery& query,
         std::vector<EmuleNextKnownUserRecord>& users) const;
     bool ListFiles(const EmuleNextHash16& peerHash,
         std::vector<EmuleNextKnownFileRecord>& files) const;
