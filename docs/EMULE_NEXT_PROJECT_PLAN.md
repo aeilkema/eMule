@@ -1,232 +1,270 @@
 # eMule Next — projectplan en traceability
 
-Dit document beschrijft de productarchitectuur en acceptatiecriteria voor eMule Next. De operationele status staat in `docs/EMULE_NEXT_TODO.md`; echte runtimecases staan in `docs/EMULE_NEXT_RUNTIME_TEST_MATRIX.md`.
+Dit document beschrijft productarchitectuur, requirements en acceptatiecriteria. Operationele status staat in `docs/EMULE_NEXT_TODO.md`; echte runtime/protocolcases in `docs/EMULE_NEXT_RUNTIME_TEST_MATRIX.md`.
 
 ## Productdoel
 
-eMule Next moderniseert eMule zonder de bewezen eD2K/Kad-protocolkern onnodig te herschrijven. De upstream eMule v0.72a netwerk-, download-, upload-, hashing- en searchlogica blijft autoritatief. Nieuwe functionaliteit wordt eromheen gebouwd als bounded services, persistente intelligence en moderne workspaces.
+eMule Next moderniseert eMule zonder de bewezen upstream eMule v0.72a eD2K/Kad/search/download/upload/hashing-kern onnodig te herschrijven. Nieuwe functionaliteit wordt eromheen gebouwd als bounded services, persistente intelligence en moderne Windows-workspaces.
 
-Preview 2 is de eerste producttranche waarin deze technische lagen als één coherent Windows-product worden aangeboden: moderne hoofd-shell, begrijpelijke Settings, expliciete Diagnostics/runtimevalidatie en reproduceerbare portable/MSI-output.
+Preview 2 is de eerste tranche die als één Windows-product moet aanvoelen: één primaire shell, begrijpelijke Settings, technische Diagnostics, reproduceerbare artifacts en een expliciet runtime acceptance-pad.
+
+## Bewezen basis
+
+- Werkbranch: `goal-1-5`.
+- Laatst door gebruiker lokaal gebouwd én visueel bevestigd: `5049c3a69a1b14911daad6bfa5e9d173d2e9554a`.
+- Op die head is de nieuwe Preview 2 hoofdsidebar/header daadwerkelijk zichtbaar bij startup.
+- `4294bd9983c3da0286e4e1736b61032fedf1621d` blijft regressiereferentie: compile groen maar UI-acceptatie fout omdat de klassieke shell nog dominant was.
+- De huidige UX-completionlaag na `5049c3a...` is geïmplementeerd maar nog niet lokaal build/runtime bewezen.
 
 ## Hoofdrequirements
 
-| ID | Requirement | Acceptatiecriterium | Huidige status |
+| ID | Requirement | Acceptatiecriterium | Status |
 |---|---|---|---|
-| CORE-01 | Windows 10/11 x64 build | Lokale Release x64 build via geïsoleerde activation-stage; artifact wordt gepubliceerd | Preview 2 build bewezen op `4294bd9983c3da0286e4e1736b61032fedf1621d`; nieuwe zichtbare-main-shell head wacht op build |
-| CORE-02 | Legacy protocolcompatibiliteit | eD2K/Kad, bestaande downloads/uploads, A4AF, hashing en View Shared Files blijven werken | Legacy code blijft leidend; statische contractgate aanwezig; volledige live matrix blijft vereist |
-| PERF-01 | Responsieve UI/runtime | Geen nieuwe zware DB/filesystemtaken in GUI/network/scheduler hotpaths | Background/query-only/write-queue architectuur aanwezig; Preview 2 shell voegt alleen UI-routing/chrome toe |
-| PERF-02 | Bounded snelle lookups | ClientIndex/DownloadIndex bounded en onder stress correct | Deterministische 10k/5k self-test + tijdelijke 10k writerstress geïmplementeerd; runtime-run open |
-| PEER-01 | Persistente Known Users | Userhash, endpoints, first/last seen en presentatiegegevens historisch beschikbaar | Known Users 2.0 gebouwd; runtimevalidatie open |
-| PEER-02 | Veilige peer knowledge | Alleen bestaande shared-file capability; privacy/denial/cooldown respecteren; geen agressieve scan | Geïmplementeerd; Preview 2 Settings maakt dit als begrijpelijke productoptie zichtbaar |
-| PEER-03 | Geconsolideerde Known Users workspace | Eén permanente view met userlijst + geselecteerde filekennis | Gebouwd; Preview 2 moderniseert presentatie/navigation |
-| PEER-04 | Restored peer tabs dedupliceren | Userhash primair, endpoint alleen disambiguatie; geen dubbele automatische aanvraag | Statische/deterministische gates aanwezig; runtimecase open |
-| PEER-05 | Peer↔file historie | First/last seen en current/history per file | Geïmplementeerd en gebouwd; runtimecase open |
-| SEARCH-01 | Search 2 | Live legacy + historische kennis, filters, saved searches, block rules, bulk/export | Producttranche gebouwd; Preview 2 styling/navigation toegevoegd; runtime paralleltest open |
-| LIB-01 | Library 2 | History/favorites/completed/missing/download later/relink/download-again | Producttranche gebouwd; Preview 2 styling/navigation toegevoegd; runtime recoverycases open |
-| INTEL-01 | Download intelligence | Historische kennis ondersteunt analyse/advies/optionele automatisering zonder protocolbreuk | Dashboard/Transfers/Scheduler intelligence gebouwd; Analysis only blijft default |
-| UI-01 | Moderne productstructuur | **Bij startup direct herkenbare Preview 2 hoofd-shell** met moderne hoofdsidebar/header; klassieke toolbar niet meer primaire chrome; Dashboard/Transfers/Search/Library/Known Users/Settings/Diagnostics logisch bereikbaar | Inner-workspace UI compile-bewezen op `4294bd99…`, maar runtime toonde nog klassieke hoofd-shell; nieuwe main-shell materialization geïmplementeerd en wacht op build/runtimebewijs |
-| UI-02 | System/Light/Dark | Eén centrale appearance-keuze; geen losse per-view theme-knoppen | Preview 2 Settings centraliseert theme; ModernUi palette wordt ook door hoofdsidebar gebruikt |
-| UI-03 | Moderne DPI/layout | 100–200% bruikbaar, consistente spacing/fonts/cards/list styles, geen UI-blocking | ModernUi toolkit + UiMetrics + DPI-aware hoofdsidebar/header; praktische matrix open |
-| UI-04 | eMule Next branding | Productversie is duidelijk gescheiden van protocol-coreversie en zichtbaar in window/header/diagnostics | Preview 2 identiteit `0.2.0 Preview 2`; protocolnegotiatie blijft v0.72a core |
-| SESSION-01 | Sessiestatus/data behouden | Relevante viewstate, config, DB en incomplete downloads over restart/upgrade behouden | Preview2 main section wordt persistent; bestaande data persistence blijft leidend; upgradepraktijktest open |
-| DATA-01 | Lokale intelligence database | Schema migrations, async writer, query-only reads, backup/integrity/recovery | Schema v3 + backup/recovery/maintenance gebouwd op bewezen DB2 basis |
-| CI-01 | Reproduceerbare bootstrap/activation | Clean staged materialization, eindgates en optionele determinism check | Bewezen architectuur; Preview 2 wordt bewust pas na oude completion gates gematerialiseerd |
-| TEST-01 | Eerlijk runtimebewijs | Statische gates mogen echte netwerk/runtimetests niet vervangen | Runtime matrix bestaat en Preview 2 Diagnostics bewaart PASS/FAIL/Not tested per test-ID |
-| SUPPORT-01 | Diagnoseerbaar product | Health, queues, scheduler, stress, maintenance en exporteerbaar rapport | Preview 2 Diagnostics dashboard + export compile-bewezen; praktische runtime open |
-| RELEASE-01 | Preview 2 artifact identity | Eén versie/naam voor executable, build identity en release docs | `0.2.0 Preview 2`; `eMule-Next-0.2.0-Preview2-x64.exe` in buildscript |
-| RELEASE-02 | Portable distributie | ZIP bevat alleen runtime + docs, geen user data; SHA-256 manifest | `package-preview2.ps1` geïmplementeerd; daadwerkelijke package-test open |
-| RELEASE-03 | MSI installatie/upgrade | x64 MSI, MajorUpgrade, Start Menu, optionele Desktop shortcut; user data niet door MSI bezeten | WiX definitie + buildscript geïmplementeerd; install/upgrade/uninstall test open |
+| CORE-01 | Windows 10/11 x64 | Clean staged Release x64 build; artifact gepubliceerd | basis bewezen; huidige UX head build open |
+| CORE-02 | Protocolcompatibiliteit | eD2K/Kad/search/download/upload/A4AF/hash/View Shared Files blijven upstream-authoritatief | statische contractgates aanwezig; live matrix open |
+| PERF-01 | Responsieve UI/runtime | Geen zware DB/filesystemtaken in GUI/network/scheduler hotpaths | architectuur aanwezig |
+| PERF-02 | Bounded lookups | ClientIndex/DownloadIndex/writer queue bounded en stressbaar | 10k/5k/10k self-test aanwezig; runtime-run open |
+| PEER-01 | Persistente Known Users | userhash/endpoints/first-last seen beschikbaar | gebouwd; runtime open |
+| PEER-02 | Veilige peer knowledge | normale shared-file capability, denied/failure cooldown respecteren | gebouwd; runtime open |
+| PEER-03 | Known Users workspace | één gebruikers-/filekennisworkspace | gebouwd; primaire nav-promotie geïmplementeerd |
+| PEER-04 | Deduplicatie | userhash primair; endpoint alleen disambiguatie | gates aanwezig; runtime open |
+| PEER-05 | Peer↔file historie | first/last seen/current/history | gebouwd; runtime open |
+| SEARCH-01 | Search 2 / legacy Search | historische intelligence naast legacy netwerksearch; geen tweede netwerkengine | gebouwd; parallel runtime open |
+| LIB-01 | Library 2 | history/favorites/completed/missing/download later/relink/download-again | gebouwd; primaire nav-promotie geïmplementeerd |
+| INTEL-01 | Transfer intelligence | analyse/advies/optionele automation zonder protocolbreuk | gebouwd; Analysis only default |
+| DATA-01 | Intelligence DB | schema migration, async writer, backup/integrity/recovery | schema v3/DB2 gebouwd; failure runtime open |
+| UI-01 | Moderne productstructuur | bij startup direct zichtbare moderne shell | bewezen op `5049c3a...` |
+| UI-02 | System/Light/Dark | één centrale appearance-keuze | gebouwd; volledige runtime matrix open |
+| UI-03 | DPI/layout | 100–200%, resize, consistente controls | toolkit aanwezig; runtime matrix open |
+| UI-04 | Branding | Next-versie gescheiden van v0.72a protocolcore | `0.2.0 Preview 2` |
+| UI-05 | Single coherent application shell | primaire workspaces bereikbaar vanuit hoofdnav zonder verborgen Search-subnav als noodzakelijke eindroute | directe Library/Known Users/Settings/Diagnostics routing geïmplementeerd; build open |
+| UX-01 | Progressive complexity | dagelijkse acties direct; technische/rare acties beschikbaar maar niet dominant | Settings/Diagnostics-scheiding + classic settings bridge geïmplementeerd |
+| SESSION-01 | State/upgrade behoud | config/DB/downloadstate/viewstate behouden | architectuur aanwezig; upgradepraktijktest open |
+| CI-01 | Reproduceerbare materialization | clean overlay, oude gates eerst, late Preview2 final-state gates | bewezen patroon; UX-gate toegevoegd |
+| TEST-01 | Eerlijk runtimebewijs | static gate vervangt nooit netwerk/runtimetest | runtime matrix + Diagnostics status aanwezig |
+| SUPPORT-01 | Diagnoseerbaarheid | health, stress, maintenance, export en veilige supportbundle | report + safe support-bundle script aanwezig; runtime open |
+| RELEASE-01 | Artifact identity | vaste exe/manifest/version | gebouwd |
+| RELEASE-02 | Portable | ZIP zonder user state + SHA256 | script gereed; run open |
+| RELEASE-03 | MSI | x64, MajorUpgrade, shortcuts, user data niet bezeten | WiX/script gereed; run open |
+| RELEASE-04 | RC finalization | één commando voor releasecheck/portable/optionele MSI/hashmanifest | `finalize-preview2-rc.ps1` geïmplementeerd |
 
 ## Architectuurregels
 
-1. **Protocolkern blijft autoritatief.** Preview 2 mag geen tweede eD2K/Kad/search/download/uploadengine introduceren.
-2. **Geen SQLite in network/scheduler/GUI hotpaths.** Writes lopen via queues; reads/maintenance via workers/query-only verbindingen.
-3. **User identity = 16-byte userhash.** Username is presentatie/migratiesignaal; endpoint alleen disambiguatie waar nodig.
-4. **File identity = eD2K hash + size.** Filename is geen canonieke correlatiesleutel.
-5. **Automatic peer discovery is geen Search-tab.** Automatische share-antwoorden worden opgeslagen zonder ieder resultaat in legacy Search UI te injecteren.
-6. **Privacy/cooldown blijft leidend.** Handmatige peer refresh mag success-TTL vernieuwen, maar denied/failure-cooldowns niet omzeilen.
-7. **Analysis only blijft veilige default.** Assist/Automatic zijn expliciete gebruikerskeuzes.
-8. **Intelligence is bounded.** History/telemetry/queues/resultsets hebben harde limieten en maintenance/pruning.
-9. **Failure containment.** Een corrupte/uitgeschakelde intelligence DB mag de legacy eMule netwerkcore niet verhinderen te starten.
-10. **Settings en Diagnostics zijn gescheiden.** Settings bevat productkeuzes; Diagnostics bevat runtime-status, maintenance, stress en validatie.
-11. **Technische defaults niet onnodig exposen.** History/telemetrycapaciteiten zijn bounded productdefaults; expert scheduler tuning verschijnt alleen na expliciete Advanced-opt-in.
-12. **Moderne UI zonder nieuwe zware runtime.** Preview 2 gebruikt MFC/Win32 + gedeelde `CEmuleNextModernUi`; geen WebView/Chromium of externe UI-runtime.
-13. **Moderne shell boven legacy routing.** De Preview 2 hoofdsidebar/header sturen de bestaande `SetActiveDialog`, TransferWnd en Search-host. Ze vervangen geen protocol- of transferengine.
-14. **Late Preview 2 materialization.** Bestaande bewezen featurecompletion-gates draaien eerst. Preview 2 vervangt daarna de uiteindelijke UI/productbestanden en draait één eigen final-state gate.
-15. **Buildactivatie muteert de checkout niet.** Alle materialisatie vindt plaats in clean activation-stage en wordt content-aware naar de upstream buildtree gesynchroniseerd.
-16. **Build-success ≠ runtime-success.** Live eD2K/Kad/upload/download/A4AF/restart/DPI én zichtbare UI worden alleen PASS na werkelijke uitvoering.
-17. **Installer bezit geen user data.** Config, intelligence DB, peer history en incomplete downloads mogen niet als MSI-applicatiebestanden worden verwijderd bij uninstall/upgrade.
+1. **Protocolkern autoritatief.** Geen tweede eD2K/Kad/search/download/uploadengine.
+2. **Geen SQLite in hotpaths.** Writes via queue; queries/maintenance via bounded workers/query-only verbindingen.
+3. **User identity = 16-byte userhash.** Username is presentatie; endpoint alleen disambiguatie.
+4. **File identity = eD2K hash + size.** Filename is geen canonieke sleutel.
+5. **Automatic peer discovery is geen Search-tab.** Resultaten worden opgeslagen zonder legacy UI-tabspam.
+6. **Privacy/cooldown leidend.** Handmatig refresh mag success-TTL vernieuwen, niet denied/failure cooldown omzeilen.
+7. **Analysis only default.** Assist/Automatic altijd expliciete keuze.
+8. **Bounded intelligence.** Queues, history, telemetry en resultsets hebben harde limieten.
+9. **Failure containment.** Intelligence failure mag legacy eMule core niet blokkeren.
+10. **Settings ≠ Diagnostics.** Productkeuzes in Settings; status/maintenance/stress/recovery in Diagnostics.
+11. **Progressive complexity.** Technische defaults niet onnodig exposen; advanced tuning alleen expliciet.
+12. **MFC/Win32 productlaag.** Geen Chromium/WebView/zware UI-runtime.
+13. **Shell is router, geen backend.** Hoofdnav stuurt bestaande `SetActiveDialog`, TransferWnd en Search-host.
+14. **Late Preview2 materialization.** Bestaande featuregates eerst; product/UI-laag daarna; eigen final-state gates.
+15. **Checkout blijft schoon.** Activatie alleen in clean stage, content-aware sync naar upstream buildtree.
+16. **Build/UI/runtime afzonderlijk bewijs.** Compile groen is niet automatisch UI- of protocol-pass.
+17. **Installer/portable bezitten geen user state.** Geen config/intelligence DB/peer history/incomplete downloads verwijderen.
+18. **Supportbundle privacy-bounded.** Alleen Diagnostics-report/build/public docs; geen ruwe DB of willekeurige userlogmappen.
 
 ## Preview 2 UI-architectuur
 
 ### Hoofd-shell
 
-De eerste Preview 2 build compileerde de moderne workspaces maar liet de klassieke `CemuleDlg`/`CMuleToolbarCtrl` hoofdchrome dominant. Dat voldoet niet aan UI-01.
+De hoofd-shell bestaat uit:
 
-De definitieve Preview 2 shell bestaat daarom uit:
+- owner-drawn verticale hoofdsidebar;
+- productheader + actuele sectietitel;
+- live connection/transferstatus via bestaande eMule refreshpaden;
+- Connect/Disconnect via bestaande commandroute;
+- content rechts van sidebar en onder header;
+- klassieke toolbar technisch aanwezig maar niet primaire chrome.
 
-- een direct zichtbare owner-drawn hoofdsidebar;
-- Preview 2 productheader + actuele sectietitel;
-- een zichtbare Connect/Disconnect-actie;
-- contentgebied rechts van sidebar en onder header;
-- de legacy toolbar blijft technisch leven voor command compatibility maar is niet langer de primaire zichtbare navigatie;
-- routing blijft naar bestaande child windows en command handlers gaan.
+Nieuwe primaire navigation na UX completion:
 
-Hoofdsidebar:
+1. Dashboard
+2. Transfers
+3. Search
+4. Library
+5. Shared Files
+6. Known Users
+7. Messages
+8. Servers
+9. Kad
+10. Statistics
+11. Settings
+12. Diagnostics
+13. IRC
 
-- Dashboard
-- Transfers
-- Search
-- Shared Files
-- Servers
-- Kad
-- Messages
-- IRC
-- Statistics
-- Settings
+### Search-host routing
 
-`Dashboard` roept de bestaande eMule Next Dashboard-route aan; `Transfers` keert expliciet terug naar de klassieke downloadlijst. Geen netwerk- of transferlogica wordt gedupliceerd.
+De permanente Next-workspaces blijven technisch in `CSearchResultsWnd` omdat dit de bewezen host is. Voor de product-UX geldt echter:
 
-### Gedeelde ModernUi-laag
+- `ShowNextWorkspace(searchID)` is de smalle publieke router;
+- hoofdnav kan Library/Known Users/Settings/Diagnostics direct tonen;
+- interne Next-sidebar wordt bij directe hoofdnav-routes verborgen;
+- permanente workspace krijgt volledige contentbreedte;
+- `ShowLegacySearchWorkspace()` herstelt echte legacy Search-selector/tabs;
+- View Shared Files en handmatige netwerksearchtabs behouden hun klassieke lifecycle.
 
-`CEmuleNextModernUi` levert:
+Hierdoor wordt de Search-host een implementation detail, geen vereiste gebruikersnavigatie.
 
-- DPI-aware margins/controlhoogtes/navigationbreedte/headerhoogte;
-- Window/navigation/card palette bovenop bestaande theme service;
-- Segoe UI Variable met Segoe UI fallback;
-- moderne ListView/Header/Combo theming;
-- reusable owner-draw status cards;
-- `CEmuleNextNavList` voor moderne geselecteerde navigatierijen;
-- gedeelde success/warning/error/accent kleuren.
+### Settings
 
-### Permanente Next navigation
-
-De legacy Search host blijft bestaan om bewezen netwerksearchtabs niet te breken. Voor permanente eMule Next views blijft daarbinnen een tweede, contextspecifieke sidebar:
-
-- Search
-- Library
-- Known Users
-- Settings
-- Diagnostics
-
-Deze subnavigatie is geen vervanging voor de hoofd-shell; het is workspace-navigation binnen Search. Een latere polishronde mag Library/Known Users/Diagnostics direct vanuit de hoofdsidebar bereikbaar maken, mits zonder duplicate routing/logica.
-
-### Settings informatiearchitectuur
+Moderne hoofd-Settings:
 
 **Appearance**
 - System / Light / Dark
-- Smart ETA/Health indicatoren
+- Smart ETA/Health-presentatie
 
 **Peer knowledge**
-- automatische knowledge collection via normale shared-file capability
-- eenvoudige bounded concurrency: Automatic / 1 / 2 / 4 / 8
+- automatische knowledge collection
+- bounded concurrency Automatic/1/2/4/8
 
 **Intelligence**
-- Analysis only / Assist / Automatic
+- Analysis / Assist / Automatic
 - Conservative / Balanced / Responsive
-- Source discovery / A4AF / Rare-part intelligence
+- Source discovery / A4AF / Rare-parts
 
 **Advanced**
-- `Use custom scheduler tuning`
-- pas daarna cooldown / batch / A4AF threshold
+- custom scheduler tuning opt-in
+- cooldown / batch / A4AF threshold pas daarna
 
-Niet meer als normale instellingen:
-- history cache enable/capacity
-- telemetry enable/capacity
-- runtime counters/status
-- database maintenance/stress
+Daarnaast staat **Classic eMule settings...** in dezelfde Settings-ingang voor upstream Connection, Directories en overige Preferences. Daarmee is er één productingang zonder configfunctionaliteit te dupliceren.
 
-Doel voor eindproduct: Next-specifieke productkeuzes mogen niet als verborgen tweede settingswereld voelen; verdere integratie met de normale Preferences-ervaring blijft een expliciete UI-taak.
+### Diagnostics
 
-### Diagnostics informatiearchitectuur
-
-Bovenaan health cards:
+Health cards:
 - Database
 - Writer queue
-- Smart Scheduler
-- Performance self-test
+- Scheduler
+- Performance
 
-Daaronder maintenance:
+Maintenance:
 - integrity
 - backup
 - restore
 - prune
 - checkpoint
-- open backupfolder
+- backupfolder
 - stress self-test
 
-Daaronder runtime validation met persistente teststatus en rapportexport.
+Runtime validation:
+- persistente Not tested/PASS/FAIL/reset per testgroep
+- exporteerbaar support report
+- veilige support-bundle helper buiten de GUI, zonder user state.
+
+## Performance / stress
+
+Self-test gebruikt echte productdatastructuren maar disposable data:
+
+- ClientIndex: 10.000
+- DownloadIndex: 5.000
+- async DB writer: 10.000 events op tijdelijke database
+
+Pass vereist queued=0, processed=expected, dropped=0, errors=0. Live eD2K/Kad gedrag blijft aparte runtime matrix.
 
 ## Release-architectuur
 
-### Lokale executable
+### Build
 
-`build-local.ps1` publiceert na een succesvolle Release x64 build:
+`build-local.ps1` publiceert:
 
 - `artifacts/eMule-Next-0.2.0-Preview2-x64.exe`
 - `artifacts/eMule-Next-x64.exe`
 
-Productversie en build-head zijn metadata; ze veranderen geen protocolversie.
-
 ### Portable
 
-`package-preview2.ps1` maakt:
+`package-preview2.ps1` publiceert:
 
 - `eMule-Next-0.2.0-Preview2-x64-portable.zip`
-- SHA-256 manifest
+- SHA256 manifest
+- release notes/runtime matrix
+- veilige support-bundle helper
 
-De ZIP bevat executable + release/testdocumentatie, geen user state.
+Geen config, DB, peerhistory of `.part/.part.met`.
+
+### Support
+
+`create-preview2-support-bundle.ps1 -DiagnosticsReport <file>` maakt een privacy-bounded ZIP met:
+
+- geëxporteerd Diagnostics-report;
+- build/head/hash/systemmetadata;
+- publieke release notes/runtime matrix.
+
+Expliciet uitgesloten: intelligence DB, preferences/config, known.met/peerhistory, incomplete downloads, willekeurige logfolders.
 
 ### MSI
 
-`build-preview2-installer.ps1` + `installer/preview2/Product.wxs` leveren via WiX:
+`build-preview2-installer.ps1` + WiX:
 
-- x64 per-machine Program Files installatie;
-- Start Menu shortcut;
+- x64 Program Files;
+- Start Menu;
 - optionele Desktop shortcut;
 - MajorUpgrade;
-- geen eigendom over AppData/config/intelligence/downloadstate.
+- geen AppData/config/intelligence/downloadstate ownership.
 
-## Fasen en status
+### RC finalizer
 
-### Fase A — stabiele basis
-- Windows x64 build, dependency bootstrap, staged activation en determinism-mechanisme: **gereed/bewezen**.
+`finalize-preview2-rc.ps1`:
 
-### Fase B — peer knowledge
-- Known Users 2.0, share scanner, persistence en deduplicatie: **implementatie/build gereed; runtime open**.
+1. release-layout verificatie;
+2. portable package;
+3. optionele MSI (`-BuildMsi`);
+4. executable/ZIP/MSI SHA256;
+5. RC manifest met Git head;
+6. expliciete waarschuwing dat artifact-creatie geen runtime acceptance vervangt.
 
-### Fase C — Search en Library
-- Search 2.0 en Library 2.0 grote producttranches: **implementatie/build gereed; runtime open**.
+## Fasen
 
-### Fase D — Transfers/intelligence
-- Dashboard/Transfers/Scheduler canonical intelligence en persistence: **implementatie/build gereed; runtime open**.
+### A — Stabiele buildbasis
+**Gereed/bewezen.**
 
-### Fase E — data/recovery/performance hardening
-- schema v3, backups/recovery/diagnostics, index/writer stress en protocolcontractgate: **build bewezen; runtime self-test/matrix open**.
+### B — Peer knowledge
+**Implementatie/build gereed; live runtime open.**
 
-### Fase F — Preview 2 productisering
-- ModernUi toolkit + inner workspace styling: **compile-bewezen op `4294bd99…`**.
-- categorized Settings: **compile-bewezen; runtime open**.
-- Diagnostics cards/runtime matrix/export: **compile-bewezen; runtime open**.
-- contextspecifieke Next workspace sidebar: **compile-bewezen**.
-- zichtbare hoofd-shell: **geïmplementeerd na runtime UI-gap; nieuwe build/runtime open**.
-- Preview 2 version/artifact naming: **compile-bewezen**.
-- portable packaging: **script gereed; package/runtimetest open**.
-- MSI: **bron/buildscript gereed; WiX/install/upgrade/uninstall test open**.
+### C — Search/Library
+**Implementatie/build gereed; runtime open.**
 
-## Eerstvolgende acceptatiepad
+### D — Transfers/Scheduler intelligence
+**Implementatie/build gereed; runtime open.**
 
-1. Nieuwe `goal-1-5` head lokaal Release x64 bouwen via `build-local.ps1 -KeepActivationStage`.
-2. **Bij startup moet onmiddellijk de nieuwe Preview 2 hoofdsidebar + header zichtbaar zijn.** Als dat niet zo is, is UI-01 niet geslaagd ondanks een groene compile.
-3. Dashboard/Transfers/Search/Shared Files/Servers/Kad via hoofdsidebar aanklikken en routing controleren.
-4. Settings openen en controleren dat technische diagnostics daar niet teruggekeerd zijn.
-5. Diagnostics openen en UI/cards/runtime matrix controleren.
-6. Stress self-test uitvoeren en PASS-resultaat vastleggen.
-7. System/Light/Dark en DPI 100/125/150/175/200% testen.
-8. Preview 1 bestaande config/database/incomplete downloads met Preview 2 starten en behoud/migratie controleren.
-9. Runtime matrix doorlopen met echte eD2K/Kad peers/downloads/uploads.
-10. Diagnostics rapport exporteren als runtimebewijs.
-11. Portable ZIP genereren en clean-unpack/start testen.
-12. MSI bouwen met WiX en clean install / Preview1 upgrade / uninstall testen.
-13. Alleen na deze runtimebewijzen Preview 2 als release-candidate behandelen.
-14. `goal-1-5` nooit zonder expliciete toestemming naar `develop` promoveren.
+### E — Database/recovery/performance
+**Implementatie/build gereed; failure/stress/live runtime deels open.**
+
+### F — Preview 2 shell/productisering
+- inner ModernUi: build bewezen;
+- zichtbare hoofd-shell: build + zichtbaarheid bewezen op `5049c3a...`;
+- primaire Library/Known Users/Settings/Diagnostics routes: geïmplementeerd, nieuwe build open;
+- live headerstatus: geïmplementeerd, nieuwe build/runtime open;
+- safe support bundle + RC finalizer: scripts gereed, execution open.
+
+### G — Release Candidate acceptance
+Nog open; geen nieuwe featuretranche voordat onderstaande kernruntime is uitgevoerd.
+
+## Release Candidate acceptancepad
+
+1. Build huidige `goal-1-5` UX-completion head met `build-local.ps1 -KeepActivationStage`.
+2. Startup: moderne shell direct zichtbaar.
+3. Alle 13 hoofdnav-routes testen.
+4. Search met echte legacy resulttabs + View Shared Files naast directe Library/Known Users routes.
+5. Settings → Classic eMule settings bridge.
+6. Live header connection/rates.
+7. Diagnostics self-test PASS.
+8. System/Light/Dark en DPI 100/125/150/175/200 + resize.
+9. Preview1→Preview2 config/DB/downloadstate behoud.
+10. Disposable DB corruption/restore/recovery.
+11. eD2K server connect/search/download/reconnect.
+12. Kad bootstrap/search/source lookup/restart.
+13. upload/queue, pause/resume/restart/hash/completion, A4AF/rare-parts.
+14. View Shared Files accepted/denied/cooldown/background knowledge.
+15. Library relink/download-again/missing/available-again.
+16. Known Users userhash/duplicate names/alias/favorite/delete-history.
+17. Diagnostics report + safe support bundle.
+18. Portable clean-unpack/start.
+19. MSI clean install / Preview1 upgrade / uninstall; user state behouden.
+20. `finalize-preview2-rc.ps1`; hashes en Git head vastleggen.
+21. Alleen daarna **Preview 2 Release Candidate**.
+22. Geen merge `goal-1-5` → `develop` zonder expliciete toestemming.
